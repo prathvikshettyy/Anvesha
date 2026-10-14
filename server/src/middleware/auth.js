@@ -27,6 +27,27 @@ export function requireAuth(req, res, next) {
 }
 
 /**
+ * Optional JWT authentication middleware.
+ * If Authorization header is provided and valid, attaches req.user.
+ * If header is missing or token is invalid, continues as guest (req.user = undefined).
+ */
+export function optionalAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = header.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+  } catch (_) {
+    // Guest fallback
+  }
+  next();
+}
+
+/**
  * Sign a JWT for a user. Expires in 7 days.
  */
 export function signToken(user) {

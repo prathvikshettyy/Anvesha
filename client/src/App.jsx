@@ -92,15 +92,20 @@ function normaliseMoment(m) {
     senderName:     m.sender_name     ?? m.senderName     ?? 'Community Member',
     senderAvatar:   m.sender_avatar   ?? m.senderAvatar   ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
     momentType:     m.moment_type     ?? m.momentType,
-    title:          m.moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment',
+    title:          m.title           ?? (m.moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment'),
     vernacularText: m.vernacular_text ?? m.vernacularText ?? '',
     phoneticText:   m.phonetic_text   ?? m.phoneticText   ?? '',
     meaning:        m.meaning         ?? '',
     provenance:     m.provenance      ?? '',
+    audioUrl:       m.audio_url       ?? m.audioUrl       ?? '',
+    imageUrl:       m.image_url       ?? m.imageUrl       ?? m.image ?? '',
+    image:          m.image_url       ?? m.imageUrl       ?? m.image ?? '',
     audioDuration:  m.audio_duration  ?? m.audioDuration  ?? '0:04',
-    timestamp:      m.created_at
-      ? new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-      : m.timestamp ?? 'Recently',
+    timestamp:      m.timestamp       ?? (m.timestamp_iso
+      ? new Date(m.timestamp_iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      : m.created_at
+        ? new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        : 'Recently'),
     reactions:      Array.isArray(m.reactions) ? m.reactions : [],
   };
 }
@@ -159,13 +164,28 @@ export default function App() {
       .catch(() => {/* keep initialData */});
   }, []);
 
-  // ── Fetch real locket moments (only when logged in) ─────────────────────────
+  // ── Fetch real locket moments (available for both authenticated users & guests)
   const loadLocket = useCallback(() => {
-    if (!api.token.get()) return;
     api.locket.list()
-      .then(list => setLocketMoments(list.map(normaliseMoment)))
+      .then(list => {
+        if (Array.isArray(list) && list.length > 0) {
+          setLocketMoments(list.map(normaliseMoment));
+        }
+      })
       .catch(() => {/* keep initialData */});
   }, []);
+
+  // Fetch moments on mount and refresh periodically / on window focus
+  useEffect(() => {
+    loadLocket();
+    const interval = setInterval(loadLocket, 10000);
+    const onFocus = () => loadLocket();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loadLocket]);
 
   // Reload community data when user logs in
   useEffect(() => {

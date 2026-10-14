@@ -78,6 +78,12 @@ export function emitToUser(userId, event, payload) {
   ioInstance.to(`user:${userId}`).emit(event, payload);
 }
 
+/** Broadcast an event to all connected clients across the entire app. */
+export function broadcastRealtime(event, payload) {
+  if (!ioInstance) return;
+  ioInstance.emit(event, payload);
+}
+
 export function isOnline(userId) {
   return onlineUsers.has(userId);
 }

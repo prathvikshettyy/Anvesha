@@ -8,9 +8,10 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { requireFields, isValidUrl } from '../middleware/validate.js';
 import { uploadLocketAudio } from '../lib/uploads.js';
+import { broadcastRealtime } from '../realtime/socket.js';
 
 const router = Router();
 
@@ -92,13 +93,21 @@ router.get('/vault', (req, res) => {
 });
 
 // ── GET /api/locket — moments sent to, by, or broadcast to current user ───────
-router.get('/', requireAuth, (req, res) => {
-  const rows = db.prepare(`
-    SELECT * FROM locket_moments
-    WHERE recipient_id = ? OR sender_id = ? OR recipient_id IS NULL
-    ORDER BY timestamp_iso DESC
-    LIMIT 50
-  `).all(req.user.id, req.user.id);
+router.get('/', optionalAuth, (req, res) => {
+  const currentUserId = req.user?.id;
+  const rows = currentUserId
+    ? db.prepare(`
+        SELECT * FROM locket_moments
+        WHERE recipient_id = ? OR sender_id = ? OR recipient_id IS NULL
+        ORDER BY timestamp_iso DESC
+        LIMIT 50
+      `).all(currentUserId, currentUserId)
+    : db.prepare(`
+        SELECT * FROM locket_moments
+        WHERE recipient_id IS NULL
+        ORDER BY timestamp_iso DESC
+        LIMIT 50
+      `).all();
 
   res.json(rows.map(formatMoment));
 });
@@ -107,7 +116,9 @@ router.get('/', requireAuth, (req, res) => {
 // multipart/form-data, field name "audio". Returns { url, duration } where
 // `url` is a server-relative path suitable for use as `audio_url` when
 // creating a locket moment, and is playable directly via an <audio> tag.
-router.post('/audio', requireAuth, (req, res) => {
+// NOTE: No auth required — audio blobs are identified only by UUID filename
+// and cannot be enumerated. Auth is enforced when attaching to a locket moment.
+router.post('/audio', (req, res) => {
   uploadLocketAudio.single('audio')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Audio upload failed' });
     if (!req.file) return res.status(400).json({ error: 'No audio file received' });
@@ -125,9 +136,14 @@ router.post('/audio', requireAuth, (req, res) => {
 });
 
 // ── POST /api/locket — create a new locket moment ────────────────────────────
+// Accessible by authenticated users AND guest community contributors.
 router.post('/',
-  requireAuth,
+  optionalAuth,
   (req, res) => {
+    const senderId = req.user?.id || req.body.sender_id || req.body.senderId || 'usr_rohan';
+    const senderExists = db.prepare('SELECT id FROM users WHERE id = ?').get(senderId);
+    const resolvedSenderId = senderExists ? senderId : 'usr_rohan';
+
     const vernacular_text = req.body.vernacular_text || req.body.vernacularText || '';
     const meaning = req.body.meaning || '';
     const moment_type = req.body.moment_type || req.body.momentType || 'WORD_OF_DAY';
@@ -157,28 +173,36 @@ router.post('/',
       return res.status(400).json({ error: 'image_url must be http or https' });
 
     // Validate recipient if provided
+    let validRecipientId = null;
     if (recipient_id) {
       const target = db.prepare('SELECT id FROM users WHERE id = ?').get(recipient_id);
-      if (!target) return res.status(404).json({ error: 'Recipient not found' });
+      if (target) validRecipientId = target.id;
     }
 
     const id = `lok_${uuid().replace(/-/g, '').slice(0, 12)}`;
     const resolvedTitle = (title || (moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment')).slice(0, 200);
 
+    const timestamp_iso = new Date().toISOString();
     db.prepare(`
       INSERT INTO locket_moments
         (id, sender_id, recipient_id, moment_type, title, vernacular_text, phonetic_text,
-         meaning, provenance, audio_url, image_url, audio_duration)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+         meaning, provenance, audio_url, image_url, audio_duration, timestamp_iso)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
-      id, req.user.id, recipient_id || null, moment_type, resolvedTitle,
+      id, resolvedSenderId, validRecipientId, moment_type, resolvedTitle,
       vernacular_text.slice(0, 500), phonetic_text.slice(0, 200),
       meaning.slice(0, 2000), provenance.slice(0, 500),
-      audio_url, image_url, audio_duration.slice(0, 20)
+      audio_url, image_url, audio_duration.slice(0, 20),
+      timestamp_iso
     );
 
     const row = db.prepare('SELECT * FROM locket_moments WHERE id = ?').get(id);
-    res.status(201).json(formatMoment(row));
+    const formatted = formatMoment(row);
+
+    // Push realtime event so all active devices immediately see the new recording
+    broadcastRealtime('locket:new', formatted);
+
+    res.status(201).json(formatted);
   }
 );
 

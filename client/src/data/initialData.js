@@ -620,7 +620,7 @@ export const INITIAL_LOCKET_MOMENTS = [
     meaning: 'How are you? (Polite, warm greeting used with peers and elders alike in coastal Tulu Nadu)',
     provenance: 'Shared from her grandmother in Udupi',
     audioDuration: '0:04',
-    audioUrl: 'mock_audio_tulu_greeting',
+    audioUrl: '',
     timestamp: '2 hours ago',
     reactions: [
       { id: 'r1', user: 'Rohan', text: 'Loved the pronunciation!' }

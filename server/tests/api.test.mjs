@@ -157,26 +157,16 @@ async function runTests() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-<<<<<<< HEAD
-        title: 'Bengaluru Dialect Exchange Circle',
+        title: testEventTitle,
         category: 'community',
         venue: 'Cubbon Park Bandstand',
-=======
-        title: testEventTitle,
-        category: 'languages',
-        venue: 'KMC Greens Gazebo',
->>>>>>> 414f83ca74179a93dfbf728cb56b6f8f7085cb47
         date: 'Sunday, Oct 25 • 4:00 PM',
         description: 'Interactive conversational session practicing coastal phrases.',
       }),
     });
     assert(newEventRes.status === 201, 'POST /api/events returns 201 Created');
     const newEvent = await newEventRes.json();
-<<<<<<< HEAD
-    assert(newEvent.id && newEvent.title === 'Bengaluru Dialect Exchange Circle', 'Created event persisted and returned with ID');
-=======
     assert(newEvent.id && newEvent.title === testEventTitle, 'Created event persisted and returned with ID');
->>>>>>> 414f83ca74179a93dfbf728cb56b6f8f7085cb47
     createdEventId = newEvent.id;
 
     // Toggle save / bookmark
@@ -238,7 +228,26 @@ async function runTests() {
     const locketsData = await locketsRes.json();
     assert(Array.isArray(locketsData), 'Returns list of visible moments');
 
-    // Create new culture locket moment
+    // Upload real voice recording (multipart/form-data)
+    const audioBlob = new Blob(['RIFF....WAVEfmt '], { type: 'audio/webm;codecs=opus' });
+    const audioForm = new FormData();
+    audioForm.append('audio', audioBlob, 'voice-take.webm');
+    audioForm.append('duration_seconds', '3');
+
+    const uploadRes = await fetch(`${BASE}/locket/audio`, {
+      method: 'POST',
+      body: audioForm,
+    });
+    assert(uploadRes.status === 201, 'POST /api/locket/audio returns 201 Created');
+    const uploadData = await uploadRes.json();
+    assert(uploadData.url && uploadData.url.startsWith('/uploads/locket/'), 'Audio upload returns /uploads/locket/ path');
+    assert(uploadData.duration === '0:03', 'Audio upload returns formatted duration');
+
+    // Verify static audio serving
+    const staticAudioRes = await fetch(new URL(uploadData.url, BASE).href);
+    assert(staticAudioRes.status === 200, 'Uploaded audio is statically served via /uploads with 200 OK');
+
+    // Create new culture locket moment with uploaded audio
     const newLocketRes = await fetch(`${BASE}/locket`, {
       method: 'POST',
       headers: {
@@ -251,11 +260,14 @@ async function runTests() {
         phonetic_text: '/en-cha ool-ler/',
         meaning: 'How are you? (Quintessential coastal Tulu greeting)',
         provenance: 'Practiced across Dakshina Kannada & Udupi households',
+        audio_url: uploadData.url,
+        audio_duration: uploadData.duration,
       }),
     });
     assert(newLocketRes.status === 201, 'POST /api/locket returns 201 Created');
     const newLocket = await newLocketRes.json();
     assert(newLocket.id && newLocket.vernacularText === 'ಎಂಚ ಉಲ್ಲರ್ (Encha Uller)', 'Locket moment persisted in SQLite and returned');
+    assert(newLocket.audioUrl === uploadData.url, 'Locket moment contains uploaded audioUrl');
     createdLocketId = newLocket.id;
 
     // React to locket moment

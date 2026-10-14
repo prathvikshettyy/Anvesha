@@ -47,24 +47,34 @@ if (-not (Test-Path $DbPath)) {
     Write-Host "[Setup] Database seeded! Demo accounts: rohan/demo1234 | priya/demo1234" -ForegroundColor Green
 }
 
+# Auto-detect primary Wi-Fi / LAN IPv4 address for display
+$LanIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" } | Select-Object -ExpandProperty IPAddress -First 1)
+if (-not $LanIp) { $LanIp = "<your-local-ip>" }
+
 Write-Host ""
-Write-Host "===================================================" -ForegroundColor Magenta
+Write-Host "====================================================" -ForegroundColor Magenta
 Write-Host "  ShareSpot Dev Server Starting..." -ForegroundColor Magenta
 Write-Host "  API  -> http://localhost:3001/api/health" -ForegroundColor Cyan
 Write-Host "  Docs -> http://localhost:3001/api/docs" -ForegroundColor Cyan
-Write-Host "  App  -> http://localhost:5173" -ForegroundColor Cyan
-Write-Host "===================================================" -ForegroundColor Magenta
+Write-Host "  App  -> https://localhost:5173  (HTTPS - accept cert warning)" -ForegroundColor Green
+Write-Host "  LAN  -> https://${LanIp}:5173  (open this on mobile)" -ForegroundColor Yellow
+Write-Host "====================================================" -ForegroundColor Magenta
 Write-Host ""
 
-# Free ports 3001 and 5173 if any orphaned processes are holding them
-foreach ($port in @(3001, 5173)) {
+# Free ports 3001, 5173, 5174 if any orphaned processes are holding them
+$freed = $false
+foreach ($port in @(3001, 5173, 5174)) {
     $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
     foreach ($conn in $conns) {
         if ($conn.OwningProcess -gt 0) {
             Write-Host "[Setup] Releasing port $port held by PID $($conn.OwningProcess)..." -ForegroundColor Yellow
             Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+            $freed = $true
         }
     }
+}
+if ($freed) {
+    Start-Sleep -Milliseconds 600
 }
 
 # Start both servers

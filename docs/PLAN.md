@@ -101,12 +101,12 @@ Manipal-only" hackathon pitch described in `README.md` / `spec.md`:
 - [ ] Expose match breakdown to the client so "Why you matched" is specific
       (not a single vague sentence).
 
-### Phase 3 — Real Culture Locket recordings ☐
-- [ ] `LocketModal`: real `MediaRecorder` capture (webm/opus), waveform tied
-      to actual mic input, playback of the actual take before sending.
-- [ ] New `POST /api/locket/audio` (multipart) storing files under
+### Phase 3 — Real Culture Locket recordings ✅
+- [x] `LocketModal`: real `MediaRecorder` capture (webm/opus/m4a), waveform tied
+      to actual mic input, preview playback before sending, auto-save to server disk.
+- [x] New `POST /api/locket/audio` (multipart) storing files under
       `server/uploads/locket/`, served via `express.static('/uploads')`.
-- [ ] `CultureLocketCard`: play the real uploaded audio file; TTS kept only
+- [x] `CultureLocketCard`: play the real uploaded audio file; TTS kept only
       as a fallback for the curated dialect vault entries that have no
       recorded audio.
 

@@ -72,3 +72,7 @@ server/tests
 
 scripts/security-test.ps1
 docs/IMPLEMENTATION_CHECKLIST.md
+
+# User uploads
+server/uploads/
+!server/uploads/locket/.gitkeep
