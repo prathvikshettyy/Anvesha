@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, Sparkles, Calendar, Users, MapPin, ArrowRight, Mic, Heart, Bookmark } from 'lucide-react';
 import CultureLocketCard from '../components/CultureLocketCard';
 import EventCard from '../components/EventCard';
@@ -53,7 +53,7 @@ export default function HomeView({
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-cocoa-text">
               Namaskara, {user.name.split(' ')[0]}
             </h1>
-            <span className="text-xl">≡ƒî┐</span>
+            <span className="text-xl">🌿</span>
           </div>
           <p className="text-sm text-cocoa-text/75 mt-1">
             4 cultural gatherings happening near your campus this week.
@@ -77,7 +77,7 @@ export default function HomeView({
       <div className="relative overflow-hidden rounded-3xl border-2 border-blush-surface bg-gradient-to-r from-surface-container via-cream-canvas to-surface-container p-6 sm:p-8 shadow-warm">
         {/* Decorative corner folk ornaments */}
         <div className="absolute top-2 right-2 text-terra-primary/20 text-3xl font-serif select-none pointer-events-none">
-          ≡ƒ¬╖
+          🪷
         </div>
         <div className="absolute -bottom-4 -right-4 w-32 h-32 rounded-full bg-terra-primary/5 blur-xl pointer-events-none" />
 

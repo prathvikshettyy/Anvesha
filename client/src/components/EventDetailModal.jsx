@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Calendar, MapPin, CheckCircle, ExternalLink, Bookmark, Users, Heart, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -12,7 +12,7 @@ export default function EventDetailModal({ event, isOpen, onClose, isSaved, onTo
       origin: { y: 0.6 },
       colors: ['#C56E50', '#D9A441', '#E9CDB8']
     });
-    alert(`≡ƒÄë RSVP Confirmed for "${event.title}"! Added to your calendar.`);
+    alert(`🎉 RSVP Confirmed for "${event.title}"! Added to your calendar.`);
   };
 
   return (

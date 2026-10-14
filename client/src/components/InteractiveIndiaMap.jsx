@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import indiaData from '../data/indiaStatesData.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import IllustratedPin, { PIN_CATEGORIES } from './IllustratedPin';
@@ -264,7 +264,7 @@ export default function InteractiveIndiaMap({
             {/* Karnataka: Yakshagana Crown & Veena (Image 2) */}
             <g transform="translate(210, 630) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#C56E50" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒÄ¡</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🎭</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Karnataka
               </text>
@@ -273,7 +273,7 @@ export default function InteractiveIndiaMap({
             {/* Kerala: Kathakali Face Art (Image 1 & 2) */}
             <g transform="translate(235, 735) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#2D5F3E" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒææ</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">👑</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#2D5F3E">
                 Kerala
               </text>
@@ -282,7 +282,7 @@ export default function InteractiveIndiaMap({
             {/* Tamil Nadu: Bharatanatyam Classical Pose & Gopuram */}
             <g transform="translate(325, 680) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#A9332A" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒ¢ò</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🛕</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Tamil Nadu
               </text>
@@ -291,7 +291,7 @@ export default function InteractiveIndiaMap({
             {/* Maharashtra: Warli Tribal Circle Dance */}
             <g transform="translate(200, 510) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#E09F3E" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">Γ¡ò</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">⭕</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Maharashtra
               </text>
@@ -300,7 +300,7 @@ export default function InteractiveIndiaMap({
             {/* Rajasthan: Kathputli Royal Puppet */}
             <g transform="translate(225, 335) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#D9A441" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒÄ¬</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🎪</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Rajasthan
               </text>
@@ -309,7 +309,7 @@ export default function InteractiveIndiaMap({
             {/* Gujarat: Raas Garba Dandiya */}
             <g transform="translate(150, 420) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#1A5B66" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">Γ£¿</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">✨</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#1A5B66">
                 Gujarat
               </text>
@@ -318,7 +318,7 @@ export default function InteractiveIndiaMap({
             {/* West Bengal: Baul Ektara Singer */}
             <g transform="translate(505, 425) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#A9332A" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒ¬ò</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🪕</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 West Bengal
               </text>
@@ -327,7 +327,7 @@ export default function InteractiveIndiaMap({
             {/* Uttar Pradesh: Taj Mahal Mughal Arch & Kathak */}
             <g transform="translate(340, 330) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#6B2D5C" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒòî</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🕌</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Uttar Pradesh
               </text>
@@ -336,7 +336,7 @@ export default function InteractiveIndiaMap({
             {/* Odisha: Konark Sun Wheel */}
             <g transform="translate(445, 500) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#C56E50" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">Γÿ╕∩╕Å</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">☸️</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Odisha
               </text>
@@ -345,7 +345,7 @@ export default function InteractiveIndiaMap({
             {/* Jammu & Kashmir: Kashmiri Santoor */}
             <g transform="translate(225, 140) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#1A5B66" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒÅö∩╕Å</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🏔️</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Kashmir
               </text>
@@ -354,7 +354,7 @@ export default function InteractiveIndiaMap({
             {/* Punjab: Bhangra Dhol */}
             <g transform="translate(230, 235) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#E09F3E" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒÑü</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🥁</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">
                 Punjab
               </text>
@@ -363,7 +363,7 @@ export default function InteractiveIndiaMap({
             {/* Madhya Pradesh: Gond Tribal Deer */}
             <g transform="translate(315, 455) scale(0.85)">
               <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#2D5F3E" strokeWidth="1.5" opacity="0.9" />
-              <text x="20" y="25" textAnchor="middle" fontSize="17">≡ƒªî</text>
+              <text x="20" y="25" textAnchor="middle" fontSize="17">🦌</text>
               <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#2D5F3E">
                 Madhya Pradesh
               </text>
@@ -441,13 +441,13 @@ export default function InteractiveIndiaMap({
         {/* Hovered State Tooltip */}
         {hoveredState && (
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 bg-cream-canvas/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border-2 border-terra-primary/40 shadow-warm pointer-events-none flex items-center gap-3 animate-fadeIn">
-            <span className="text-2xl">{hoveredState.registry?.artIllustration?.symbol || '≡ƒôì'}</span>
+            <span className="text-2xl">{hoveredState.registry?.artIllustration?.symbol || '📍'}</span>
             <div>
               <h4 className="font-serif text-sm font-bold text-cocoa-text">
                 {hoveredState.name}
               </h4>
               <p className="text-[11px] text-cocoa-text/75">
-                {hoveredState.registry?.culturalTitle || 'Regional Living Heritage'} ┬╖{' '}
+                {hoveredState.registry?.culturalTitle || 'Regional Living Heritage'} ·{' '}
                 <strong className="text-terra-primary">{hoveredState.eventCount} active gathering{hoveredState.eventCount !== 1 ? 's' : ''}</strong>
               </p>
             </div>

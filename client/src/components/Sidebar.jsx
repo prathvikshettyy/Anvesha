@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Compass,
   Calendar,
@@ -45,7 +45,7 @@ export default function Sidebar({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-serif text-2xl font-bold tracking-tight text-cocoa-text">
-                  <span className="text-terra-primary font-bold">αñà</span>nvesha
+                  <span className="text-terra-primary font-bold">अ</span>nvesha
                 </span>
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-blush-surface/60 text-cocoa-text border border-terra-primary/20">
                   Culture

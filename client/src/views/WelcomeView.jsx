@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Sparkles,
   ArrowRight,
@@ -84,7 +84,7 @@ export default function WelcomeView({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-serif text-2xl font-bold tracking-tight text-cream-canvas drop-shadow-sm">
-                <span className="text-ochre-accent font-bold">αñà</span>nvesha
+                <span className="text-ochre-accent font-bold">अ</span>nvesha
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cream-canvas/15 text-cream-canvas border border-cream-canvas/30 backdrop-blur-xs">
                 Culture
@@ -169,7 +169,7 @@ export default function WelcomeView({
             <div className="relative flex items-center gap-2">
               <div className="w-3.5 h-3.5 rounded-full bg-ochre-accent border-2 border-cream-canvas shadow-lg animate-pulse-glow" />
               <div className="bg-cocoa-text/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-cream-canvas/20 text-[11px] font-semibold text-cream-canvas whitespace-nowrap shadow-md opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all">
-                <span className="text-ochre-accent font-bold">{pin.city}</span> ┬╖ {pin.title}
+                <span className="text-ochre-accent font-bold">{pin.city}</span> · {pin.title}
               </div>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function WelcomeView({
 
         <div className="flex items-center gap-2 text-xs">
           <ShieldCheck className="w-3.5 h-3.5 text-ochre-accent" />
-          <span>Opt-in discovery ┬╖ Authentic cultural cartography</span>
+          <span>Opt-in discovery · Authentic cultural cartography</span>
         </div>
       </div>
 
@@ -201,7 +201,7 @@ export default function WelcomeView({
                   Student & Mentor Access
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-cocoa-text mt-1.5">
-                  Sign in to <span className="text-terra-primary font-bold">αñà</span>nvesha
+                  Sign in to <span className="text-terra-primary font-bold">अ</span>nvesha
                 </h3>
               </div>
               <button
@@ -235,7 +235,7 @@ export default function WelcomeView({
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-serif text-xs font-bold text-cocoa-text">Rohan Shenoy</p>
-                  <p className="text-[11px] text-cocoa-text/60">Verified MAHE Student ┬╖ Coastal Hub</p>
+                  <p className="text-[11px] text-cocoa-text/60">Verified MAHE Student · Coastal Hub</p>
                 </div>
                 <CheckCircle className="w-4 h-4 text-terra-primary" />
               </div>
@@ -245,7 +245,7 @@ export default function WelcomeView({
                 className="w-full py-3 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2"
               >
                 <LogIn className="w-4 h-4" />
-                <span>Enter <span className="font-bold">αñà</span>nvesha Platform</span>
+                <span>Enter <span className="font-bold">अ</span>nvesha Platform</span>
               </button>
             </form>
 
@@ -257,7 +257,7 @@ export default function WelcomeView({
                 }}
                 className="text-xs text-terra-primary font-bold hover:underline"
               >
-                New here? Tailor your cultural interests ΓåÆ
+                New here? Tailor your cultural interests →
               </button>
             </div>
           </div>

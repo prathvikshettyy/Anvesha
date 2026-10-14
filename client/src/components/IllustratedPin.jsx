@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 export const PIN_CATEGORIES = {
   culture: {
@@ -6,70 +6,70 @@ export const PIN_CATEGORIES = {
     color: '#C56E50', // Terracotta
     bgClass: 'bg-terra-primary',
     icon: 'account_balance',
-    symbol: '≡ƒ¬╖'
+    symbol: '🪷'
   },
   festivals: {
     label: 'Festivals & Celebrations',
     color: '#A9332A', // Sindoor Crimson
     bgClass: 'bg-sindoor-red',
     icon: 'celebration',
-    symbol: 'Γ£¿'
+    symbol: '✨'
   },
   technology: {
     label: 'Technology & Hackathons',
     color: '#283D70', // Royal Indigo
     bgClass: 'bg-royal-indigo',
     icon: 'terminal',
-    symbol: 'ΓÜí'
+    symbol: '⚡'
   },
   music: {
     label: 'Folk & Classical Music',
     color: '#E09F3E', // Marigold Gold
     bgClass: 'bg-marigold-gold',
     icon: 'music_note',
-    symbol: '≡ƒ¬ò'
+    symbol: '🪕'
   },
   art: {
     label: 'Art & Traditional Crafts',
     color: '#1A5B66', // Peacock Teal
     bgClass: 'bg-peacock-teal',
     icon: 'palette',
-    symbol: '≡ƒÄ¿'
+    symbol: '🎨'
   },
   film: {
     label: 'Film & Theatre',
     color: '#6B2D5C', // Plum
     bgClass: 'bg-[#6B2D5C]',
     icon: 'movie',
-    symbol: '≡ƒÄ¡'
+    symbol: '🎭'
   },
   literature: {
     label: 'Books & Literature',
     color: '#5B332C', // Deep Cocoa
     bgClass: 'bg-cocoa-text',
     icon: 'menu_book',
-    symbol: '≡ƒô£'
+    symbol: '📜'
   },
   science: {
     label: 'Science & Discovery',
     color: '#2D5F3E', // Forest Mehndi
     bgClass: 'bg-forest-mehndi',
     icon: 'science',
-    symbol: 'ΓÜ¢∩╕Å'
+    symbol: '⚛️'
   },
   workshops: {
     label: 'Hands-on Workshops',
     color: '#D9A441', // Ochre
     bgClass: 'bg-ochre-accent',
     icon: 'psychology',
-    symbol: '≡ƒÆí'
+    symbol: '💡'
   },
   community: {
     label: 'Dialect & Community Circles',
     color: '#8B4513', // Warm Cinnamon
     bgClass: 'bg-[#8B4513]',
     icon: 'groups',
-    symbol: '≡ƒñ¥'
+    symbol: '🤝'
   }
 };
 
@@ -89,7 +89,7 @@ export default function IllustratedPin({ event, isSelected, onClick }) {
     >
       {/* Category Pill Tag on Hover */}
       <div className="absolute -top-7 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-cocoa-text text-cream-canvas text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap z-50">
-        {cat.symbol} {event.city || event.state} ┬╖ {event.title.slice(0, 24)}...
+        {cat.symbol} {event.city || event.state} · {event.title.slice(0, 24)}...
       </div>
 
       {/* Illustrated Ornamental Pin Silhouette */}

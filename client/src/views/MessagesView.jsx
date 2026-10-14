@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Send, Mic, Phone, Video, MoreVertical, Sparkles, Volume2 } from 'lucide-react';
 import { INITIAL_CONVERSATIONS } from '../data/initialData';
 
@@ -122,7 +122,7 @@ export default function MessagesView({ onOpenLocketModal }) {
                 <h3 className="font-serif text-base font-bold text-cocoa-text">{activeConv.partnerName}</h3>
                 <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-600" />
-                  <span>Online ┬╖ Paired Culture Connection</span>
+                  <span>Online · Paired Culture Connection</span>
                 </span>
               </div>
             </div>

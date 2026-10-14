@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
@@ -22,17 +22,17 @@ export default function EventsView({
   const [selectedStateName, setSelectedStateName] = useState(null);
 
   const categories = [
-    { id: 'ALL', label: 'All Heritage', symbol: '≡ƒç«≡ƒç│' },
-    { id: 'culture', label: 'Culture & Heritage', symbol: '≡ƒ¬╖' },
-    { id: 'festivals', label: 'Festivals', symbol: 'Γ£¿' },
-    { id: 'technology', label: 'Technology', symbol: 'ΓÜí' },
-    { id: 'music', label: 'Folk & Classical Music', symbol: '≡ƒ¬ò' },
-    { id: 'art', label: 'Art & Crafts', symbol: '≡ƒÄ¿' },
-    { id: 'film', label: 'Film & Theatre', symbol: '≡ƒÄ¡' },
-    { id: 'literature', label: 'Literature', symbol: '≡ƒô£' },
-    { id: 'science', label: 'Science', symbol: 'ΓÜ¢∩╕Å' },
-    { id: 'workshops', label: 'Workshops', symbol: '≡ƒÆí' },
-    { id: 'community', label: 'Community', symbol: '≡ƒñ¥' }
+    { id: 'ALL', label: 'All Heritage', symbol: '🇮🇳' },
+    { id: 'culture', label: 'Culture & Heritage', symbol: '🪷' },
+    { id: 'festivals', label: 'Festivals', symbol: '✨' },
+    { id: 'technology', label: 'Technology', symbol: '⚡' },
+    { id: 'music', label: 'Folk & Classical Music', symbol: '🪕' },
+    { id: 'art', label: 'Art & Crafts', symbol: '🎨' },
+    { id: 'film', label: 'Film & Theatre', symbol: '🎭' },
+    { id: 'literature', label: 'Literature', symbol: '📜' },
+    { id: 'science', label: 'Science', symbol: '⚛️' },
+    { id: 'workshops', label: 'Workshops', symbol: '💡' },
+    { id: 'community', label: 'Community', symbol: '🤝' }
   ];
 
   // Filter events based on state, category, search, and saved filter

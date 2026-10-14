@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { PIN_CATEGORIES } from './IllustratedPin';
 import { Calendar, MapPin, Bookmark, ArrowRight, Sparkles, X, ChevronRight, Award } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function StateDetailPanel({
         <div className="border-b border-blush-surface/80 pb-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{reg?.artIllustration?.symbol || '≡ƒôì'}</span>
+              <span className="text-2xl">{reg?.artIllustration?.symbol || '📍'}</span>
               <div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-cocoa-text">
                   {reg?.stateName || selectedStateName}
@@ -150,7 +150,7 @@ export default function StateDetailPanel({
                   </p>
                   <p className="text-[11px] text-cocoa-text/70 mt-0.5 flex items-center gap-1 truncate">
                     <MapPin className="w-3 h-3 text-terra-primary flex-shrink-0" />
-                    <span className="truncate">{evt.venue} ┬╖ {evt.city}</span>
+                    <span className="truncate">{evt.venue} · {evt.city}</span>
                   </p>
                 </div>
 

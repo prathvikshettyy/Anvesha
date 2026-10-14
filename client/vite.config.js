@@ -6,8 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // Proxy all /api requests to the Express server in development.
-    // This means the frontend uses the same origin — no CORS issues during dev.
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
@@ -16,3 +14,4 @@ export default defineConfig({
     },
   },
 })
+

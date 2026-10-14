@@ -1,4 +1,4 @@
-﻿// Cultural Art & Living Heritage Registry for Indian States
+// Cultural Art & Living Heritage Registry for Indian States
 // Inspired by the illustrated India cultural atlas reference
 
 export const CULTURAL_ART_REGISTRY = {
@@ -15,12 +15,12 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Yakshagana & Veena',
       x: 230,
       y: 645,
-      symbol: '≡ƒÄ¡'
+      symbol: '🎭'
     }
   },
   'kerala': {
     stateName: 'Kerala',
-    culturalTitle: 'GodΓÇÖs Own Coast: Kathakali & Vallam Kali',
+    culturalTitle: 'God’s Own Coast: Kathakali & Vallam Kali',
     tagline: 'Centuries of classical Sanskrit theatre, temple percussion, and backwater boat rituals.',
     accentColor: '#2D5F3E',
     dialects: ['Malayalam', 'Judeo-Malayalam', 'Arabimalayalam'],
@@ -31,7 +31,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Kathakali Face & Boat',
       x: 255,
       y: 750,
-      symbol: '≡ƒææ'
+      symbol: '👑'
     }
   },
   'tamil-nadu': {
@@ -47,7 +47,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Bharatanatyam & Temple',
       x: 330,
       y: 700,
-      symbol: '≡ƒ¢ò'
+      symbol: '🛕'
     }
   },
   'maharashtra': {
@@ -63,7 +63,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Warli Art & Dholki',
       x: 215,
       y: 530,
-      symbol: 'Γ¡ò'
+      symbol: '⭕'
     }
   },
   'rajasthan': {
@@ -79,7 +79,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Kathputli Puppets',
       x: 230,
       y: 350,
-      symbol: '≡ƒÄ¬'
+      symbol: '🎪'
     }
   },
   'gujarat': {
@@ -95,7 +95,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Raas Garba & Textiles',
       x: 165,
       y: 430,
-      symbol: 'Γ£¿'
+      symbol: '✨'
     }
   },
   'west-bengal': {
@@ -111,7 +111,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Baul Singer & Ektara',
       x: 520,
       y: 440,
-      symbol: '≡ƒ¬ò'
+      symbol: '🪕'
     }
   },
   'uttar-pradesh': {
@@ -127,7 +127,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Kathak & Sitar',
       x: 340,
       y: 350,
-      symbol: '≡ƒòî'
+      symbol: '🕌'
     }
   },
   'odisha': {
@@ -143,7 +143,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Sun Wheel & Odissi',
       x: 445,
       y: 520,
-      symbol: 'Γÿ╕∩╕Å'
+      symbol: '☸️'
     }
   },
   'jammu-and-kashmir': {
@@ -152,14 +152,14 @@ export const CULTURAL_ART_REGISTRY = {
     tagline: 'Intricate walnut wood carvings, hundred-string Santoor melodies, and hand-knotted carpets.',
     accentColor: '#1A5B66',
     dialects: ['Kashmiri', 'Dogri', 'Gojri', 'Pahari', 'Ladakhi'],
-    iconicArts: ['Sufiana Kalam Santoor', 'Papier-M├óch├⌐ Hand Painted Lacquer', 'Pashmina Shawl Weaving', 'Walnut Wood Carving', 'Khatamband Wood Ceilings'],
+    iconicArts: ['Sufiana Kalam Santoor', 'Papier-Mâché Hand Painted Lacquer', 'Pashmina Shawl Weaving', 'Walnut Wood Carving', 'Khatamband Wood Ceilings'],
     foodHeritage: ['Wazwan Rista & Rogan Josh', 'Kahwa Tea', 'Nadru Yakhni', 'Sheermal'],
     artIllustration: {
       type: 'SANTOOR_PAPIER',
-      title: 'Santoor & Papier-M├óch├⌐',
+      title: 'Santoor & Papier-Mâché',
       x: 235,
       y: 160,
-      symbol: '≡ƒÅö∩╕Å'
+      symbol: '🏔️'
     }
   },
   'punjab': {
@@ -175,7 +175,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Bhangra Dhol',
       x: 240,
       y: 250,
-      symbol: '≡ƒÑü'
+      symbol: '🥁'
     }
   },
   'madhya-pradesh': {
@@ -191,7 +191,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Gond Tree of Life',
       x: 320,
       y: 470,
-      symbol: '≡ƒªî'
+      symbol: '🦌'
     }
   },
   'delhi': {
@@ -207,7 +207,7 @@ export const CULTURAL_ART_REGISTRY = {
       title: 'Dastangoi & Sufi',
       x: 280,
       y: 300,
-      symbol: '≡ƒÅ¢∩╕Å'
+      symbol: '🏛️'
     }
   }
 };
