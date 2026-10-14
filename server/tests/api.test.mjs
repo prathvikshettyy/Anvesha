@@ -149,6 +149,7 @@ async function runTests() {
     assert(searchData.length > 0 && searchData.some(e => e.title.includes('Yakshagana')), 'Keyword search matches "Yakshagana"');
 
     // Submit new event
+    const testEventTitle = `KMC Greens Dialect Exchange Circle ${Date.now()}`;
     const newEventRes = await fetch(`${BASE}/events`, {
       method: 'POST',
       headers: {
@@ -156,7 +157,7 @@ async function runTests() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title: 'KMC Greens Dialect Exchange Circle',
+        title: testEventTitle,
         category: 'languages',
         venue: 'KMC Greens Gazebo',
         date: 'Sunday, Oct 25 • 4:00 PM',
@@ -165,7 +166,7 @@ async function runTests() {
     });
     assert(newEventRes.status === 201, 'POST /api/events returns 201 Created');
     const newEvent = await newEventRes.json();
-    assert(newEvent.id && newEvent.title === 'KMC Greens Dialect Exchange Circle', 'Created event persisted and returned with ID');
+    assert(newEvent.id && newEvent.title === testEventTitle, 'Created event persisted and returned with ID');
     createdEventId = newEvent.id;
 
     // Toggle save / bookmark
