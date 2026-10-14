@@ -110,12 +110,16 @@ router.patch('/me', requireAuth, (req, res) => {
     db.prepare(`UPDATE users SET ${sets} WHERE id = @id`).run({ ...updates, id: req.user.id });
   }
 
-  // Update interests if provided
+  // Update interests if provided (supports array of string IDs or array of { interest_id, intention } objects)
   if (Array.isArray(req.body.interests)) {
     db.prepare('DELETE FROM user_interests WHERE user_id = ?').run(req.user.id);
     const ins = db.prepare('INSERT OR IGNORE INTO user_interests (user_id, interest_id, intention) VALUES (?, ?, ?)');
-    for (const { interest_id, intention = 'CASUAL_ENTHUSIAST' } of req.body.interests) {
-      if (typeof interest_id === 'string') ins.run(req.user.id, interest_id.slice(0, 50), intention);
+    for (const item of req.body.interests) {
+      const id = typeof item === 'string' ? item : item?.interest_id;
+      const intent = typeof item === 'object' && item?.intention ? item.intention : 'CASUAL_ENTHUSIAST';
+      if (typeof id === 'string' && id.trim()) {
+        ins.run(req.user.id, id.trim().slice(0, 50), intent);
+      }
     }
   }
 

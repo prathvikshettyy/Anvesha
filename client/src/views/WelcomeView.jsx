@@ -64,18 +64,27 @@ export default function WelcomeView({
     try {
       if (authMode === 'login') {
         await onLogin(username, password);
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#C56E50', '#D9A441', '#E9CDB8']
+        });
+        setIsSignInOpen(false);
+        resetAuthForm();
+        onExploreDemo();
       } else {
         await onRegister({ username, password, name });
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#C56E50', '#D9A441', '#E9CDB8']
+        });
+        setIsSignInOpen(false);
+        resetAuthForm();
+        onGetStarted();
       }
-      confetti({
-        particleCount: 40,
-        spread: 60,
-        origin: { y: 0.6 },
-        colors: ['#C56E50', '#D9A441', '#E9CDB8']
-      });
-      setIsSignInOpen(false);
-      resetAuthForm();
-      onExploreDemo();
     } catch (err) {
       setAuthError(err.message || 'Authentication failed. Please try again.');
     } finally {

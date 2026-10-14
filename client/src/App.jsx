@@ -251,6 +251,8 @@ export default function App() {
         const u = normaliseUser(refreshed);
         setAuthUser(refreshed);
         setUser(u);
+        loadPeople();
+        loadLocket();
       } catch {
         // Non-fatal — local state already shows the picked interests
       }
