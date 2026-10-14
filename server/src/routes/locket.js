@@ -1,6 +1,7 @@
 // server/src/routes/locket.js
 // GET  /api/locket          — get locket moments visible to current user
 // POST /api/locket          — create a new locket moment (auth required)
+// POST /api/locket/audio    — upload a real voice recording (auth required)
 // POST /api/locket/:id/react — react to a locket moment (auth required)
 // GET  /api/locket/vault    — get the curated dialect archive (public)
 
@@ -9,6 +10,7 @@ import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireFields, isValidUrl } from '../middleware/validate.js';
+import { uploadLocketAudio } from '../lib/uploads.js';
 
 const router = Router();
 
@@ -99,6 +101,27 @@ router.get('/', requireAuth, (req, res) => {
   `).all(req.user.id, req.user.id);
 
   res.json(rows.map(formatMoment));
+});
+
+// ── POST /api/locket/audio — upload a real voice recording ───────────────────
+// multipart/form-data, field name "audio". Returns { url, duration } where
+// `url` is a server-relative path suitable for use as `audio_url` when
+// creating a locket moment, and is playable directly via an <audio> tag.
+router.post('/audio', requireAuth, (req, res) => {
+  uploadLocketAudio.single('audio')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Audio upload failed' });
+    if (!req.file) return res.status(400).json({ error: 'No audio file received' });
+
+    const durationSeconds = Number(req.body?.duration_seconds) || 0;
+    const minutes = Math.floor(durationSeconds / 60);
+    const seconds = Math.round(durationSeconds % 60);
+    const duration = `${minutes}:${String(seconds).padStart(2, '0')}`;
+
+    res.status(201).json({
+      url: `/uploads/locket/${req.file.filename}`,
+      duration,
+    });
+  });
 });
 
 // ── POST /api/locket — create a new locket moment ────────────────────────────

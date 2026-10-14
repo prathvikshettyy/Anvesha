@@ -13,8 +13,11 @@ import { isValidUrl, isValidCategory, isValidCoords, requireFields } from '../mi
 
 const router = Router();
 
-// Known Manipal venue anchors for coordinate resolution
+// Known venue/city anchors for coordinate resolution — Karnataka-first,
+// but covers major India hubs too so the platform works for anyone in
+// India, not just one campus or city.
 const VENUE_COORDS = {
+  // Manipal / Udupi coast (still a real cluster of campus activity)
   'mit campus':        { lat: 13.3525, lng: 74.7928 },
   'tiger circle':      { lat: 13.3541, lng: 74.7895 },
   'kmc greens':        { lat: 13.3541, lng: 74.7895 },
@@ -24,7 +27,38 @@ const VENUE_COORDS = {
   'hastashilpa':       { lat: 13.3592, lng: 74.7985 },
   'tma pai':           { lat: 13.3533, lng: 74.7915 },
   'manipal':           { lat: 13.3525, lng: 74.7928 },
+  'udupi':             { lat: 13.3409, lng: 74.7421 },
+  // Karnataka — major cities
+  'bengaluru':         { lat: 12.9716, lng: 77.5946 },
+  'bangalore':         { lat: 12.9716, lng: 77.5946 },
+  'mysuru':            { lat: 12.2958, lng: 76.6394 },
+  'mysore':            { lat: 12.2958, lng: 76.6394 },
+  'mangaluru':         { lat: 12.9141, lng: 74.8560 },
+  'mangalore':         { lat: 12.9141, lng: 74.8560 },
+  'hubballi':          { lat: 15.3647, lng: 75.1240 },
+  'hubli':             { lat: 15.3647, lng: 75.1240 },
+  'belagavi':          { lat: 15.8497, lng: 74.4977 },
+  'belgaum':           { lat: 15.8497, lng: 74.4977 },
+  'hampi':             { lat: 15.3350, lng: 76.4600 },
+  'gokarna':           { lat: 14.5479, lng: 74.3188 },
+  'madikeri':          { lat: 12.4244, lng: 75.7382 },
+  'coorg':             { lat: 12.3375, lng: 75.8069 },
+  'shivamogga':        { lat: 13.9299, lng: 75.5681 },
+  'karnataka':         { lat: 15.3173, lng: 75.7139 },
+  // Other major India hubs (platform is for anyone in India)
+  'delhi':             { lat: 28.6139, lng: 77.2090 },
+  'mumbai':            { lat: 19.0760, lng: 72.8777 },
+  'jaipur':            { lat: 26.9124, lng: 75.7873 },
+  'agra':              { lat: 27.1767, lng: 78.0081 },
+  'kolkata':           { lat: 22.5726, lng: 88.3639 },
+  'chennai':           { lat: 13.0827, lng: 80.2707 },
+  'hyderabad':         { lat: 17.3850, lng: 78.4867 },
+  'pune':              { lat: 18.5204, lng: 73.8567 },
 };
+
+// Karnataka's approximate geographic centre — default fallback so
+// unresolvable venues still land somewhere sensible on the live map.
+const DEFAULT_CENTER = { lat: 15.3173, lng: 75.7139 };
 
 function resolveCoords(venue, lat, lng) {
   if (lat && lng && isValidCoords(lat, lng)) return { lat: Number(lat), lng: Number(lng) };
@@ -32,10 +66,10 @@ function resolveCoords(venue, lat, lng) {
   for (const [key, coords] of Object.entries(VENUE_COORDS)) {
     if (vLower.includes(key)) return coords;
   }
-  // Small random jitter around Manipal center as fallback
+  // Small random jitter around the Karnataka center as fallback
   return {
-    lat: 13.3525 + (Math.random() - 0.5) * 0.008,
-    lng: 74.7928 + (Math.random() - 0.5) * 0.008,
+    lat: DEFAULT_CENTER.lat + (Math.random() - 0.5) * 2,
+    lng: DEFAULT_CENTER.lng + (Math.random() - 0.5) * 2,
   };
 }
 
@@ -113,8 +147,8 @@ router.post('/',
   (req, res) => {
     const {
       title, category = 'culture',
-      venue, neighborhood = 'Manipal Hub',
-      organizer = 'Campus Cultural Collective', description = '',
+      venue, neighborhood = 'Karnataka',
+      organizer = 'Community Organizer', description = '',
       lat, lng,
     } = req.body;
 
@@ -136,12 +170,13 @@ router.post('/',
       return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
 
     const coords = resolveCoords(venue, lat, lng);
+    // Mirrors PIN_CATEGORIES in client/src/components/IllustratedPin.jsx
     const categoryLabels = {
-      culture: 'Culture & Heritage', languages: 'Dialects & Languages',
-      crafts: 'Traditional Crafts', music: 'Folk & Classical Music',
-      food: 'Culinary Heritage', hackathons: 'Technology & Hackathons',
-      campus: 'Campus Events', film: 'Movies & Regional Cinema',
-      literature: 'Books & Literature', workshops: 'Workshops & Mentorship',
+      culture: 'Culture & Heritage', festivals: 'Festivals & Celebrations',
+      technology: 'Technology & Hackathons', music: 'Folk & Classical Music',
+      art: 'Art & Traditional Crafts', film: 'Film & Theatre',
+      literature: 'Books & Literature', science: 'Science & Discovery',
+      workshops: 'Hands-on Workshops', community: 'Dialect & Community Circles',
     };
 
     const id = `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;

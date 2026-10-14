@@ -153,7 +153,7 @@ export default function HomeView({
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-ochre-accent text-xl">event_upcoming</span>
               <h2 className="font-serif text-xl sm:text-2xl font-bold text-cocoa-text">
-                Coming Up on Campus
+                Coming Up Near You
               </h2>
             </div>
             <button

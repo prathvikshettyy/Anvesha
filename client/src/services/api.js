@@ -158,6 +158,20 @@ export const locket = {
    */
   create: (data) => post('/locket', data),
 
+  /**
+   * Upload a real recorded voice clip (Blob from MediaRecorder).
+   * @param {Blob} audioBlob
+   * @param {number} durationSeconds
+   * @returns {Promise<{ url: string, duration: string }>}
+   */
+  uploadAudio: (audioBlob, durationSeconds) => {
+    const formData = new FormData();
+    const ext = audioBlob.type.includes('ogg') ? 'ogg' : audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    formData.append('audio', audioBlob, `locket-voice.${ext}`);
+    formData.append('duration_seconds', String(Math.round(durationSeconds)));
+    return request('POST', '/locket/audio', formData, true);
+  },
+
   /** React to a locket moment. */
   react: (id, text) => post(`/locket/${id}/react`, { text }),
 

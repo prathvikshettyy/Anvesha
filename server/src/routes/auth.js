@@ -17,7 +17,7 @@ const HASH_ROUNDS = 10;
 router.post('/register',
   requireFields('username', 'password', 'name'),
   (req, res) => {
-    const { username, password, name, bio = '', avatar_url = '' } = req.body;
+    const { username, password, name, bio = '', avatar_url = '', state = 'Karnataka', city = '' } = req.body;
 
     if (username.length < 3 || username.length > 30)
       return res.status(400).json({ error: 'Username must be 3–30 characters' });
@@ -38,11 +38,11 @@ router.post('/register',
     const password_hash = bcrypt.hashSync(password, HASH_ROUNDS);
 
     db.prepare(`
-      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), avatar_url);
+      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), avatar_url, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
 
-    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
+    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
     user.interests = [];
     user.languages = [];
     user.skills = [];
@@ -65,6 +65,8 @@ router.post('/login',
     const valid = bcrypt.compareSync(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
 
+    db.prepare('UPDATE users SET last_active_at = datetime(\'now\') WHERE id = ?').run(user.id);
+
     // Build public user object (never return password_hash)
     const { password_hash, ...publicUser } = user;
     publicUser.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
@@ -79,7 +81,9 @@ router.post('/login',
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, created_at FROM users WHERE id = ?').get(req.user.id);
+  db.prepare('UPDATE users SET last_active_at = datetime(\'now\') WHERE id = ?').run(req.user.id);
+
+  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   user.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
@@ -92,7 +96,7 @@ router.get('/me', requireAuth, (req, res) => {
 
 // ── PATCH /api/auth/me — update profile ───────────────────────────────────────
 router.patch('/me', requireAuth, (req, res) => {
-  const allowed = ['name', 'bio', 'neighborhood', 'preferred_mode', 'is_discoverable', 'fuzzed_location', 'avatar_url'];
+  const allowed = ['name', 'bio', 'state', 'city', 'neighborhood', 'preferred_mode', 'is_discoverable', 'fuzzed_location', 'avatar_url'];
   const updates = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -104,6 +108,10 @@ router.patch('/me', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Bio too long' });
   if (updates.name && (updates.name.length < 1 || updates.name.length > 80))
     return res.status(400).json({ error: 'Name must be 1–80 characters' });
+  if (updates.state && updates.state.length > 80)
+    return res.status(400).json({ error: 'State too long' });
+  if (updates.city && updates.city.length > 120)
+    return res.status(400).json({ error: 'City too long' });
 
   if (Object.keys(updates).length > 0) {
     const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');

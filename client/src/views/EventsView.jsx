@@ -214,7 +214,7 @@ export default function EventsView({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-terra-primary text-base">pin_drop</span>
             <span className="text-cocoa-text">
-              Focusing on <strong>{selectedStateName || selectedStateId}</strong>. Showing matching folk arts, dialect circles, and campus gatherings.
+              Focusing on <strong>{selectedStateName || selectedStateId}</strong>. Showing matching folk arts, dialect circles, and community gatherings.
             </span>
           </div>
           <button

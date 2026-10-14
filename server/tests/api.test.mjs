@@ -156,16 +156,16 @@ async function runTests() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title: 'KMC Greens Dialect Exchange Circle',
-        category: 'languages',
-        venue: 'KMC Greens Gazebo',
+        title: 'Bengaluru Dialect Exchange Circle',
+        category: 'community',
+        venue: 'Cubbon Park Bandstand',
         date: 'Sunday, Oct 25 • 4:00 PM',
         description: 'Interactive conversational session practicing coastal phrases.',
       }),
     });
     assert(newEventRes.status === 201, 'POST /api/events returns 201 Created');
     const newEvent = await newEventRes.json();
-    assert(newEvent.id && newEvent.title === 'KMC Greens Dialect Exchange Circle', 'Created event persisted and returned with ID');
+    assert(newEvent.id && newEvent.title === 'Bengaluru Dialect Exchange Circle', 'Created event persisted and returned with ID');
     createdEventId = newEvent.id;
 
     // Toggle save / bookmark

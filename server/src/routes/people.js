@@ -8,66 +8,23 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
+import { computeMatch, getConnectedFriendIds } from '../lib/matching.js';
 
 const router = Router();
 
-/**
- * Compute a transparent match score between two interest arrays.
- * Uses Jaccard similarity + skill-exchange bonus.
- *
- * @param {string[]} myInterests      - array of interest_id strings for the requesting user
- * @param {string[]} theirInterests   - array of interest_id strings for the candidate
- * @param {object[]} mySkills         - [{ skill, skill_type }]
- * @param {object[]} theirSkills      - [{ skill, skill_type }]
- * @param {string}   myMode           - preferred_mode of requesting user
- * @param {string}   theirMode        - preferred_mode of candidate
- * @returns {{ score: number, reason: string }}
- */
-function computeMatch(myInterests, theirInterests, mySkills, theirSkills, myMode, theirMode) {
-  const mySet = new Set(myInterests);
-  const theirSet = new Set(theirInterests);
-  const intersection = [...mySet].filter(x => theirSet.has(x));
-  const union = new Set([...mySet, ...theirSet]);
-
-  const jaccard = union.size > 0 ? intersection.length / union.size : 0;
-  let score = Math.round(jaccard * 75); // base up to 75
-
-  // Skill exchange bonus: I want to learn something they teach
-  const theyTeach = new Set(theirSkills.filter(s => s.skill_type === 'TEACH').map(s => s.skill.toLowerCase()));
-  const iWantLearn = new Set(mySkills.filter(s => s.skill_type === 'LEARN').map(s => s.skill.toLowerCase()));
-  const skillMatch = [...iWantLearn].some(s => theyTeach.has(s));
-  if (skillMatch) score += 15;
-
-  // Mode compatibility bonus
-  const compatible = myMode === 'BOTH' || theirMode === 'BOTH' || myMode === theirMode;
-  if (compatible) score += 5;
-
-  // Shared interest bonus per overlap
-  score += Math.min(intersection.length * 2, 10);
-
-  score = Math.min(Math.max(score, 1), 99); // clamp 1–99
-
-  // Build human-readable reason
-  const sharedLabels = intersection.map(id => id.charAt(0).toUpperCase() + id.slice(1));
-  let reason = '';
-  if (sharedLabels.length > 0) {
-    reason += `You both share interests in ${sharedLabels.join(', ')}. `;
-  }
-  if (skillMatch) {
-    const teachable = [...theyTeach].filter(s => iWantLearn.has(s));
-    reason += `They can teach ${teachable.slice(0, 2).join(' and ')} which you want to learn. `;
-  }
-  if (!reason) reason = 'You are both part of the ShareSpot cultural community.';
-
-  return { score, reason: reason.trim() };
+function loadProfile(userId) {
+  const interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(userId);
+  const skills = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(userId);
+  const languages = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(userId).map(r => r.language);
+  return { interests, skills, languages };
 }
 
 // ── GET /api/people/connections — MUST be before /:id ─────────────────────────
 router.get('/connections', requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT
-      u.id, u.handle, u.name, u.bio, u.avatar_url, u.neighborhood,
-      u.preferred_mode, u.lat, u.lng,
+      u.id, u.handle, u.name, u.bio, u.avatar_url, u.state, u.city, u.neighborhood,
+      u.preferred_mode, u.last_active_at,
       c.status, c.id as connection_id
     FROM connections c
     JOIN users u ON (
@@ -80,7 +37,6 @@ router.get('/connections', requireAuth, (req, res) => {
 
   const enriched = rows.map(u => ({
     ...u,
-    lat: undefined, lng: undefined, // never expose exact coords
     languages: db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(u.id).map(r => r.language),
   }));
 
@@ -91,18 +47,21 @@ router.get('/connections', requireAuth, (req, res) => {
 router.get('/', requireAuth, (req, res) => {
   const { q = '', filter = 'ALL' } = req.query;
 
-  // Fetch requesting user's interests, skills, and mode for scoring
-  const myInterests = db.prepare('SELECT interest_id FROM user_interests WHERE user_id = ?')
-    .all(req.user.id).map(r => r.interest_id);
-  const mySkills = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?')
-    .all(req.user.id);
-  const myUser = db.prepare('SELECT preferred_mode FROM users WHERE id = ?').get(req.user.id);
-  const myMode = myUser?.preferred_mode || 'BOTH';
+  const myUser = db.prepare('SELECT state, city, preferred_mode FROM users WHERE id = ?').get(req.user.id);
+  const myProfile = loadProfile(req.user.id);
+  const myFriendIds = getConnectedFriendIds(db, req.user.id);
+  const me = {
+    ...myProfile,
+    state: myUser?.state || '',
+    city: myUser?.city || '',
+    mode: myUser?.preferred_mode || 'BOTH',
+    friendIds: myFriendIds,
+  };
 
   // Base query: discoverable users excluding self
   let sql = `
-    SELECT u.id, u.handle, u.name, u.bio, u.avatar_url, u.neighborhood,
-           u.preferred_mode, u.lat, u.lng
+    SELECT u.id, u.handle, u.name, u.bio, u.avatar_url, u.state, u.city, u.neighborhood,
+           u.preferred_mode, u.last_active_at
     FROM users u
     WHERE u.is_discoverable = 1 AND u.id != ?
   `;
@@ -117,15 +76,18 @@ router.get('/', requireAuth, (req, res) => {
   const candidates = db.prepare(sql).all(...params);
 
   const result = candidates.map(candidate => {
-    const theirInterests = db.prepare('SELECT interest_id FROM user_interests WHERE user_id = ?')
-      .all(candidate.id).map(r => r.interest_id);
-    const theirSkills = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?')
-      .all(candidate.id);
-    const languages = db.prepare('SELECT language FROM user_languages WHERE user_id = ?')
-      .all(candidate.id).map(r => r.language);
-    const skills = theirSkills;
+    const theirProfile = loadProfile(candidate.id);
+    const theirFriendIds = getConnectedFriendIds(db, candidate.id);
+    const them = {
+      ...theirProfile,
+      state: candidate.state || '',
+      city: candidate.city || '',
+      mode: candidate.preferred_mode || 'BOTH',
+      friendIds: theirFriendIds,
+      lastActiveAt: candidate.last_active_at,
+    };
 
-    const { score, reason } = computeMatch(myInterests, theirInterests, mySkills, theirSkills, myMode, candidate.preferred_mode);
+    const { score, reason, reasons, mutualConnections } = computeMatch(me, them);
 
     // Connection status
     const conn = db.prepare(`
@@ -133,22 +95,27 @@ router.get('/', requireAuth, (req, res) => {
       WHERE (requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)
     `).get(req.user.id, candidate.id, candidate.id, req.user.id);
 
+    const theirInterestIds = theirProfile.interests.map(i => i.interest_id);
+
     // Apply filter
-    if (filter === 'TULU' && !languages.includes('Tulu')) return null;
-    if (filter === 'MENTORS' && skills.filter(s => s.skill_type === 'TEACH').length === 0) return null;
-    if (filter === 'YAKSHA' && !theirInterests.includes('culture')) return null;
+    if (filter === 'TULU' && !them.languages.includes('Tulu')) return null;
+    if (filter === 'MENTORS' && theirProfile.skills.filter(s => s.skill_type === 'TEACH').length === 0) return null;
+    if (filter === 'YAKSHA' && !theirInterestIds.includes('culture')) return null;
+    if (filter === 'NEARBY' && candidate.state !== myUser?.state) return null;
 
     return {
       ...candidate,
       avatar: candidate.avatar_url,
-      broadRegion: candidate.neighborhood || 'Manipal',
+      broadRegion: candidate.city || candidate.neighborhood || candidate.state || 'India',
       lat: undefined, lng: undefined, // privacy: never expose exact coords
-      interests: theirInterests,
-      speaks: languages,
-      willingToTeach: skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill),
-      wantsToLearn:   skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill),
+      interests: theirInterestIds,
+      speaks: them.languages,
+      willingToTeach: theirProfile.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill),
+      wantsToLearn:   theirProfile.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill),
       matchScore: score,
       matchReason: reason,
+      matchReasons: reasons,
+      mutualConnections,
       connectionStatus: conn?.status || 'NONE',
     };
   }).filter(Boolean);
@@ -161,7 +128,7 @@ router.get('/', requireAuth, (req, res) => {
 // ── GET /api/people/:id ───────────────────────────────────────────────────────
 router.get('/:id', requireAuth, (req, res) => {
   const user = db.prepare(`
-    SELECT id, handle, name, bio, avatar_url, neighborhood, preferred_mode
+    SELECT id, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode
     FROM users WHERE id = ? AND is_discoverable = 1
   `).get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });

@@ -30,7 +30,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
           category,
           date_label:  date || 'Upcoming Weekend',
           venue,
-          organizer:   organizer || 'Campus Cultural Collective',
+          organizer:   organizer || 'Community Organizer',
           description,
           source_url:  sourceUrl || '',
         });
@@ -45,24 +45,29 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
         };
       } else {
         // Demo mode — local only
+        const categoryLabels = {
+          culture: 'Culture & Heritage', festivals: 'Festivals & Celebrations',
+          technology: 'Technology & Hackathons', music: 'Folk & Classical Music',
+          art: 'Art & Traditional Crafts', film: 'Film & Theatre',
+          literature: 'Books & Literature', science: 'Science & Discovery',
+          workshops: 'Hands-on Workshops', community: 'Dialect & Community Circles',
+        };
         newEvt = {
           id: `evt_${Date.now()}`,
           title,
           category,
-          categoryLabel: category === 'languages' ? 'Dialects & Languages' :
-                         category === 'crafts' ? 'Traditional Crafts' :
-                         category === 'music' ? 'Folk & Classical Music' : 'Culture & Heritage',
+          categoryLabel: categoryLabels[category] || 'Culture & Heritage',
           date: date || 'Upcoming Weekend',
           datetime: new Date().toISOString(),
           venue,
-          neighborhood: 'Manipal Hub',
-          lat: 13.3530 + (Math.random() - 0.5) * 0.01,
-          lng: 74.7920 + (Math.random() - 0.5) * 0.01,
+          neighborhood: 'Karnataka',
+          lat: 15.3173 + (Math.random() - 0.5) * 1.5,
+          lng: 75.7139 + (Math.random() - 0.5) * 1.5,
           isOnline: false,
-          organizer: organizer || 'Campus Cultural Collective',
+          organizer: organizer || 'Community Organizer',
           image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
           description,
-          sourceUrl: sourceUrl || 'https://reddit.com/r/manipal',
+          sourceUrl: sourceUrl || '',
           sourceLabel: 'Community Submitted',
           verificationStatus: 'COMMUNITY_REPORTED',
           attendeeCount: 1,
@@ -120,10 +125,15 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
                 className="w-full px-3 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
               >
                 <option value="culture">Culture & Heritage</option>
-                <option value="languages">Dialects & Languages</option>
-                <option value="crafts">Traditional Crafts</option>
-                <option value="music">Music & Jams</option>
-                <option value="food">Culinary Heritage</option>
+                <option value="festivals">Festivals & Celebrations</option>
+                <option value="technology">Technology & Hackathons</option>
+                <option value="music">Folk & Classical Music</option>
+                <option value="art">Art & Traditional Crafts</option>
+                <option value="film">Film & Theatre</option>
+                <option value="literature">Books & Literature</option>
+                <option value="science">Science & Discovery</option>
+                <option value="workshops">Hands-on Workshops</option>
+                <option value="community">Dialect & Community Circles</option>
               </select>
             </div>
 
@@ -144,7 +154,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
             <input
               type="text"
               required
-              placeholder="e.g. KMC Greens or Amphitheatre"
+              placeholder="e.g. Cubbon Park, Bengaluru"
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
@@ -155,7 +165,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
             <label className="block font-bold text-cocoa-text text-xs mb-1">Organizer / Host</label>
             <input
               type="text"
-              placeholder="e.g. Student Cultural Collective"
+              placeholder="e.g. Bengaluru Cultural Collective"
               value={organizer}
               onChange={(e) => setOrganizer(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
@@ -177,7 +187,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
             <label className="block font-bold text-cocoa-text text-xs mb-1">Source URL (Reddit / Notice link)</label>
             <input
               type="url"
-              placeholder="https://reddit.com/r/manipal/..."
+              placeholder="https://reddit.com/r/bangalore/..."
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"

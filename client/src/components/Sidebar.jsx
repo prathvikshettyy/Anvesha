@@ -123,7 +123,7 @@ export default function Sidebar({
                 {user?.name || 'Rohan Shenoy'}
               </p>
               <p className="text-[11px] text-cocoa-text/60 truncate">
-                {user?.neighborhood || 'Manipal Campus'}
+                {user?.neighborhood || user?.city || 'India'}
               </p>
             </div>
             <ChevronRight className="w-4 h-4 text-cocoa-text/40" />

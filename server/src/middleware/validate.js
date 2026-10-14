@@ -2,11 +2,13 @@
 // Input validation helpers used across route handlers.
 
 /**
- * Validates that a string URL is http or https only.
- * Returns false for javascript:, data:, ftp:, etc.
+ * Validates that a string URL is http or https only, OR a server-relative
+ * path (e.g. "/uploads/locket/abc.webm") produced by our own upload
+ * endpoints. Returns false for javascript:, data:, ftp:, etc.
  */
 export function isValidUrl(str) {
   if (!str || typeof str !== 'string') return true; // optional fields are OK if absent
+  if (str.startsWith('/') && !str.startsWith('//')) return true; // same-origin relative path
   try {
     const u = new URL(str);
     return u.protocol === 'http:' || u.protocol === 'https:';
@@ -25,9 +27,12 @@ export function isValidCoords(lat, lng) {
   return latN >= -90 && latN <= 90 && lngN >= -180 && lngN <= 180;
 }
 
+// Single source of truth for event categories — mirrored by
+// client/src/components/IllustratedPin.jsx (PIN_CATEGORIES) and the
+// SubmitEventModal / EventsView category pickers. Keep all three in sync.
 const ALLOWED_CATEGORIES = new Set([
-  'culture', 'languages', 'crafts', 'music', 'food',
-  'hackathons', 'campus', 'film', 'literature', 'workshops',
+  'culture', 'festivals', 'technology', 'music', 'art',
+  'film', 'literature', 'science', 'workshops', 'community',
 ]);
 
 export function isValidCategory(cat) {

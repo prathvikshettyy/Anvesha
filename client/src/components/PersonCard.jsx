@@ -52,7 +52,15 @@ export default function PersonCard({ person, onConnect, onStartChat, onSendLocke
             <span className="material-symbols-outlined text-sm">hub</span>
             <span>Why you matched</span>
           </div>
-          <p>{person.matchReason}</p>
+          {person.matchReasons && person.matchReasons.length > 0 ? (
+            <ul className="space-y-0.5 list-disc list-inside">
+              {person.matchReasons.map((reason, idx) => (
+                <li key={idx}>{reason}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>{person.matchReason}</p>
+          )}
         </div>
 
         {/* Bio */}

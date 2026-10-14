@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireFields } from '../middleware/validate.js';
+import { emitToUser, isOnline } from '../realtime/socket.js';
 
 const router = Router();
 
@@ -87,18 +88,30 @@ router.post('/:partnerId',
     );
 
     const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(id);
+
+    // Push live to both sides (receiver sees it instantly; sender's other
+    // open tabs stay in sync). REST remains the source of truth / fallback.
+    emitToUser(partnerId, 'message:new', msg);
+    emitToUser(req.user.id, 'message:new', msg);
+
     res.status(201).json(msg);
   }
 );
 
-// ── PATCH /api/messages/:partnerId/read — mark thread as read ────────────────
-router.patch('/:partnerId/read', requireAuth, (req, res) => {
+// ── PATCH /api/messages/:partnerId/read — mark thread as read ────────────
+ router.patch('/:partnerId/read', requireAuth, (req, res) => {
   const { partnerId } = req.params;
   db.prepare(`
     UPDATE messages SET is_read = 1
     WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
   `).run(partnerId, req.user.id);
+  emitToUser(partnerId, 'message:read', { by: req.user.id });
   res.json({ ok: true });
+});
+
+// ── GET /api/messages/:partnerId/online — lightweight presence check ───────
+router.get('/:partnerId/online', requireAuth, (req, res) => {
+  res.json({ online: isOnline(req.params.partnerId) });
 });
 
 export default router;

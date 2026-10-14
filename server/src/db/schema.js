@@ -15,15 +15,17 @@ export function applySchema(db) {
       name         TEXT NOT NULL,
       bio          TEXT DEFAULT '',
       avatar_url   TEXT DEFAULT '',
-      city         TEXT DEFAULT 'Manipal',
-      neighborhood TEXT DEFAULT 'Manipal Campus',
-      lat          REAL DEFAULT 13.3525,
-      lng          REAL DEFAULT 74.7928,
+      state        TEXT DEFAULT 'Karnataka',
+      city         TEXT DEFAULT '',
+      neighborhood TEXT DEFAULT '',
+      lat          REAL DEFAULT 15.3173,
+      lng          REAL DEFAULT 75.7139,
       preferred_mode TEXT DEFAULT 'BOTH'
                        CHECK(preferred_mode IN ('BOTH','IN_PERSON','ONLINE')),
       is_discoverable INTEGER DEFAULT 1,
       fuzzed_location INTEGER DEFAULT 1,
-      created_at   TEXT DEFAULT (datetime('now'))
+      created_at   TEXT DEFAULT (datetime('now')),
+      last_active_at TEXT DEFAULT (datetime('now'))
     );
 
     -- ─── User Interests (many-to-many: user ↔ interest_id string) ──────────────
@@ -70,7 +72,7 @@ export function applySchema(db) {
       date_label         TEXT NOT NULL,
       datetime_iso       TEXT NOT NULL,
       venue              TEXT NOT NULL,
-      neighborhood       TEXT DEFAULT 'Manipal',
+      neighborhood       TEXT DEFAULT 'Karnataka',
       lat                REAL,
       lng                REAL,
       is_online          INTEGER DEFAULT 0,
@@ -143,4 +145,23 @@ export function applySchema(db) {
     CREATE INDEX IF NOT EXISTS idx_events_category
       ON events(category, verification_status);
   `);
+
+  migrateLegacyColumns(db);
+}
+
+/**
+ * Lightweight, idempotent migrations for databases created before a column
+ * existed. `CREATE TABLE IF NOT EXISTS` above never adds columns to an
+ * already-existing table, so new columns on long-lived tables (users) must
+ * be added here via ALTER TABLE, guarded by a check against PRAGMA
+ * table_info. Safe to run on every boot.
+ */
+function migrateLegacyColumns(db) {
+  const userColumns = db.prepare(`PRAGMA table_info(users)`).all().map(c => c.name);
+  if (!userColumns.includes('state')) {
+    db.exec(`ALTER TABLE users ADD COLUMN state TEXT DEFAULT 'Karnataka'`);
+  }
+  if (!userColumns.includes('last_active_at')) {
+    db.exec(`ALTER TABLE users ADD COLUMN last_active_at TEXT DEFAULT (datetime('now'))`);
+  }
 }

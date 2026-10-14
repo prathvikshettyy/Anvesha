@@ -34,6 +34,8 @@ function normaliseUser(backendUser) {
     handle:         backendUser.handle        ?? INITIAL_USER.handle,
     avatar:         backendUser.avatar_url    ?? INITIAL_USER.avatar,
     bio:            backendUser.bio           ?? INITIAL_USER.bio,
+    state:          backendUser.state         ?? INITIAL_USER.state,
+    city:           backendUser.city          ?? INITIAL_USER.city,
     neighborhood:   backendUser.neighborhood  ?? INITIAL_USER.neighborhood,
     preferredMode:  backendUser.preferred_mode ?? INITIAL_USER.preferredMode,
     isDiscoverable: backendUser.is_discoverable !== undefined
@@ -52,22 +54,32 @@ function normaliseUser(backendUser) {
   };
 }
 
-/** Map a backend person → shape expected by PersonCard */
+/**
+ * Map a backend /api/people response item → shape expected by PersonCard.
+ * The backend already returns most fields pre-shaped for the UI (camelCase
+ * matchScore/matchReason/broadRegion/etc.) — this just fills in sensible
+ * fallbacks for demo/guest mode data, which uses a slightly different shape.
+ */
 function normalisePerson(p) {
   return {
     id:               p.id,
     name:             p.name,
     handle:           p.handle        ?? `@${p.username}`,
-    avatar:           p.avatar_url    ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    avatar:           p.avatar       ?? p.avatar_url ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
     bio:              p.bio           ?? '',
-    city:             p.city          ?? 'Manipal',
-    neighborhood:     p.neighborhood  ?? 'Campus Area',
-    speaks:           p.languages     ?? [],
+    city:             p.city          ?? 'India',
+    broadRegion:      p.broadRegion  ?? p.city ?? p.neighborhood ?? 'India',
+    neighborhood:     p.neighborhood  ?? 'Nearby',
+    speaks:           p.speaks       ?? p.languages ?? [],
     interests:        Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
-    willingToTeach:   Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : [],
-    matchScore:       p.match_score   ?? null,
-    connectionStatus: p.connection_status ?? 'NONE',
-    isMentor:         p.is_mentor     ?? false,
+    willingToTeach:   p.willingToTeach ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : []),
+    wantsToLearn:     p.wantsToLearn  ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill) : []),
+    matchScore:       p.matchScore    ?? p.match_score ?? null,
+    matchReason:      p.matchReason   ?? '',
+    matchReasons:     Array.isArray(p.matchReasons) ? p.matchReasons : [],
+    mutualConnections: p.mutualConnections ?? 0,
+    connectionStatus: p.connectionStatus ?? p.connection_status ?? 'NONE',
+    isMentor:         p.isMentor      ?? p.is_mentor ?? false,
   };
 }
 
@@ -237,14 +249,12 @@ export default function App() {
     // If logged in, persist to backend and then sync state from DB
     if (api.token.get()) {
       try {
-        const interestPayload = (preferences.interests || []).map(id => ({
-          interest_id: id,
-          intention: 'CASUAL_ENTHUSIAST',
-        }));
         await api.auth.updateMe({
+          state:          preferences.state,
+          city:           preferences.city,
           neighborhood:   preferences.neighborhood,
           preferred_mode: preferences.preferredMode,
-          interests:      interestPayload,
+          interests:      preferences.interests, // already [{interest_id, intention}]
         });
         // Re-fetch /me so authUser and user are in sync with what is now in DB
         const refreshed = await api.auth.me();
