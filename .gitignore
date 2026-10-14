@@ -3,6 +3,15 @@ node_modules
 .pnp
 .pnp.js
 
+# SQLite database (generated at runtime — never commit)
+server/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment secrets
+.env
+
 # Production & Build outputs
 dist
 dist-ssr
@@ -57,3 +66,5 @@ desktop.ini
 tmp/
 temp/
 *.tmp
+
+ruleBook.md

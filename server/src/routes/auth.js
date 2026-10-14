@@ -1,0 +1,120 @@
+// server/src/routes/auth.js
+// POST /api/auth/register  — create a new account
+// POST /api/auth/login     — sign in and receive a JWT
+// GET  /api/auth/me        — get logged-in user's full profile
+
+import { Router } from 'express';
+import bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
+import { db } from '../db/index.js';
+import { signToken, requireAuth } from '../middleware/auth.js';
+import { requireFields, isValidMode } from '../middleware/validate.js';
+
+const router = Router();
+const HASH_ROUNDS = 10;
+
+// ── POST /api/auth/register ───────────────────────────────────────────────────
+router.post('/register',
+  requireFields('username', 'password', 'name'),
+  (req, res) => {
+    const { username, password, name, bio = '', avatar_url = '' } = req.body;
+
+    if (username.length < 3 || username.length > 30)
+      return res.status(400).json({ error: 'Username must be 3–30 characters' });
+    if (!/^[a-z0-9_]+$/.test(username))
+      return res.status(400).json({ error: 'Username may only contain lowercase letters, numbers, and underscores' });
+    if (password.length < 6)
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (name.length > 80)
+      return res.status(400).json({ error: 'Name too long (max 80 chars)' });
+    if (bio.length > 500)
+      return res.status(400).json({ error: 'Bio too long (max 500 chars)' });
+
+    const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+    if (existing) return res.status(409).json({ error: 'Username already taken' });
+
+    const id = `usr_${uuid().replace(/-/g, '').slice(0, 12)}`;
+    const handle = `@${username}`;
+    const password_hash = bcrypt.hashSync(password, HASH_ROUNDS);
+
+    db.prepare(`
+      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), avatar_url);
+
+    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
+    const token = signToken(user);
+
+    res.status(201).json({ token, user });
+  }
+);
+
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
+router.post('/login',
+  requireFields('username', 'password'),
+  (req, res) => {
+    const { username, password } = req.body;
+
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    if (!user) return res.status(401).json({ error: 'Invalid username or password' });
+
+    const valid = bcrypt.compareSync(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
+
+    // Build public user object (never return password_hash)
+    const { password_hash, ...publicUser } = user;
+    publicUser.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
+    publicUser.languages  = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(user.id).map(r => r.language);
+    publicUser.skills     = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(user.id);
+
+    const token = signToken(publicUser);
+    res.json({ token, user: publicUser });
+  }
+);
+
+// ── GET /api/auth/me ──────────────────────────────────────────────────────────
+router.get('/me', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, created_at FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  user.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
+  user.languages = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(user.id).map(r => r.language);
+  user.skills    = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(user.id);
+  user.saved_event_ids = db.prepare('SELECT event_id FROM saved_events WHERE user_id = ?').all(user.id).map(r => r.event_id);
+
+  res.json(user);
+});
+
+// ── PATCH /api/auth/me — update profile ───────────────────────────────────────
+router.patch('/me', requireAuth, (req, res) => {
+  const allowed = ['name', 'bio', 'neighborhood', 'preferred_mode', 'is_discoverable', 'fuzzed_location', 'avatar_url'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  if (updates.preferred_mode && !isValidMode(updates.preferred_mode))
+    return res.status(400).json({ error: 'Invalid preferred_mode' });
+  if (updates.bio && updates.bio.length > 500)
+    return res.status(400).json({ error: 'Bio too long' });
+  if (updates.name && (updates.name.length < 1 || updates.name.length > 80))
+    return res.status(400).json({ error: 'Name must be 1–80 characters' });
+
+  if (Object.keys(updates).length > 0) {
+    const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+    db.prepare(`UPDATE users SET ${sets} WHERE id = @id`).run({ ...updates, id: req.user.id });
+  }
+
+  // Update interests if provided
+  if (Array.isArray(req.body.interests)) {
+    db.prepare('DELETE FROM user_interests WHERE user_id = ?').run(req.user.id);
+    const ins = db.prepare('INSERT OR IGNORE INTO user_interests (user_id, interest_id, intention) VALUES (?, ?, ?)');
+    for (const { interest_id, intention = 'CASUAL_ENTHUSIAST' } of req.body.interests) {
+      if (typeof interest_id === 'string') ins.run(req.user.id, interest_id.slice(0, 50), intention);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+export default router;

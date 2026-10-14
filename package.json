@@ -1,26 +1,22 @@
 {
-  "name": "client",
+  "name": "sharespot",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "description": "ShareSpot: The Lost Connection — Cultural community & event-discovery platform. M# 2026.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "start": "vite preview --port 4173",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "canvas-confetti": "^1.9.4",
-    "lucide-react": "^1.57.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "dev": "concurrently --kill-others-on-fail --names \"SERVER,CLIENT\" --prefix-colors \"cyan,magenta\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "install:all": "npm install && npm install --workspace=client && npm install --workspace=server",
+    "build": "npm run build --workspace=client",
+    "start": "npm run start --workspace=server",
+    "lint": "npm run lint --workspace=client"
   },
   "devDependencies": {
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "oxlint": "^1.81.0",
-    "vite": "^8.3.0"
+    "concurrently": "^9.1.2"
   }
 }

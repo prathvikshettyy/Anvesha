@@ -1,0 +1,184 @@
+/**
+ * client/src/services/api.js
+ *
+ * Centralised API client for ShareSpot.
+ * All backend calls go through these functions — never fetch() directly in components.
+ *
+ * Auth token is stored in sessionStorage under 'ss_token'.
+ * To log out, call api.auth.logout() or simply clear sessionStorage.
+ */
+
+const BASE = '/api'; // proxied by Vite to http://localhost:3001 in dev
+
+// ── Token helpers ─────────────────────────────────────────────────────────────
+export const token = {
+  get: () => sessionStorage.getItem('ss_token'),
+  set: (t) => sessionStorage.setItem('ss_token', t),
+  clear: () => sessionStorage.removeItem('ss_token'),
+};
+
+// ── Core fetch wrapper ────────────────────────────────────────────────────────
+async function request(method, path, body = null, isFormData = false) {
+  const headers = {};
+  const t = token.get();
+  if (t) headers['Authorization'] = `Bearer ${t}`;
+
+  if (body && !isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body
+      ? isFormData ? body : JSON.stringify(body)
+      : undefined,
+  });
+
+  // Parse JSON for all responses
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+
+  if (!res.ok) {
+    const err = new Error(data.error || `Request failed: ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+const get  = (path)        => request('GET',   path);
+const post = (path, body)  => request('POST',  path, body);
+const patch = (path, body) => request('PATCH', path, body);
+const del  = (path)        => request('DELETE', path);
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export const auth = {
+  /**
+   * Register a new account.
+   * @param {{ username, password, name, bio? }} data
+   * @returns {{ token, user }}
+   */
+  register: async (data) => {
+    const result = await post('/auth/register', data);
+    token.set(result.token);
+    return result;
+  },
+
+  /**
+   * Sign in with username + password.
+   * @param {{ username, password }} data
+   * @returns {{ token, user }}
+   */
+  login: async (data) => {
+    const result = await post('/auth/login', data);
+    token.set(result.token);
+    return result;
+  },
+
+  /** Sign out — clears session token. */
+  logout: () => token.clear(),
+
+  /** Get the current user's full profile (requires auth). */
+  me: () => get('/auth/me'),
+
+  /**
+   * Update profile fields and/or interests.
+   * @param {Partial<{name,bio,neighborhood,preferred_mode,is_discoverable,interests[]}>} updates
+   */
+  updateMe: (updates) => patch('/auth/me', updates),
+};
+
+// ── Events ────────────────────────────────────────────────────────────────────
+export const events = {
+  /**
+   * List events. All params optional.
+   * @param {{ q?, category?, limit?, offset? }} params
+   */
+  list: ({ q = '', category = 'ALL', limit = 50, offset = 0 } = {}) => {
+    const qs = new URLSearchParams({ q, category, limit, offset }).toString();
+    return get(`/events?${qs}`);
+  },
+
+  /** Get one event by ID. */
+  get: (id) => get(`/events/${id}`),
+
+  /** Get the logged-in user's saved events. */
+  saved: () => get('/events/saved'),
+
+  /** Submit a new community event. */
+  submit: (data) => post('/events', data),
+
+  /**
+   * Toggle save/unsave an event.
+   * @returns {{ saved: boolean }}
+   */
+  toggleSave: (id) => post(`/events/${id}/save`),
+};
+
+// ── People ────────────────────────────────────────────────────────────────────
+export const people = {
+  /**
+   * Discover people with real-time match scores.
+   * @param {{ q?, filter? }} params  filter: 'ALL'|'MENTORS'|'TULU'|'YAKSHA'
+   */
+  discover: ({ q = '', filter = 'ALL' } = {}) => {
+    const qs = new URLSearchParams({ q, filter }).toString();
+    return get(`/people?${qs}`);
+  },
+
+  /** Get a single user's public profile. */
+  get: (id) => get(`/people/${id}`),
+
+  /** Connect with a user. Returns { status, connectionId }. */
+  connect: (id) => post(`/people/${id}/connect`),
+
+  /** List all confirmed connections of the current user. */
+  connections: () => get('/people/connections'),
+};
+
+// ── Culture Locket ────────────────────────────────────────────────────────────
+export const locket = {
+  /** Get locket moments visible to the current user. */
+  list: () => get('/locket'),
+
+  /**
+   * Create a new locket moment.
+   * @param {{
+   *   moment_type: 'WORD_OF_DAY'|'CRAFT_STEP',
+   *   vernacular_text: string,
+   *   meaning: string,
+   *   phonetic_text?: string,
+   *   provenance?: string,
+   *   recipient_id?: string,
+   *   audio_url?: string,
+   *   image_url?: string,
+   *   audio_duration?: string,
+   * }} data
+   */
+  create: (data) => post('/locket', data),
+
+  /** React to a locket moment. */
+  react: (id, text) => post(`/locket/${id}/react`, { text }),
+
+  /** Get the curated dialect vault (public, no auth needed). */
+  vault: () => get('/locket/vault'),
+};
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+export const messages = {
+  /** List all conversation partners + last message + unread count. */
+  conversations: () => get('/messages/conversations'),
+
+  /** Get full message thread with a partner. Returns { partner, messages[] }. */
+  thread: (partnerId) => get(`/messages/${partnerId}`),
+
+  /** Send a message to a user. */
+  send: (partnerId, text) => post(`/messages/${partnerId}`, { text }),
+
+  /** Mark a conversation's incoming messages as read. */
+  markRead: (partnerId) => patch(`/messages/${partnerId}/read`),
+};
+
+// ── Health ────────────────────────────────────────────────────────────────────
+export const health = () => get('/health');
