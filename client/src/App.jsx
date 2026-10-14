@@ -22,6 +22,7 @@ import {
 
 import * as api from './services/api';
 import { dedupeEvents } from './views/HomeView';
+import { io } from 'socket.io-client';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -186,6 +187,25 @@ export default function App() {
       window.removeEventListener('focus', onFocus);
     };
   }, [loadLocket]);
+
+  // Realtime Socket.IO sync: when another user records & posts, update feed immediately
+  useEffect(() => {
+    let socket;
+    try {
+      socket = io({ path: '/socket.io' });
+      socket.on('locket:new', (newMoment) => {
+        if (!newMoment) return;
+        const norm = normaliseMoment(newMoment);
+        setLocketMoments(prev => {
+          if (prev.some(m => m.id === norm.id)) return prev;
+          return [norm, ...prev];
+        });
+      });
+    } catch (_) {}
+    return () => {
+      try { socket?.disconnect(); } catch (_) {}
+    };
+  }, []);
 
   // Reload community data when user logs in
   useEffect(() => {

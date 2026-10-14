@@ -5,7 +5,6 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import path from 'path';
-import os from 'os';
 
 import authRoutes    from './routes/auth.js';
 import eventsRoutes  from './routes/events.js';
@@ -84,6 +83,53 @@ app.use('/api/people',   peopleRoutes);
 app.use('/api/locket',   locketRoutes);
 app.use('/api/messages', messagesRoutes);
 
+// ── Root Landing / API Info ───────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  if (req.accepts('html')) {
+    return res.type('html').send(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Anvesha / ShareSpot API</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; background: #faf6f0; color: #3b2d26; max-width: 640px; margin: 3rem auto; padding: 2rem; border-radius: 1.5rem; border: 2px solid #e8dbce; }
+            h1 { color: #c56e50; font-family: serif; margin-top: 0; }
+            .btn { display: inline-block; background: #c56e50; color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; text-decoration: none; font-weight: bold; margin: 1rem 0; }
+            .btn:hover { background: #b05e42; }
+            ul { line-height: 1.8; }
+            a { color: #c56e50; }
+            code { background: #eee5dc; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+          </style>
+        </head>
+        <body>
+          <h1>✨ Anvesha & ShareSpot API Server</h1>
+          <p>The backend REST & Realtime API is <strong>active and healthy</strong> on port <code>3001</code>.</p>
+          <p>To use the full web application, visit the Vite frontend:</p>
+          <p><a href="https://localhost:5173" class="btn">🚀 Open Web Application (Port 5173)</a></p>
+          <hr style="border: 0; border-top: 1px solid #e8dbce; margin: 1.5rem 0;" />
+          <h3>API Quick Links:</h3>
+          <ul>
+            <li><a href="/api/health"><code>GET /api/health</code></a> — Server health status</li>
+            <li><a href="/api/docs"><code>GET /api/docs</code></a> — Interactive Swagger API documentation</li>
+            <li><a href="/api/locket"><code>GET /api/locket</code></a> — Community culture locket audio feed</li>
+            <li><a href="/api/events"><code>GET /api/events</code></a> — Living India cultural events feed</li>
+          </ul>
+        </body>
+      </html>
+    `);
+  }
+  res.json({
+    name: 'ShareSpot API',
+    status: 'ok',
+    version: '1.0.0',
+    frontend: 'https://localhost:5173',
+    docs: '/api/docs',
+    health: '/api/health',
+  });
+});
+
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -118,10 +164,7 @@ if (isMain) {
   const httpServer = createServer(app);
   initRealtime(httpServer, CLIENT_ORIGIN);
   server = httpServer.listen(PORT, '0.0.0.0', () => {
-    const nets = os.networkInterfaces();
-    const lanIp = Object.values(nets).flat().find(n => n.family === 'IPv4' && !n.internal)?.address;
-    console.log(`[Server] Anvesha API running on http://localhost:${PORT}`);
-    if (lanIp) console.log(`[Server] Network:  http://${lanIp}:${PORT}  ← open this on other devices`);
+    console.log(`[Server] Anvesha API listening on port ${PORT}`);
     console.log(`[Server] Health: http://localhost:${PORT}/api/health`);
     console.log(`[Server] Docs:   http://localhost:${PORT}/api/docs`);
     console.log(`[Server] Realtime: Socket.IO attached`);

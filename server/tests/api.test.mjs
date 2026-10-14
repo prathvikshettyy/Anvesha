@@ -31,6 +31,7 @@ async function runTests() {
   let testUserId = '';
   let createdEventId = '';
   let createdLocketId = '';
+  let createdAudioUrl = '';
 
   try {
     // ── 1. Health Check & Documentation ─────────────────────────────────────
@@ -240,6 +241,7 @@ async function runTests() {
     });
     assert(uploadRes.status === 201, 'POST /api/locket/audio returns 201 Created');
     const uploadData = await uploadRes.json();
+    createdAudioUrl = uploadData.url;
     assert(uploadData.url && uploadData.url.startsWith('/uploads/locket/'), 'Audio upload returns /uploads/locket/ path');
     assert(uploadData.duration === '0:03', 'Audio upload returns formatted duration');
 
@@ -325,6 +327,31 @@ async function runTests() {
     console.error('\n❌ Test suite aborted due to unhandled error:', err.message || err);
     process.exitCode = 1;
   } finally {
+    try {
+      const { db } = await import('../src/db/index.js');
+      const fs = await import('fs');
+      const path = await import('path');
+      if (createdLocketId) {
+        db.prepare('DELETE FROM locket_reactions WHERE moment_id = ?').run(createdLocketId);
+        db.prepare('DELETE FROM locket_moments WHERE id = ?').run(createdLocketId);
+      }
+      if (createdEventId) {
+        db.prepare('DELETE FROM saved_events WHERE event_id = ?').run(createdEventId);
+        db.prepare('DELETE FROM events WHERE id = ?').run(createdEventId);
+      }
+      if (testUserId) {
+        db.prepare('DELETE FROM user_interests WHERE user_id = ?').run(testUserId);
+        db.prepare('DELETE FROM user_skills WHERE user_id = ?').run(testUserId);
+        db.prepare('DELETE FROM saved_events WHERE user_id = ?').run(testUserId);
+        db.prepare('DELETE FROM users WHERE id = ?').run(testUserId);
+      }
+      if (createdAudioUrl && createdAudioUrl.startsWith('/uploads/locket/')) {
+        const filePath = path.join(process.cwd(), createdAudioUrl.startsWith('/') ? createdAudioUrl.slice(1) : createdAudioUrl);
+        const serverFilePath = path.join(process.cwd(), 'server', createdAudioUrl.startsWith('/') ? createdAudioUrl.slice(1) : createdAudioUrl);
+        if (fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch(_) {}
+        if (fs.existsSync(serverFilePath)) try { fs.unlinkSync(serverFilePath); } catch(_) {}
+      }
+    } catch (_) {}
     server.close();
   }
 }
