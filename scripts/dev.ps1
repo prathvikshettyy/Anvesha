@@ -13,9 +13,9 @@ if (-not (Test-Path "$Root\.env")) {
     Write-Host "[Setup] Please edit .env and set JWT_SECRET before production use." -ForegroundColor Yellow
 }
 
-# Install dependencies if root node_modules is missing
-if (-not (Test-Path "$Root\node_modules")) {
-    Write-Host "[Setup] Installing dependencies..." -ForegroundColor Cyan
+# Install dependencies if root node_modules or concurrently is missing
+if (-not (Test-Path "$Root\node_modules") -or -not (Test-Path "$Root\node_modules\.bin\concurrently*")) {
+    Write-Host "[Setup] Installing root dependencies..." -ForegroundColor Cyan
     Push-Location $Root
     npm install
     Pop-Location
