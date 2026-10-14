@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, Sparkles, Heart, MessageCircle, Mic } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -8,6 +8,19 @@ export default function CultureLocketCard({ moment, onOpenCreate, onReact }) {
   const [reactionMsg, setReactionMsg] = useState('');
 
   const audioRef = useRef(null);
+
+  // Clean up any ongoing audio or speech on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   /**
    * Play the real uploaded recording when available.
@@ -49,8 +62,9 @@ export default function CultureLocketCard({ moment, onOpenCreate, onReact }) {
       try {
         if (!audioRef.current) {
           audioRef.current = new Audio(src);
-        } else {
+        } else if (audioRef.current.src !== src && !audioRef.current.src.endsWith(src)) {
           audioRef.current.src = src;
+          audioRef.current.load();
         }
 
         audioRef.current.onended = () => setIsPlaying(false);

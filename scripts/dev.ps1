@@ -47,8 +47,11 @@ if (-not (Test-Path $DbPath)) {
     Write-Host "[Setup] Database seeded! Demo accounts: rohan/demo1234 | priya/demo1234" -ForegroundColor Green
 }
 
-# Auto-detect primary Wi-Fi / LAN IPv4 address for display
-$LanIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" } | Select-Object -ExpandProperty IPAddress -First 1)
+# Auto-detect primary Wi-Fi / LAN IPv4 address for display (prioritizes active internet/router gateway)
+$LanIp = (Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -ExpandProperty IPv4Address | Select-Object -ExpandProperty IPAddress -First 1)
+if (-not $LanIp) {
+    $LanIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.IPAddress -notlike "192.168.56.*" } | Select-Object -ExpandProperty IPAddress -First 1)
+}
 if (-not $LanIp) { $LanIp = "<your-local-ip>" }
 
 Write-Host ""
