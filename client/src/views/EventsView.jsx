@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles } from 'lucide-react';
+import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles, CalendarX2, Compass } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
 import StateDetailPanel from '../components/StateDetailPanel';
 import { PIN_CATEGORIES } from '../components/IllustratedPin';
+import { dedupeEvents, CATEGORY_MAP } from './HomeView';
 import * as api from '../services/api';
 
 export default function EventsView({
+  user,
   events,
   people,
   savedEvents,
@@ -24,6 +26,8 @@ export default function EventsView({
   const [apiEvents, setApiEvents] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const userInterests = user?.interests || [];
+
   // Debounced API search on searchQuery + selectedCategory
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -31,7 +35,7 @@ export default function EventsView({
         setIsLoading(true);
         const res = await api.events.list({
           q: searchQuery,
-          category: selectedCategory
+          category: selectedCategory === 'MY_ROOTS' ? 'ALL' : selectedCategory
         });
         if (Array.isArray(res)) {
           setApiEvents(res);
@@ -48,24 +52,37 @@ export default function EventsView({
 
   const categories = [
     { id: 'ALL', label: 'All Heritage', symbol: '🇮🇳' },
+    ...(userInterests.length > 0 ? [{ id: 'MY_ROOTS', label: '🎯 For Your Roots', symbol: '✨' }] : []),
     { id: 'culture', label: 'Culture & Heritage', symbol: '🪷' },
-    { id: 'festivals', label: 'Festivals', symbol: '✨' },
-    { id: 'technology', label: 'Technology', symbol: '⚡' },
+    { id: 'languages', label: 'Dialects & Languages', symbol: '🗣️' },
+    { id: 'food', label: 'Culinary Heritage', symbol: '🥘' },
     { id: 'music', label: 'Folk & Classical Music', symbol: '🪕' },
-    { id: 'art', label: 'Art & Crafts', symbol: '🎨' },
+    { id: 'art', label: 'Art & Traditional Crafts', symbol: '🎨' },
+    { id: 'festivals', label: 'Festivals & Utsavs', symbol: '✨' },
+    { id: 'technology', label: 'Tech & Hackathons', symbol: '⚡' },
     { id: 'film', label: 'Film & Theatre', symbol: '🎭' },
-    { id: 'literature', label: 'Literature', symbol: '📜' },
-    { id: 'science', label: 'Science', symbol: '⚛️' },
-    { id: 'workshops', label: 'Workshops', symbol: '💡' },
-    { id: 'community', label: 'Community', symbol: '🤝' }
+    { id: 'literature', label: 'Literature & Stories', symbol: '📜' },
+    { id: 'workshops', label: 'Hands-on Workshops', symbol: '💡' },
+    { id: 'community', label: 'Community Circles', symbol: '🤝' }
   ];
 
-  // Filter events based on state, category, search, and saved filter
+  // Filter events based on state, category, search, and saved filter — strictly deduplicated
   const filteredEvents = useMemo(() => {
-    const source = apiEvents ?? events;
+    const rawSource = apiEvents ?? events;
+    const source = dedupeEvents(rawSource);
+
     return source.filter(evt => {
-      // Category filter
-      const matchesCategory = selectedCategory === 'ALL' || evt.category === selectedCategory;
+      // Category filter with alias mapping support
+      let matchesCategory = true;
+      if (selectedCategory === 'ALL') {
+        matchesCategory = true;
+      } else if (selectedCategory === 'MY_ROOTS') {
+        const accepted = new Set(userInterests.flatMap(i => CATEGORY_MAP[i] || [i]));
+        matchesCategory = accepted.has(evt.category);
+      } else {
+        const accepted = new Set(CATEGORY_MAP[selectedCategory] || [selectedCategory]);
+        matchesCategory = accepted.has(evt.category);
+      }
       
       // Saved filter
       const matchesSaved = !onlySaved || savedEvents.includes(evt.id);
@@ -88,7 +105,20 @@ export default function EventsView({
 
       return matchesCategory && matchesSaved && matchesSearch && matchesState;
     });
-  }, [apiEvents, events, selectedCategory, onlySaved, searchQuery, selectedStateId, savedEvents]);
+  }, [apiEvents, events, selectedCategory, userInterests, onlySaved, searchQuery, selectedStateId, savedEvents]);
+
+  // All deduplicated events across categories for computing alternative suggestions
+  const allUniqueEvents = useMemo(() => dedupeEvents(apiEvents ?? events), [apiEvents, events]);
+
+  const availableCategoriesWithEvents = useMemo(() => {
+    const counts = {};
+    allUniqueEvents.forEach(e => {
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    return categories
+      .filter(c => c.id !== 'ALL' && c.id !== 'MY_ROOTS' && (counts[c.id] || 0) > 0 && c.id !== selectedCategory)
+      .map(c => ({ ...c, count: counts[c.id] || 0 }));
+  }, [allUniqueEvents, categories, selectedCategory]);
 
   const handleSelectState = (stateId, stateName) => {
     setSelectedStateId(stateId);
@@ -276,15 +306,65 @@ export default function EventsView({
         /* Grid / List View Alternative */
         <div className="space-y-6">
           {filteredEvents.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl bg-surface-container/60 border border-blush-surface">
-              <p className="font-serif text-lg text-cocoa-text">No gatherings match your current filters.</p>
-              <p className="text-xs text-cocoa-text/70 mt-1">Try switching to All Heritage or clearing your state filter.</p>
-              <button
-                onClick={() => { setSearchQuery(''); setSelectedCategory('ALL'); setOnlySaved(false); setSelectedStateId(null); }}
-                className="mt-4 px-4 py-2 rounded-full bg-terra-primary text-cream-canvas text-xs font-bold shadow-warm"
-              >
-                Reset All Filters
-              </button>
+            <div className="p-8 sm:p-12 text-center rounded-3xl bg-surface-container/70 border-2 border-dashed border-blush-surface space-y-4 max-w-2xl mx-auto animate-fadeIn">
+              <div className="w-12 h-12 mx-auto rounded-full bg-terra-primary/10 border border-terra-primary/20 flex items-center justify-center text-terra-primary">
+                <CalendarX2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-terra-primary px-2.5 py-0.5 rounded-full bg-terra-primary/10">
+                  0 Events Present
+                </span>
+                <h3 className="font-serif text-2xl font-bold text-cocoa-text mt-2">
+                  No events present for this topic
+                </h3>
+                <p className="text-xs sm:text-sm text-cocoa-text/75 leading-relaxed font-medium">
+                  There are currently zero gatherings scheduled for this topic. Since there are no events present right now, you can explore other active categories below or propose a community gathering!
+                </p>
+              </div>
+
+              {availableCategoriesWithEvents.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-cocoa-text/60 mb-2 flex items-center justify-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />
+                    <span>Explore These Other Topics Instead:</span>
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {availableCategoriesWithEvents.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-terra-primary/10 border border-blush-surface hover:border-terra-primary/30 text-cocoa-text hover:text-terra-primary text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>{cat.symbol}</span>
+                        <span>{cat.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-container text-cocoa-text/70">
+                          {cat.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('ALL'); setOnlySaved(false); setSelectedStateId(null); }}
+                  className="px-5 py-2.5 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs sm:text-sm font-bold shadow-warm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Show All Cultural Gatherings ({allUniqueEvents.length})</span>
+                </button>
+
+                {onOpenSubmitModal && (
+                  <button
+                    onClick={onOpenSubmitModal}
+                    className="px-5 py-2.5 rounded-full bg-surface-container-lowest hover:bg-blush-surface border border-blush-surface text-cocoa-text text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4 text-terra-primary" />
+                    <span>Host or Suggest an Event</span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
