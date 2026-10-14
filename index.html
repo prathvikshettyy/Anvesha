@@ -1,0 +1,78 @@
+<!doctype html>
+<html class="h-full bg-cream-canvas" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C56E50'><circle cx='12' cy='12' r='10'/><path d='M12 6v6l4 2' stroke='%23FCF7F0' stroke-width='2' stroke-linecap='round'/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShareSpot: The Lost Connection | Cultural Community & Event Discovery</title>
+    
+    <!-- Google Fonts: Playfair Display & DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <!-- Tailwind CSS v3 with Plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "cream-canvas": "#FCF7F0",
+              "blush-surface": "#E9CDB8",
+              "terra-primary": "#C56E50",
+              "cocoa-text": "#5B332C",
+              "ochre-accent": "#D9A441",
+              "primary": "#92462b",
+              "primary-container": "#b05e41",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#fffbff",
+              "secondary": "#6f5a4a",
+              "secondary-container": "#f7dac5",
+              "on-secondary": "#ffffff",
+              "on-secondary-container": "#745f4e",
+              "surface": "#fff8f6",
+              "surface-container": "#ffe9e5",
+              "surface-container-high": "#ffe2dd",
+              "surface-container-highest": "#ffdad4",
+              "surface-container-low": "#fff0ee",
+              "surface-container-lowest": "#ffffff",
+              "surface-bright": "#fff8f6",
+              "surface-dim": "#ffcfc7",
+              "on-surface": "#32120c",
+              "on-surface-variant": "#54433d",
+              "outline": "#87736c",
+              "outline-variant": "#dac1ba"
+            },
+            fontFamily: {
+              serif: ["'Playfair Display'", "Georgia", "serif"],
+              sans: ["'DM Sans'", "system-ui", "sans-serif"],
+              headline: ["'Playfair Display'", "Georgia", "serif"],
+              body: ["'DM Sans'", "system-ui", "sans-serif"]
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              "2xl": "1rem",
+              "3xl": "1.5rem",
+              full: "9999px"
+            },
+            boxShadow: {
+              warm: "0 4px 20px -2px rgba(91, 51, 44, 0.08)",
+              "warm-hover": "0 8px 30px -4px rgba(91, 51, 44, 0.14)",
+              "locket-glow": "0 0 25px rgba(197, 110, 80, 0.25)"
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="h-full bg-cream-canvas text-cocoa-text font-sans antialiased selection:bg-terra-primary/20 selection:text-cocoa-text">
+    <div id="root" class="min-h-full"></div>
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>

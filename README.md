@@ -7,7 +7,7 @@ Please follow these guidelines throughout the event.
 - The `bugbounty` branch will be deployed from the start of the event.
 - Until the Bug Bounty round begins, keep `main` and `bugbounty` updated simultaneously and in sync.
 
-### 2. Bug Bounty Phase — Attack
+### 2. Bug Bounty Phase - Attack
 - Once the Bug Bounty round begins, **no further changes may be made to the `bugbounty` branch**.
 - Hackathon development can continue on the `main` branch throughout this phase.
 
