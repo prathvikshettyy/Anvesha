@@ -162,7 +162,11 @@ function migrateLegacyColumns(db) {
     db.exec(`ALTER TABLE users ADD COLUMN state TEXT DEFAULT 'Karnataka'`);
   }
   if (!userColumns.includes('last_active_at')) {
+    // SQLite rejects non-constant expressions as ALTER TABLE defaults;
+    // add the column first, then backfill existing rows.
     db.exec(`ALTER TABLE users ADD COLUMN last_active_at TEXT`);
     db.exec(`UPDATE users SET last_active_at = datetime('now') WHERE last_active_at IS NULL`);
   }
 }
+
+
