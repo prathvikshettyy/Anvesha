@@ -9,6 +9,7 @@ import eventsRoutes  from './routes/events.js';
 import peopleRoutes  from './routes/people.js';
 import locketRoutes  from './routes/locket.js';
 import messagesRoutes from './routes/messages.js';
+import { setupSwagger } from './docs/swagger.js';
 
 // Trigger DB connection + schema on startup
 import './db/index.js';
@@ -41,6 +42,9 @@ if (process.env.NODE_ENV !== 'production') {
     next();
   });
 }
+
+// ── API Documentation (Swagger UI) ───────────────────────────────────────────
+setupSwagger(app, '/api/docs');
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);
@@ -85,6 +89,7 @@ if (isMain) {
   server = app.listen(PORT, () => {
     console.log(`[Server] ShareSpot API running on http://localhost:${PORT}`);
     console.log(`[Server] Health: http://localhost:${PORT}/api/health`);
+    console.log(`[Server] Docs:   http://localhost:${PORT}/api/docs`);
   });
 }
 

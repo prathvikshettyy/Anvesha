@@ -33,13 +33,29 @@ async function runTests() {
   let createdLocketId = '';
 
   try {
-    // ── 1. Health Check ──────────────────────────────────────────────────────
-    console.log('[Test Suite 1/6] Health Check');
+    // ── 1. Health Check & Documentation ─────────────────────────────────────
+    console.log('[Test Suite 1/6] Health Check & Swagger UI Documentation');
     const resHealth = await fetch(`${BASE}/health`);
     assert(resHealth.status === 200, 'GET /api/health returns 200');
     const dataHealth = await resHealth.json();
     assert(dataHealth.status === 'ok', 'Health status is "ok"');
     assert(dataHealth.service === 'ShareSpot API', 'Service name is "ShareSpot API"');
+
+    // Swagger UI & OpenAPI Specification verification
+    const resDocs = await fetch(`${BASE}/docs/`);
+    assert(resDocs.status === 200, 'GET /api/docs/ returns 200 (Swagger UI)');
+    const docsHtml = await resDocs.text();
+    assert(docsHtml.includes('swagger-ui'), 'Swagger UI bundle referenced in HTML');
+    assert(docsHtml.includes('ShareSpot API'), 'Swagger UI document contains ShareSpot API branding');
+
+    const resDocsJson = await fetch(`${BASE}/docs.json`);
+    assert(resDocsJson.status === 200, 'GET /api/docs.json returns 200 (OpenAPI spec JSON)');
+    const docsJson = await resDocsJson.json();
+    assert(docsJson.openapi === '3.0.3', 'OpenAPI specification is version 3.0.3');
+    assert(docsJson.info.title === 'ShareSpot API', 'OpenAPI title matches ShareSpot API');
+    assert(!!docsJson.paths['/api/events'], 'OpenAPI paths contain /api/events');
+    assert(!!docsJson.paths['/api/auth/login'], 'OpenAPI paths contain /api/auth/login');
+    assert(!!docsJson.components.securitySchemes.bearerAuth, 'OpenAPI components contain bearerAuth security scheme');
 
     // ── 2. Auth Suite ────────────────────────────────────────────────────────
     console.log('\n[Test Suite 2/6] Authentication & Profile');
