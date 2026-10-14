@@ -14,7 +14,7 @@ import {
 export default function Sidebar({
   currentView,
   setCurrentView,
-  unreadCount = 1,
+  unreadCount = 0,
   savedCount = 0,
   user,
   onSignOut

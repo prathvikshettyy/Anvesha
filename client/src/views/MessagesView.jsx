@@ -23,9 +23,10 @@ export default function MessagesView({
   isAuthenticated,
   onUnreadCountChange,
   authToken,   // passed from App so we know when the socket is ready
+  initialPartner,
 }) {
   const [conversations, setConversations] = useState([]);
-  const [activePartnerId, setActivePartnerId]   = useState(null);
+  const [activePartnerId, setActivePartnerId]   = useState(initialPartner ? (initialPartner.id || initialPartner.partnerId) : null);
   const [messages, setMessages]                 = useState([]);
   const [inputText, setInputText]               = useState('');
   const [loading, setLoading]                   = useState(true);
@@ -39,6 +40,29 @@ export default function MessagesView({
   const typingTimerRef   = useRef(null);
   const typingEmitTimer  = useRef(null);  // throttle our own typing events
 
+  // Pre-select thread and add conversation entry if initialPartner changed
+  useEffect(() => {
+    if (initialPartner) {
+      const pid = initialPartner.id || initialPartner.partnerId;
+      if (pid) {
+        setActivePartnerId(pid);
+        setConversations(prev => {
+          if (prev.some(c => c.partnerId === pid)) return prev;
+          const newEntry = {
+            id: `conv_${pid}`,
+            partnerId: pid,
+            partnerName: initialPartner.name || initialPartner.partnerName || 'Cultural Connection',
+            partnerAvatar: initialPartner.avatar || initialPartner.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+            lastMessage: '',
+            lastTime: 'Now',
+            unread: 0,
+          };
+          return [newEntry, ...prev];
+        });
+      }
+    }
+  }, [initialPartner]);
+
   // ── Scroll to bottom on new message ────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,7 +72,12 @@ export default function MessagesView({
   useEffect(() => {
     if (!isAuthenticated) {
       setConversations(INITIAL_CONVERSATIONS);
-      if (INITIAL_CONVERSATIONS.length > 0) {
+      if (initialPartner) {
+        const pid = initialPartner.id || initialPartner.partnerId;
+        setActivePartnerId(pid);
+        const conv = INITIAL_CONVERSATIONS.find(c => c.partnerId === pid);
+        if (conv) setMessages(conv.messages || []);
+      } else if (INITIAL_CONVERSATIONS.length > 0) {
         setActivePartnerId(INITIAL_CONVERSATIONS[0].partnerId);
         setMessages(INITIAL_CONVERSATIONS[0].messages || []);
       }
@@ -68,14 +97,29 @@ export default function MessagesView({
           lastTime:      c.lastTime     ?? c.last_time      ?? '',
           unread:        c.unreadCount  ?? c.unread_count   ?? 0,
         }));
+
+        if (initialPartner) {
+          const pid = initialPartner.id || initialPartner.partnerId;
+          setActivePartnerId(pid);
+          if (!normalised.some(c => c.partnerId === pid)) {
+            normalised.unshift({
+              id: `conv_${pid}`,
+              partnerId: pid,
+              partnerName: initialPartner.name || initialPartner.partnerName || 'Cultural Connection',
+              partnerAvatar: initialPartner.avatar || initialPartner.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+              lastMessage: '',
+              lastTime: 'Now',
+              unread: 0,
+            });
+          }
+        } else if (normalised.length > 0 && !activePartnerId) {
+          setActivePartnerId(normalised[0].partnerId);
+        }
+
         setConversations(normalised);
 
         const totalUnread = normalised.reduce((sum, c) => sum + (c.unread || 0), 0);
         onUnreadCountChange?.(totalUnread);
-
-        if (normalised.length > 0 && !activePartnerId) {
-          setActivePartnerId(normalised[0].partnerId);
-        }
       })
       .catch(() => {
         setConversations(INITIAL_CONVERSATIONS);

@@ -1,51 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mic, Volume2, Sparkles, HeartHandshake, History, PlusCircle, Bookmark, Shield, Award } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import CultureLocketCard from '../components/CultureLocketCard';
+import * as api from '../services/api';
+
+const DEFAULT_VAULT_ITEMS = [
+  {
+    id: 'v_1',
+    dialect: 'Tulu (Coastal Karnataka)',
+    phrase: 'ಬಲೆ, ಒಣಸ್ ಮಲ್ಪಾ (Bale, Onas Malpa)',
+    phonetic: '/ba-le o-nas mal-pa/',
+    english: 'Come, let us share a meal together. (The quintessential coastal gesture of hospitality)',
+    contributor: 'Preserved by Vasanthi Nayak (Age 72, Kundapura)',
+    audioDuration: '0:03'
+  },
+  {
+    id: 'v_2',
+    dialect: 'Konkani (Goud Saraswat)',
+    phrase: 'ತುಗೆಲೆ ನಾವ್ ಕಿತ್ತೆ? (Tugele Naav Kitte?)',
+    phonetic: '/tu-ge-le naav kit-te/',
+    english: 'What is your name? (Used in ancestral temple and community gatherings)',
+    contributor: 'Preserved by Dr. Ramesh Pai (Manipal)',
+    audioDuration: '0:03'
+  },
+  {
+    id: 'v_3',
+    dialect: 'Kodava Takk (Coorg)',
+    phrase: 'ಎಲ್ಲಾರ್ಕೂ ನಮಸ್ಕಾರ (Ellarkoo Cholo)',
+    phonetic: '/el-lar-koo cho-lo/',
+    english: 'Peace and well-being to everyone. (Traditional clan harvest blessing)',
+    contributor: 'Preserved by Muthappa K. (Madikeri)',
+    audioDuration: '0:04'
+  },
+  {
+    id: 'v_4',
+    dialect: 'Havigannada (Uttara Kannada)',
+    phrase: 'ಎಲ್ಲಿಗೆ ಹೊಂಟ್ರಿ? (Ellige Hontri?)',
+    phonetic: '/el-li-ge hon-tri/',
+    english: 'Where are you headed? (Warm greeting shared when crossing river ferries)',
+    contributor: 'Preserved by Savitri Bhat (Sirsi)',
+    audioDuration: '0:03'
+  }
+];
 
 export default function LocketView({ locketMoments, onOpenLocketModal, onReactLocket }) {
   const [activeTab, setActiveTab] = useState('FEED'); // 'FEED' or 'VAULT'
   const [playingId, setPlayingId] = useState(null);
+  const [vaultItems, setVaultItems] = useState(DEFAULT_VAULT_ITEMS);
 
-  // Oral dialect preservation vault seed entries
-  const vaultItems = [
-    {
-      id: 'v_1',
-      dialect: 'Tulu (Coastal Karnataka)',
-      phrase: 'ಬಲೆ, ಒಣಸ್ ಮಲ್ಪಾ (Bale, Onas Malpa)',
-      phonetic: '/ba-le o-nas mal-pa/',
-      english: 'Come, let us share a meal together. (The quintessential coastal gesture of hospitality)',
-      contributor: 'Preserved by Vasanthi Nayak (Age 72, Kundapura)',
-      audioDuration: '0:03'
-    },
-    {
-      id: 'v_2',
-      dialect: 'Konkani (Goud Saraswat)',
-      phrase: 'ತುಗೆಲೆ ನಾವ್ ಕಿತ್ತೆ? (Tugele Naav Kitte?)',
-      phonetic: '/tu-ge-le naav kit-te/',
-      english: 'What is your name? (Used in ancestral temple and community gatherings)',
-      contributor: 'Preserved by Dr. Ramesh Pai (Manipal)',
-      audioDuration: '0:03'
-    },
-    {
-      id: 'v_3',
-      dialect: 'Kodava Takk (Coorg)',
-      phrase: 'ಎಲ್ಲಾರ್ಕೂ ನಮಸ್ಕಾರ (Ellarkoo Cholo)',
-      phonetic: '/el-lar-koo cho-lo/',
-      english: 'Peace and well-being to everyone. (Traditional clan harvest blessing)',
-      contributor: 'Preserved by Muthappa K. (Madikeri)',
-      audioDuration: '0:04'
-    },
-    {
-      id: 'v_4',
-      dialect: 'Havigannada (Uttara Kannada)',
-      phrase: 'ಎಲ್ಲಿಗೆ ಹೊಂಟ್ರಿ? (Ellige Hontri?)',
-      phonetic: '/el-li-ge hon-tri/',
-      english: 'Where are you headed? (Warm greeting shared when crossing river ferries)',
-      contributor: 'Preserved by Savitri Bhat (Sirsi)',
-      audioDuration: '0:03'
-    }
-  ];
+  useEffect(() => {
+    api.locket.vault()
+      .then(items => {
+        if (Array.isArray(items) && items.length > 0) {
+          setVaultItems(items);
+        }
+      })
+      .catch(() => {
+        // Fall back to default vault items on error
+      });
+  }, []);
 
   const playVaultPronunciation = (id, phrase) => {
     setPlayingId(id);

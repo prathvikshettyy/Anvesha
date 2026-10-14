@@ -128,6 +128,7 @@ export default function App() {
   const [activeDetailEvent, setActiveDetailEvent] = useState(null);
   const [isLocketModalOpen, setIsLocketModalOpen] = useState(false);
   const [locketRecipient, setLocketRecipient]     = useState(null);
+  const [chatPartner, setChatPartner]             = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
 
   // ── Restore session on mount ────────────────────────────────────────────────
@@ -170,7 +171,7 @@ export default function App() {
   const loadLocket = useCallback(() => {
     api.locket.list()
       .then(list => {
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           setLocketMoments(list.map(normaliseMoment));
         }
       })
@@ -425,7 +426,10 @@ export default function App() {
               setIsLocketModalOpen(true);
             }}
             onReactLocket={handleReactLocket}
-            onNavigate={setCurrentView}
+            onNavigate={(view, extra) => {
+              if (view === 'messages' && extra) setChatPartner(extra);
+              setCurrentView(view);
+            }}
             onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
             onUpdateInterests={handleUpdateInterests}
           />
@@ -452,7 +456,10 @@ export default function App() {
             user={user}
             people={people}
             onConnect={handleConnectPerson}
-            onStartChat={() => setCurrentView('messages')}
+            onStartChat={(person) => {
+              setChatPartner(person);
+              setCurrentView('messages');
+            }}
             onSendLocketPulse={handleOpenLocketForPerson}
             isAuthenticated={!!authUser}
           />
@@ -472,6 +479,7 @@ export default function App() {
         {currentView === 'messages' && (
           <MessagesView
             currentUser={user}
+            initialPartner={chatPartner}
             onOpenLocketModal={() => {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
