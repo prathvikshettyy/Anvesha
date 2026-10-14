@@ -284,7 +284,7 @@ export default function App() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className={`min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
-      currentView === 'welcome' ? 'flex-col' : 'flex-col md:flex-row'
+      currentView === 'welcome' ? 'h-screen overflow-hidden flex-col' : 'flex-col md:flex-row'
     }`}>
       
       {/* Left Sidebar (visible on all screens except onboarding & welcome) */}
@@ -300,7 +300,7 @@ export default function App() {
       )}
 
       {/* Main View Container */}
-      <main className="flex-1 min-w-0 overflow-y-auto pb-16 md:pb-8">
+      <main className={`flex-1 min-w-0 ${currentView === 'welcome' ? 'h-full overflow-hidden p-0' : 'overflow-y-auto pb-16 md:pb-8'}`}>
         {currentView === 'welcome' && (
           <WelcomeView
             onGetStarted={() => setCurrentView('onboarding')}
