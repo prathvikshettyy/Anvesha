@@ -21,6 +21,7 @@ import {
 } from './data/initialData';
 
 import * as api from './services/api';
+import { dedupeEvents } from './views/HomeView';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,16 +59,27 @@ function normalisePerson(p) {
     id:               p.id,
     name:             p.name,
     handle:           p.handle        ?? `@${p.username}`,
-    avatar:           p.avatar_url    ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    avatar:           p.avatar        ?? p.avatar_url ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
     bio:              p.bio           ?? '',
     city:             p.city          ?? 'Manipal',
     neighborhood:     p.neighborhood  ?? 'Campus Area',
-    speaks:           p.languages     ?? [],
+    broadRegion:      p.broadRegion   ?? p.neighborhood ?? 'Manipal',
+    speaks:           p.speaks        ?? p.languages ?? [],
     interests:        Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
-    willingToTeach:   Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : [],
-    matchScore:       p.match_score   ?? null,
-    connectionStatus: p.connection_status ?? 'NONE',
-    isMentor:         p.is_mentor     ?? false,
+    willingToTeach:   Array.isArray(p.willingToTeach)
+                        ? p.willingToTeach
+                        : Array.isArray(p.skills)
+                          ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill)
+                          : [],
+    wantsToLearn:     Array.isArray(p.wantsToLearn)
+                        ? p.wantsToLearn
+                        : Array.isArray(p.skills)
+                          ? p.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill)
+                          : [],
+    matchScore:       p.matchScore    ?? p.match_score ?? 85,
+    matchReason:      p.matchReason   ?? p.match_reason ?? 'Shares cultural roots and dialect exchange goals with you.',
+    connectionStatus: p.connectionStatus ?? p.connection_status ?? 'NONE',
+    isMentor:         p.isMentor      ?? p.is_mentor ?? (Array.isArray(p.skills) && p.skills.some(s => s.skill_type === 'TEACH')),
   };
 }
 
@@ -98,7 +110,7 @@ export default function App() {
   const [currentView, setCurrentView]             = useState('welcome');
   const [authUser, setAuthUser]                   = useState(null);   // raw backend user
   const [user, setUser]                           = useState(INITIAL_USER); // normalised UI user
-  const [events, setEvents]                       = useState(INITIAL_EVENTS);
+  const [events, setEvents]                       = useState(() => dedupeEvents(INITIAL_EVENTS));
   const [people, setPeople]                       = useState(INITIAL_PEOPLE);
   const [locketMoments, setLocketMoments]         = useState(INITIAL_LOCKET_MOMENTS);
   const [savedEvents, setSavedEvents]             = useState(INITIAL_USER.savedEvents);
@@ -131,7 +143,9 @@ export default function App() {
 
   // ── Fetch real events ───────────────────────────────────────────────────────
   const loadEvents = useCallback(() => {
-    api.events.list().then(setEvents).catch(() => {/* keep initialData */});
+    api.events.list()
+      .then(list => setEvents(dedupeEvents(list)))
+      .catch(() => setEvents(dedupeEvents(INITIAL_EVENTS)));
   }, []);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
@@ -260,6 +274,20 @@ export default function App() {
     setCurrentView('home');
   };
 
+  const handleUpdateInterests = async (newInterests) => {
+    setUser(prev => ({
+      ...prev,
+      interests: newInterests,
+    }));
+    if (authUser && api.token.get()) {
+      try {
+        await api.auth.updateMe({
+          interests: newInterests.map(id => ({ interest_id: id, intention: 'CASUAL_ENTHUSIAST' }))
+        });
+      } catch (_) {}
+    }
+  };
+
   const handleResetDemo = () => {
     api.auth.logout();
     setAuthUser(null);
@@ -346,11 +374,14 @@ export default function App() {
             }}
             onReactLocket={handleReactLocket}
             onNavigate={setCurrentView}
+            onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+            onUpdateInterests={handleUpdateInterests}
           />
         )}
 
         {currentView === 'events' && (
           <EventsView
+            user={user}
             events={events}
             people={people}
             savedEvents={savedEvents}
@@ -366,6 +397,7 @@ export default function App() {
 
         {currentView === 'people' && (
           <PeopleView
+            user={user}
             people={people}
             onConnect={handleConnectPerson}
             onStartChat={() => setCurrentView('messages')}

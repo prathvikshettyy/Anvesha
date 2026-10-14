@@ -84,7 +84,21 @@ router.get('/', (req, res) => {
   sql += ' ORDER BY e.datetime_iso ASC LIMIT ? OFFSET ?';
   params.push(Math.min(Number(limit) || 50, 100), Math.max(Number(offset) || 0, 0));
 
-  const events = db.prepare(sql).all(...params).map(formatEvent);
+  const rawEvents = db.prepare(sql).all(...params).map(formatEvent);
+  // Deduplicate events by id and normalized title so duplicates never reach client
+  const seenIds = new Set();
+  const seenTitles = new Set();
+  const events = rawEvents.filter(e => {
+    if (!e) return false;
+    const titleNorm = (e.title || '').trim().toLowerCase();
+    if (titleNorm.includes('<script') || titleNorm.includes('security test')) return false;
+    if (seenIds.has(e.id) || (titleNorm && seenTitles.has(titleNorm))) {
+      return false;
+    }
+    seenIds.add(e.id);
+    if (titleNorm) seenTitles.add(titleNorm);
+    return true;
+  });
   res.json(events);
 });
 
@@ -144,21 +158,42 @@ router.post('/',
       literature: 'Books & Literature', workshops: 'Workshops & Mentorship',
     };
 
-    const id = `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
-    db.prepare(`
-      INSERT INTO events
-        (id, title, category, category_label, date_label, datetime_iso, venue,
-         neighborhood, lat, lng, organizer, image_url, description, source_url,
-         source_label, verification_status, submitted_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
-    `).run(
-      id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
-      date_label.slice(0, 100), datetime_iso,
-      venue.slice(0, 300), neighborhood.slice(0, 200),
-      coords.lat, coords.lng,
-      organizer.slice(0, 200), image_url, description.slice(0, 2000),
-      source_url, req.user.id
-    );
+    // Check for existing identical event to prevent duplicate submissions
+    const existing = db.prepare(
+      'SELECT * FROM events WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND LOWER(TRIM(venue)) = LOWER(TRIM(?))'
+    ).get(title, venue);
+
+    const id = existing ? existing.id : `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
+    if (existing) {
+      db.prepare(`
+        UPDATE events SET
+          category = ?, category_label = ?, date_label = ?, datetime_iso = ?,
+          neighborhood = ?, lat = ?, lng = ?, organizer = ?, image_url = ?,
+          description = ?, source_url = ?, submitted_by = ?
+        WHERE id = ?
+      `).run(
+        category, categoryLabels[category] || 'Culture & Heritage',
+        date_label.slice(0, 100), datetime_iso,
+        neighborhood.slice(0, 200), coords.lat, coords.lng,
+        organizer.slice(0, 200), image_url, description.slice(0, 2000),
+        source_url, req.user.id, id
+      );
+    } else {
+      db.prepare(`
+        INSERT INTO events
+          (id, title, category, category_label, date_label, datetime_iso, venue,
+           neighborhood, lat, lng, organizer, image_url, description, source_url,
+           source_label, verification_status, submitted_by)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
+      `).run(
+        id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
+        date_label.slice(0, 100), datetime_iso,
+        venue.slice(0, 300), neighborhood.slice(0, 200),
+        coords.lat, coords.lng,
+        organizer.slice(0, 200), image_url, description.slice(0, 2000),
+        source_url, req.user.id
+      );
+    }
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
     res.status(201).json(formatEvent(event));
