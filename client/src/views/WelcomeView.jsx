@@ -1,98 +1,268 @@
-import React from 'react';
-import { Compass, Sparkles, MapPin, Mic, Users, HeartHandshake, ArrowRight, ShieldCheck } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import {
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle,
+  X,
+  User,
+  LogIn
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 
-export default function WelcomeView({ onGetStarted, onExploreDemo }) {
+export default function WelcomeView({
+  onGetStarted,
+  onExploreDemo,
+  onExploreIndia,
+  onDiscoverEvents
+}) {
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [studentId, setStudentId] = useState('220911045');
+
+  // Floating Hero Pins with preview tooltips
+  const heroPins = [
+    {
+      id: 'hero-pin-1',
+      city: 'Agra, UP',
+      title: 'Yamuna Twilight Sitar & Dhrupad',
+      x: '52%',
+      y: '48%'
+    },
+    {
+      id: 'hero-pin-2',
+      city: 'Jaipur, Rajasthan',
+      title: 'Desert Folk Ballads & Sarangi',
+      x: '38%',
+      y: '42%'
+    },
+    {
+      id: 'hero-pin-3',
+      city: 'Udupi, Karnataka',
+      title: 'Yakshagana Night Performance',
+      x: '46%',
+      y: '68%'
+    }
+  ];
+
+  const handleQuickSignIn = (e) => {
+    e.preventDefault();
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      origin: { y: 0.6 },
+      colors: ['#C56E50', '#D9A441', '#E9CDB8']
+    });
+    setIsSignInOpen(false);
+    onExploreDemo();
+  };
+
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="relative w-screen h-screen overflow-hidden bg-cocoa-text text-cream-canvas flex flex-col justify-between select-none">
       
-      {/* Editorial Hero Header */}
-      <div className="pt-6 sm:pt-12 text-center max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blush-surface/70 border border-terra-primary/30 text-xs font-bold text-cocoa-text mb-6 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />
-          <span>M# 2026 Hackathon · Culture & Community Track</span>
+      {/* 1. Cinematic Background Artwork */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src="/images/cinematic_india_hero.jpg"
+          alt="Cinematic panorama of India at sunset with wanderer and monument reflections"
+          className="w-full h-full object-cover object-center animate-hero-fade filter brightness-[0.92] contrast-[1.05]"
+        />
+        {/* Subtle localized gradient overlay for contrast over artwork without darkening the whole scene */}
+        <div className="absolute inset-0 bg-gradient-to-r from-cocoa-text/85 via-cocoa-text/45 to-transparent sm:w-2/3" />
+        <div className="absolute inset-0 bg-gradient-to-t from-cocoa-text/90 via-transparent to-cocoa-text/30" />
+      </div>
+
+      {/* 2. Minimalist Top Navigation Overlay */}
+      <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex items-center justify-between">
+        {/* Brand Wordmark */}
+        <div
+          onClick={onExploreDemo}
+          className="flex items-center gap-2.5 cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-full bg-terra-primary flex items-center justify-center text-cream-canvas shadow-warm group-hover:scale-105 transition-transform">
+            <span className="material-symbols-outlined text-xl">all_inclusive</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-2xl font-bold tracking-tight text-cream-canvas drop-shadow-sm">
+                <span className="text-ochre-accent font-bold">αñà</span>nvesha
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cream-canvas/15 text-cream-canvas border border-cream-canvas/30 backdrop-blur-xs">
+                Culture
+              </span>
+            </div>
+          </div>
         </div>
 
-        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-cocoa-text leading-[1.1]">
-          Discover something new. <br />
-          <span className="text-terra-primary italic font-normal">Find your people.</span>
-        </h1>
+        {/* Minimal Understated Tagline on Desktop */}
+        <div className="hidden md:flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase text-cream-canvas/80">
+          <span>DISCOVER INDIA. FIND YOUR STORY.</span>
+        </div>
 
-        <p className="mt-6 text-base sm:text-xl text-cocoa-text/80 max-w-2xl mx-auto leading-relaxed">
-          The Lost Connection brings scattered cultural circles together. Connect with students and mentors who speak your native dialect, practice regional folk arts, and organize meetups around campus.
-        </p>
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {/* Actions: Sign in & Start Exploring */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSignInOpen(true)}
+            className="text-xs font-bold text-cream-canvas/90 hover:text-cream-canvas px-3.5 py-2 transition-colors cursor-pointer rounded-full hover:bg-cream-canvas/10"
+          >
+            Sign in
+          </button>
           <button
             onClick={onGetStarted}
-            className="w-full sm:w-auto px-8 py-4 rounded-full bg-terra-primary text-cream-canvas font-bold text-base hover:bg-primary-container shadow-warm hover:shadow-warm-hover hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3"
+            className="px-5 py-2.5 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs font-bold shadow-warm transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105"
           >
-            <span>Get Started & Pick Interests</span>
-            <ArrowRight className="w-5 h-5" />
+            <span>Start exploring</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
+        </div>
+      </header>
 
-          <button
+      {/* 3. Hero Main Editorial Content (Left-aligned) */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 flex-1 flex flex-col justify-center">
+        <div className="max-w-2xl space-y-6">
+          
+          {/* Tagline Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cream-canvas/15 border border-cream-canvas/25 text-cream-canvas text-xs font-semibold backdrop-blur-md animate-hero-title">
+            <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />
+            <span>Living Cultural Landscape of India</span>
+          </div>
+
+          {/* Enormous Editorial Display Headline */}
+          <h1 className="font-serif text-5xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-tight text-cream-canvas leading-[0.95] drop-shadow-md animate-hero-title">
+            INDIA,<br />
+            IN MOTION.
+          </h1>
+
+          {/* Supporting Copy */}
+          <p className="text-sm sm:text-base lg:text-lg text-cream-canvas/90 leading-relaxed max-w-xl font-normal drop-shadow-xs animate-hero-sub">
+            From hidden art gatherings to music festivals and cultural traditions, discover the events bringing India's communities to life.
+          </p>
+
+          {/* Call to Actions */}
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 animate-hero-cta">
+            <button
+              onClick={onExploreIndia || onExploreDemo}
+              className="px-7 py-3.5 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas font-bold text-sm shadow-warm transition-all flex items-center justify-center gap-2.5 hover:scale-105 cursor-pointer"
+            >
+              <span>Explore India</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={onDiscoverEvents || onExploreDemo}
+              className="px-6 py-3.5 rounded-full border-2 border-cream-canvas/60 hover:border-cream-canvas text-cream-canvas hover:bg-cream-canvas/10 font-bold text-sm backdrop-blur-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Discover events</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Floating Live Event Markers Over Hero Canvas */}
+      <div className="hidden lg:block absolute inset-0 pointer-events-none z-10">
+        {heroPins.map(pin => (
+          <div
+            key={pin.id}
+            className="absolute pointer-events-auto group cursor-pointer animate-float-pin"
+            style={{ left: pin.x, top: pin.y }}
             onClick={onExploreDemo}
-            className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-terra-primary/40 text-terra-primary hover:bg-blush-surface/50 font-bold text-base transition-all flex items-center justify-center gap-2"
           >
-            <span>Explore Demo Directly</span>
-          </button>
-        </div>
-
-        {/* Privacy Note */}
-        <p className="mt-4 text-xs text-cocoa-text/60 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-terra-primary" />
-          <span>No exact GPS tracking. Opt-in discovery only. Built for real human connection.</span>
-        </p>
+            <div className="relative flex items-center gap-2">
+              <div className="w-3.5 h-3.5 rounded-full bg-ochre-accent border-2 border-cream-canvas shadow-lg animate-pulse-glow" />
+              <div className="bg-cocoa-text/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-cream-canvas/20 text-[11px] font-semibold text-cream-canvas whitespace-nowrap shadow-md opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all">
+                <span className="text-ochre-accent font-bold">{pin.city}</span> ┬╖ {pin.title}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Feature Pillar Highlights */}
-      <div className="mt-14 sm:mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Pillar 1 */}
-        <div className="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 border border-blush-surface shadow-warm hover:-translate-y-1 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-terra-primary/10 flex items-center justify-center text-terra-primary mb-4">
-            <Mic className="w-6 h-6" />
-          </div>
-          <h3 className="font-serif text-xl font-bold text-cocoa-text">
-            Culture Locket
-          </h3>
-          <p className="text-xs sm:text-sm text-cocoa-text/75 mt-2 leading-relaxed">
-            A quiet daily ritual to stay close to your roots. Send a 5-second dialect audio clip, a family proverb, or a craft photo directly to your paired buddy.
-          </p>
+      {/* 5. Minimalist Single-Screen Bottom Status Bar */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-5 flex items-center justify-between text-xs text-cream-canvas/70">
+        <div className="flex items-center gap-2">
+          <span className="font-serif text-cream-canvas font-bold text-sm">01</span>
+          <span className="text-cream-canvas/50">/</span>
+          <span>Journey</span>
         </div>
 
-        {/* Pillar 2 */}
-        <div className="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 border border-blush-surface shadow-warm hover:-translate-y-1 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-[#996C04]/10 flex items-center justify-center text-[#996C04] mb-4">
-            <MapPin className="w-6 h-6" />
-          </div>
-          <h3 className="font-serif text-xl font-bold text-cocoa-text">
-            Living Cultural Map
-          </h3>
-          <p className="text-xs sm:text-sm text-cocoa-text/75 mt-2 leading-relaxed">
-            Find student workshops, dialect practice circles, and folk performances across Manipal without exposing your exact room or street address.
-          </p>
-        </div>
-
-        {/* Pillar 3 */}
-        <div className="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 border border-blush-surface shadow-warm hover:-translate-y-1 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-[#7A5500]/10 flex items-center justify-center text-[#7A5500] mb-4">
-            <Users className="w-6 h-6" />
-          </div>
-          <h3 className="font-serif text-xl font-bold text-cocoa-text">
-            Transparent Matching
-          </h3>
-          <p className="text-xs sm:text-sm text-cocoa-text/75 mt-2 leading-relaxed">
-            See clear reasons for every connection: like matching a beginner wanting to learn Tulu with a native speaker ready to practice over chai.
-          </p>
+        <div className="flex items-center gap-2 text-xs">
+          <ShieldCheck className="w-3.5 h-3.5 text-ochre-accent" />
+          <span>Opt-in discovery ┬╖ Authentic cultural cartography</span>
         </div>
       </div>
 
-      {/* Footer credits */}
-      <div className="mt-12 text-center text-xs text-cocoa-text/50">
-        ShareSpot Community Platform · Modern Terracotta Design · TEAMAPPEX
-      </div>
+      {/* 6. Quick Sign-In Modal (when user clicks 'Sign in') */}
+      {isSignInOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cocoa-text/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-cream-canvas text-cocoa-text w-full max-w-md rounded-3xl border-2 border-blush-surface shadow-2xl p-6 sm:p-7 space-y-5">
+            
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-terra-primary/10 text-terra-primary">
+                  Student & Mentor Access
+                </span>
+                <h3 className="font-serif text-2xl font-bold text-cocoa-text mt-1.5">
+                  Sign in to <span className="text-terra-primary font-bold">αñà</span>nvesha
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsSignInOpen(false)}
+                className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-cocoa-text/70 hover:text-cocoa-text transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickSignIn} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-cocoa-text mb-1.5">
+                  Student Reg ID / Campus Email
+                </label>
+                <input
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="e.g. 220911045 or user@learner.manipal.edu"
+                  className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text text-xs focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+                  required
+                />
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-surface-container/60 border border-blush-surface flex items-center gap-3">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                  alt="Rohan"
+                  className="w-9 h-9 rounded-full object-cover border border-terra-primary/30"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-serif text-xs font-bold text-cocoa-text">Rohan Shenoy</p>
+                  <p className="text-[11px] text-cocoa-text/60">Verified MAHE Student ┬╖ Coastal Hub</p>
+                </div>
+                <CheckCircle className="w-4 h-4 text-terra-primary" />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Enter <span className="font-bold">αñà</span>nvesha Platform</span>
+              </button>
+            </form>
+
+            <div className="text-center">
+              <button
+                onClick={() => {
+                  setIsSignInOpen(false);
+                  onGetStarted();
+                }}
+                className="text-xs text-terra-primary font-bold hover:underline"
+              >
+                New here? Tailor your cultural interests ΓåÆ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,19 +1,60 @@
-@layer base {
+﻿@layer base {
   body {
     background-color: #FCF7F0;
     color: #5B332C;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, .font-serif {
-    font-family: 'Playfair Display', Georgia, serif;
+  h1, h2, h3, h4, .font-serif, .font-fraunces {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
   }
+}
+
+/* Warm parchment textured map canvas */
+.parchment-canvas {
+  background-color: #FBF5EC;
+  background-image: 
+    radial-gradient(#E8DACB 0.75px, transparent 0.75px),
+    radial-gradient(#E8DACB 0.75px, #FBF5EC 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+/* Illustrated Map State Styles */
+.india-state-path {
+  fill: #F6EDE1;
+  stroke: #D6BEA8;
+  stroke-width: 1.2;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.india-state-path:hover {
+  fill: #E9CDB8;
+  stroke: #C56E50;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 4px 10px rgba(197, 110, 80, 0.25));
+}
+
+.india-state-path.selected {
+  fill: #E5C2A8;
+  stroke: #C56E50;
+  stroke-width: 2.8;
+  filter: drop-shadow(0 6px 16px rgba(197, 110, 80, 0.35));
+}
+
+/* State outline shadow simulation */
+.india-state-shadow {
+  fill: none;
+  stroke: rgba(91, 51, 44, 0.08);
+  stroke-width: 4;
 }
 
 /* Custom warm scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   background: #FCF7F0;
@@ -60,3 +101,81 @@
 .wave-bar-3 { animation: wave-bounce 1s infinite ease-in-out 0.4s; }
 .wave-bar-4 { animation: wave-bounce 1s infinite ease-in-out 0.15s; }
 .wave-bar-5 { animation: wave-bounce 1s infinite ease-in-out 0.35s; }
+
+/* Cinematic Hero Animations */
+@keyframes heroFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes heroTitleRise {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroSubtleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.animate-hero-fade {
+  animation: heroFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-title {
+  animation: heroTitleRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+  opacity: 0;
+}
+
+.animate-hero-sub {
+  animation: heroTitleRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
+  opacity: 0;
+}
+
+.animate-hero-cta {
+  animation: heroTitleRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.65s forwards;
+  opacity: 0;
+}
+
+.animate-float-pin {
+  animation: heroSubtleFloat 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-fade,
+  .animate-hero-title,
+  .animate-hero-sub,
+  .animate-hero-cta,
+  .animate-float-pin,
+  .animate-pulse-glow {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+

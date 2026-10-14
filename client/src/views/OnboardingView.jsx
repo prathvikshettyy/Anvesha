@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Sparkles, Check, ArrowRight, Compass, Shield } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { INITIAL_INTERESTS } from '../data/initialData';
@@ -46,7 +46,7 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
       {/* Onboarding Header */}
       <div className="text-center max-w-2xl mx-auto mb-10">
         <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-blush-surface/70 text-cocoa-text border border-terra-primary/20">
-          Step 1 of 1 · Tailor Your Belonging
+          Step 1 of 1 ┬╖ Tailor Your Belonging
         </span>
         <h2 className="font-serif text-3xl sm:text-5xl font-bold text-cocoa-text mt-3">
           What cultural roots & arts do you care about?
@@ -102,9 +102,9 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
             </label>
             <div className="space-y-1.5">
               {[
-                { id: 'WANTS_TO_LEARN', label: '🌱 I want to learn / practice conversational basics' },
-                { id: 'WILLING_TO_TEACH', label: '🎓 I am a fluent/native speaker willing to guide others' },
-                { id: 'CASUAL_ENTHUSIAST', label: '☕ Casual listener / exploring coastal folklore' }
+                { id: 'WANTS_TO_LEARN', label: '≡ƒî▒ I want to learn / practice conversational basics' },
+                { id: 'WILLING_TO_TEACH', label: '≡ƒÄô I am a fluent/native speaker willing to guide others' },
+                { id: 'CASUAL_ENTHUSIAST', label: 'Γÿò Casual listener / exploring coastal folklore' }
               ].map(opt => (
                 <label
                   key={opt.id}
@@ -134,9 +134,9 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
             </label>
             <div className="space-y-1.5">
               {[
-                { id: 'BOTH', label: '🤝 Both In-Person and Virtual exchanges' },
-                { id: 'IN_PERSON', label: '📍 In-Person only (Campus, Cafes, Workshops)' },
-                { id: 'ONLINE', label: '💻 Virtual / Remote audio calls only' }
+                { id: 'BOTH', label: '≡ƒñ¥ Both In-Person and Virtual exchanges' },
+                { id: 'IN_PERSON', label: '≡ƒôì In-Person only (Campus, Cafes, Workshops)' },
+                { id: 'ONLINE', label: '≡ƒÆ╗ Virtual / Remote audio calls only' }
               ].map(opt => (
                 <label
                   key={opt.id}
@@ -173,7 +173,7 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
             onClick={handleFinish}
             className="px-8 py-3 rounded-full bg-terra-primary text-cream-canvas font-bold text-sm hover:bg-primary-container shadow-warm hover:shadow-warm-hover transition-all flex items-center justify-center gap-2"
           >
-            <span>Complete Setup & Enter ShareSpot</span>
+            <span>Complete Setup & Enter <span className="font-bold">αñà</span>nvesha</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

@@ -1,12 +1,12 @@
-import React from 'react';
+﻿import React from 'react';
 import { Compass, Calendar, Users, MessageSquare, Bookmark, HeartHandshake, Mic } from 'lucide-react';
 
-export default function Navbar({ currentView, setCurrentView, unreadCount = 1, savedCount = 2, user, backendConnected = false }) {
+export default function Navbar({ currentView, setCurrentView, unreadCount = 1, savedCount = 2, user }) {
   const navItems = [
     { id: 'home', label: 'Home', icon: Compass },
-    { id: 'events', label: 'Events & Map', icon: Calendar },
+    { id: 'events', label: 'Atlas & Events', icon: Calendar },
     { id: 'people', label: 'Find People', icon: Users },
-    { id: 'locket', label: 'Culture Locket', icon: Mic, badge: 'New' },
+    { id: 'locket', label: 'Culture Locket', icon: Mic, badge: 'Daily' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadCount },
     { id: 'saved', label: 'Saved', icon: Bookmark, count: savedCount }
   ];
@@ -27,24 +27,13 @@ export default function Navbar({ currentView, setCurrentView, unreadCount = 1, s
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-serif text-2xl font-bold tracking-tight text-cocoa-text">
-                  ShareSpot
+                  <span className="text-terra-primary font-bold">αñà</span>nvesha
                 </span>
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-blush-surface/60 text-cocoa-text border border-terra-primary/20">
                   Culture
                 </span>
-                {backendConnected ? (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs" title="Connected to Express + better-sqlite3 backend">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    SQLite Live
-                  </span>
-                ) : (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-stone-600 bg-stone-200/80 px-2 py-0.5 rounded-full border border-stone-300" title="Running in standalone preview mode with initial data">
-                    <span className="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
-                    Offline Mode
-                  </span>
-                )}
               </div>
-              <p className="text-xs text-cocoa-text/60 hidden sm:block">The Lost Connection · M# 2026</p>
+              <p className="text-xs text-cocoa-text/60 hidden sm:block font-medium">Discover India. Find your story.</p>
             </div>
           </div>
 

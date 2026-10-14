@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search, Sparkles, Calendar, Users, MapPin, ArrowRight, Mic, Heart, Bookmark } from 'lucide-react';
 import CultureLocketCard from '../components/CultureLocketCard';
 import EventCard from '../components/EventCard';
@@ -53,7 +53,7 @@ export default function HomeView({
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-cocoa-text">
               Namaskara, {user.name.split(' ')[0]}
             </h1>
-            <span className="text-xl">🌿</span>
+            <span className="text-xl">≡ƒî┐</span>
           </div>
           <p className="text-sm text-cocoa-text/75 mt-1">
             4 cultural gatherings happening near your campus this week.
@@ -73,7 +73,41 @@ export default function HomeView({
         </div>
       </div>
 
-      {/* 2. Top Highlight Row: Culture Locket Widget & Coming Up Calendar */}
+      {/* 2. Atlas Spotlight Feature Card */}
+      <div className="relative overflow-hidden rounded-3xl border-2 border-blush-surface bg-gradient-to-r from-surface-container via-cream-canvas to-surface-container p-6 sm:p-8 shadow-warm">
+        {/* Decorative corner folk ornaments */}
+        <div className="absolute top-2 right-2 text-terra-primary/20 text-3xl font-serif select-none pointer-events-none">
+          ≡ƒ¬╖
+        </div>
+        <div className="absolute -bottom-4 -right-4 w-32 h-32 rounded-full bg-terra-primary/5 blur-xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-terra-primary/10 border border-terra-primary/20 text-terra-primary text-xs font-bold">
+              <span className="material-symbols-outlined text-sm">public</span>
+              <span>Living Cultural Atlas</span>
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-cocoa-text">
+              Discover Your India.
+            </h2>
+            <p className="text-xs sm:text-sm text-cocoa-text/80 leading-relaxed font-medium">
+              Explore 35 states and union territories rendered as a living, illustrated folk atlas. Discover Yakshagana in Karnataka, Kathakali in Kerala, Warli art in Maharashtra, and Baul poetry in Bengal with category-specific pins.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              onClick={() => onNavigate('events')}
+              className="px-5 py-3 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs sm:text-sm font-bold shadow-warm transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base">travel_explore</span>
+              <span>Open India Atlas</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Top Highlight Row: Culture Locket Widget & Coming Up Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Column (7 cols): Signature Culture Locket */}

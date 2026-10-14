@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import WelcomeView from './views/WelcomeView';
 import OnboardingView from './views/OnboardingView';
 import HomeView from './views/HomeView';
@@ -265,30 +265,42 @@ export default function App() {
     setPeople(INITIAL_PEOPLE);
     setLocketMoments(INITIAL_LOCKET_MOMENTS);
     setSavedEvents(INITIAL_USER.savedEvents);
+    setBackendConnected(false);
     setCurrentView('welcome');
   };
 
   return (
-    <div className="min-h-screen bg-cream-canvas text-cocoa-text flex flex-col font-sans selection:bg-terra-primary/20 selection:text-cocoa-text">
-      
-      {/* Top Navbar (visible on all screens except onboarding & welcome, though accessible if desired) */}
+    <div className={`min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
+      currentView === 'welcome' ? 'flex-col' : 'flex-col md:flex-row'
+    }`}>
+
+      {/* Left Sidebar (visible on all screens except onboarding & welcome) */}
       {currentView !== 'welcome' && currentView !== 'onboarding' && (
-        <Navbar
+        <Sidebar
           currentView={currentView}
           setCurrentView={setCurrentView}
           unreadCount={1}
           savedCount={savedEvents.length}
           user={user}
           backendConnected={backendConnected}
+          onSignOut={handleResetDemo}
         />
       )}
 
-      {/* Main View Switcher */}
-      <main className="flex-1 pb-16 md:pb-8">
+      {/* Main View Container */}
+      <main className="flex-1 min-w-0 overflow-y-auto pb-16 md:pb-8">
         {currentView === 'welcome' && (
           <WelcomeView
             onGetStarted={() => setCurrentView('onboarding')}
             onExploreDemo={() => setCurrentView('home')}
+            onExploreIndia={() => setCurrentView('events')}
+            onDiscoverEvents={() => setCurrentView('events')}
+            onNavigate={setCurrentView}
+            events={events}
+            people={people}
+            savedEvents={savedEvents}
+            onToggleSave={handleToggleSave}
+            onSelectEvent={setActiveDetailEvent}
           />
         )}
 
@@ -316,7 +328,7 @@ export default function App() {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
-            onReactLocket={(id, text) => {}}
+            onReactLocket={handleReactLocket}
             onNavigate={setCurrentView}
           />
         )}
@@ -352,7 +364,7 @@ export default function App() {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
-            onReactLocket={(id, text) => {}}
+            onReactLocket={handleReactLocket}
           />
         )}
 

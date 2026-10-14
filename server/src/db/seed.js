@@ -1,4 +1,4 @@
-﻿// server/src/db/seed.js
+// server/src/db/seed.js
 // Run with: npm run db:seed (from server/) or npm run db:seed --workspace=server
 // Seeds all initial data from the frontend's initialData.js equivalent.
 // Safe to run multiple times — uses INSERT OR IGNORE.
@@ -106,7 +106,8 @@ const insertUser = db.prepare(`
 
 for (const u of users) {
   const password_hash = bcrypt.hashSync(u.password, HASH_ROUNDS);
-  insertUser.run({ ...u, password_hash });
+  const { password, ...rest } = u;  // strip plain password — not a DB column
+  insertUser.run({ ...rest, password_hash });
 }
 console.log(`[Seed] Inserted ${users.length} users`);
 

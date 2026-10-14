@@ -1,90 +1,31 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import { Send, Mic, Phone, Video, MoreVertical, Sparkles, Volume2 } from 'lucide-react';
 import { INITIAL_CONVERSATIONS } from '../data/initialData';
-import * as api from '../services/api';
 
 export default function MessagesView({ onOpenLocketModal }) {
   const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
-  const [activeConvId, setActiveConvId] = useState('conv_usr_priya');
+  const [activeConvId, setActiveConvId] = useState('conv_priya');
   const [inputText, setInputText] = useState('');
 
-  // Sync conversations and thread history from SQLite DB
-  useEffect(() => {
-    let mounted = true;
+  const activeConv = conversations.find(c => c.id === activeConvId) || conversations[0];
 
-    async function loadThreads() {
-      try {
-        const rows = await api.messages.conversations();
-        if (Array.isArray(rows) && rows.length > 0 && mounted) {
-          const loaded = await Promise.all(
-            rows.map(async (row) => {
-              try {
-                const thread = await api.messages.thread(row.partnerId);
-                return {
-                  id: `conv_${row.partnerId}`,
-                  partnerId: row.partnerId,
-                  partnerName: row.partnerName,
-                  partnerAvatar: row.partnerAvatar,
-                  partnerHandle: row.partnerHandle,
-                  lastMessage: row.lastMessage,
-                  lastTime: 'Recent',
-                  unread: row.unreadCount || 0,
-                  messages: (thread.messages || []).map(m => ({
-                    id: m.id,
-                    sender: m.sender_id,
-                    text: m.text,
-                    time: 'Recent',
-                  })),
-                };
-              } catch {
-                return {
-                  id: `conv_${row.partnerId}`,
-                  partnerId: row.partnerId,
-                  partnerName: row.partnerName,
-                  partnerAvatar: row.partnerAvatar,
-                  partnerHandle: row.partnerHandle,
-                  lastMessage: row.lastMessage,
-                  lastTime: 'Recent',
-                  unread: row.unreadCount || 0,
-                  messages: [],
-                };
-              }
-            })
-          );
-          if (mounted && loaded.length > 0) {
-            setConversations(loaded);
-            setActiveConvId(loaded[0].id);
-          }
-        }
-      } catch (err) {
-        console.info('[Messages] Using offline seed threads:', err?.message || err);
-      }
-    }
-
-    loadThreads();
-    return () => { mounted = false; };
-  }, []);
-
-  const activeConv = conversations.find(c => c.id === activeConvId || c.partnerId === activeConvId) || conversations[0];
-
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const messageText = inputText.trim();
     const newMsg = {
       id: `m_${Date.now()}`,
       sender: 'usr_rohan',
-      text: messageText,
+      text: inputText,
       time: 'Just now'
     };
 
     setConversations(prev =>
       prev.map(c => {
-        if (c.id === activeConvId || c.partnerId === activeConv?.partnerId) {
+        if (c.id === activeConvId) {
           return {
             ...c,
-            lastMessage: messageText,
+            lastMessage: inputText,
             lastTime: 'Just now',
             messages: [...c.messages, newMsg]
           };
@@ -95,26 +36,17 @@ export default function MessagesView({ onOpenLocketModal }) {
 
     setInputText('');
 
-    // Persist to SQLite backend
-    try {
-      if (activeConv?.partnerId) {
-        await api.messages.send(activeConv.partnerId, messageText);
-      }
-    } catch (err) {
-      console.warn('[Messages] Persist failed, relying on local state:', err);
-    }
-
-    // Simulated reply after 1.5 seconds if talking to demo friend
+    // Simulated instant reply after 1.5 seconds from cultural partner
     setTimeout(() => {
       const reply = {
         id: `m_${Date.now() + 1}`,
-        sender: activeConv?.partnerId || 'partner',
-        text: 'Awesome! Glad we connected on ShareSpot. Practice coastal phrases on Culture Locket!',
+        sender: activeConv.partnerId,
+        text: 'Glad we connected on Anvesha! See you at the gathering!',
         time: 'Just now'
       };
       setConversations(prev =>
         prev.map(c => {
-          if (c.id === activeConvId || c.partnerId === activeConv?.partnerId) {
+          if (c.id === activeConvId) {
             return {
               ...c,
               lastMessage: reply.text,
@@ -190,7 +122,7 @@ export default function MessagesView({ onOpenLocketModal }) {
                 <h3 className="font-serif text-base font-bold text-cocoa-text">{activeConv.partnerName}</h3>
                 <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-600" />
-                  <span>Online · Paired Culture Connection</span>
+                  <span>Online ┬╖ Paired Culture Connection</span>
                 </span>
               </div>
             </div>
