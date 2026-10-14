@@ -140,6 +140,8 @@ router.get('/', requireAuth, (req, res) => {
 
     return {
       ...candidate,
+      avatar: candidate.avatar_url,
+      broadRegion: candidate.neighborhood || 'Manipal',
       lat: undefined, lng: undefined, // privacy: never expose exact coords
       interests: theirInterests,
       speaks: languages,

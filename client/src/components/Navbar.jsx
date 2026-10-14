@@ -1,7 +1,7 @@
 import React from 'react';
 import { Compass, Calendar, Users, MessageSquare, Bookmark, HeartHandshake, Mic } from 'lucide-react';
 
-export default function Navbar({ currentView, setCurrentView, unreadCount = 1, savedCount = 2, user }) {
+export default function Navbar({ currentView, setCurrentView, unreadCount = 1, savedCount = 2, user, backendConnected = false }) {
   const navItems = [
     { id: 'home', label: 'Home', icon: Compass },
     { id: 'events', label: 'Events & Map', icon: Calendar },
@@ -32,6 +32,17 @@ export default function Navbar({ currentView, setCurrentView, unreadCount = 1, s
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-blush-surface/60 text-cocoa-text border border-terra-primary/20">
                   Culture
                 </span>
+                {backendConnected ? (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs" title="Connected to Express + better-sqlite3 backend">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    SQLite Live
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-stone-600 bg-stone-200/80 px-2 py-0.5 rounded-full border border-stone-300" title="Running in standalone preview mode with initial data">
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+                    Offline Mode
+                  </span>
+                )}
               </div>
               <p className="text-xs text-cocoa-text/60 hidden sm:block">The Lost Connection · M# 2026</p>
             </div>

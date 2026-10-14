@@ -39,6 +39,23 @@ function resolveCoords(venue, lat, lng) {
   };
 }
 
+function formatEvent(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    image: row.image_url || row.image || '',
+    imageUrl: row.image_url || row.image || '',
+    date: row.date_label || row.date || 'Upcoming Weekend',
+    datetime: row.datetime_iso || row.datetime || new Date().toISOString(),
+    categoryLabel: row.category_label || row.categoryLabel || row.category,
+    sourceUrl: row.source_url || row.sourceUrl || '',
+    sourceLabel: row.source_label || row.sourceLabel || 'Community Verified',
+    verificationStatus: row.verification_status || row.verificationStatus || 'VERIFIED',
+    attendeeCount: row.attendee_count ?? row.attendeeCount ?? 0,
+    isOnline: Boolean(row.is_online),
+  };
+}
+
 // ── GET /api/events ───────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
   const { q = '', category = 'ALL', limit = 50, offset = 0 } = req.query;
@@ -67,7 +84,7 @@ router.get('/', (req, res) => {
   sql += ' ORDER BY e.datetime_iso ASC LIMIT ? OFFSET ?';
   params.push(Math.min(Number(limit) || 50, 100), Math.max(Number(offset) || 0, 0));
 
-  const events = db.prepare(sql).all(...params);
+  const events = db.prepare(sql).all(...params).map(formatEvent);
   res.json(events);
 });
 
@@ -78,7 +95,7 @@ router.get('/saved', requireAuth, (req, res) => {
     JOIN saved_events se ON se.event_id = e.id
     WHERE se.user_id = ?
     ORDER BY se.saved_at DESC
-  `).all(req.user.id);
+  `).all(req.user.id).map(formatEvent);
   res.json(rows);
 });
 
@@ -86,7 +103,7 @@ router.get('/saved', requireAuth, (req, res) => {
 router.get('/:id', (req, res) => {
   const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
-  res.json(event);
+  res.json(formatEvent(event));
 });
 
 // ── POST /api/events — submit new event ───────────────────────────────────────
@@ -95,12 +112,16 @@ router.post('/',
   requireFields('title', 'venue'),
   (req, res) => {
     const {
-      title, category = 'culture', date_label = 'Upcoming',
-      datetime_iso, venue, neighborhood = 'Manipal Hub',
+      title, category = 'culture',
+      venue, neighborhood = 'Manipal Hub',
       organizer = 'Campus Cultural Collective', description = '',
-      source_url = '', image_url = '',
       lat, lng,
     } = req.body;
+
+    const date_label = req.body.date_label || req.body.date || 'Upcoming Weekend';
+    const datetime_iso = req.body.datetime_iso || req.body.datetime || new Date().toISOString();
+    const source_url = req.body.source_url || req.body.sourceUrl || '';
+    const image_url = req.body.image_url || req.body.image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80';
 
     // Validate
     if (title.length > 200)
@@ -129,10 +150,10 @@ router.post('/',
         (id, title, category, category_label, date_label, datetime_iso, venue,
          neighborhood, lat, lng, organizer, image_url, description, source_url,
          source_label, verification_status, submitted_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','PENDING',?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
     `).run(
-      id, title.slice(0, 200), category, categoryLabels[category],
-      date_label.slice(0, 100), datetime_iso || new Date().toISOString(),
+      id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
+      date_label.slice(0, 100), datetime_iso,
       venue.slice(0, 300), neighborhood.slice(0, 200),
       coords.lat, coords.lng,
       organizer.slice(0, 200), image_url, description.slice(0, 2000),
@@ -140,7 +161,7 @@ router.post('/',
     );
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
-    res.status(201).json(event);
+    res.status(201).json(formatEvent(event));
   }
 );
 

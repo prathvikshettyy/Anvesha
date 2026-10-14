@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "test": "node tests/api.test.mjs",
     "db:seed": "node src/db/seed.js"
   },
   "dependencies": {

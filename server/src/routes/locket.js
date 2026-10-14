@@ -77,6 +77,7 @@ function formatMoment(row) {
     provenance: row.provenance,
     audioUrl: row.audio_url,
     imageUrl: row.image_url,
+    image: row.image_url,
     audioDuration: row.audio_duration,
     timestamp: row.timestamp_iso,
     reactions,
@@ -88,11 +89,11 @@ router.get('/vault', (req, res) => {
   res.json(DIALECT_VAULT);
 });
 
-// ── GET /api/locket — moments sent to or by current user ─────────────────────
+// ── GET /api/locket — moments sent to, by, or broadcast to current user ───────
 router.get('/', requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT * FROM locket_moments
-    WHERE recipient_id = ? OR sender_id = ?
+    WHERE recipient_id = ? OR sender_id = ? OR recipient_id IS NULL
     ORDER BY timestamp_iso DESC
     LIMIT 50
   `).all(req.user.id, req.user.id);
@@ -103,20 +104,21 @@ router.get('/', requireAuth, (req, res) => {
 // ── POST /api/locket — create a new locket moment ────────────────────────────
 router.post('/',
   requireAuth,
-  requireFields('vernacular_text', 'meaning'),
   (req, res) => {
-    const {
-      recipient_id,
-      moment_type = 'WORD_OF_DAY',
-      title,
-      vernacular_text,
-      phonetic_text = '',
-      meaning,
-      provenance = '',
-      audio_url = '',
-      image_url = '',
-      audio_duration = '',
-    } = req.body;
+    const vernacular_text = req.body.vernacular_text || req.body.vernacularText || '';
+    const meaning = req.body.meaning || '';
+    const moment_type = req.body.moment_type || req.body.momentType || 'WORD_OF_DAY';
+    const recipient_id = req.body.recipient_id || req.body.recipientId || null;
+    const phonetic_text = req.body.phonetic_text || req.body.phoneticText || '';
+    const provenance = req.body.provenance || '';
+    const audio_url = req.body.audio_url || req.body.audioUrl || '';
+    const image_url = req.body.image_url || req.body.imageUrl || req.body.image || '';
+    const audio_duration = req.body.audio_duration || req.body.audioDuration || '';
+    const title = req.body.title;
+
+    if (!vernacular_text.trim() || !meaning.trim()) {
+      return res.status(400).json({ error: 'vernacular_text and meaning are required' });
+    }
 
     // Validate
     const validTypes = ['WORD_OF_DAY', 'CRAFT_STEP'];

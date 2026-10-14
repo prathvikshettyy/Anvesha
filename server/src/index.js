@@ -75,8 +75,18 @@ app.use((err, req, res, _next) => {
   });
 });
 
+import path from 'path';
+
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`[Server] ShareSpot API running on http://localhost:${PORT}`);
-  console.log(`[Server] Health: http://localhost:${PORT}/api/health`);
-});
+let server = null;
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename;
+
+if (isMain) {
+  server = app.listen(PORT, () => {
+    console.log(`[Server] ShareSpot API running on http://localhost:${PORT}`);
+    console.log(`[Server] Health: http://localhost:${PORT}/api/health`);
+  });
+}
+
+export { app, server };
+export default app;

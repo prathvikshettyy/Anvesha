@@ -245,12 +245,33 @@ All endpoints are prefixed with `/api`.
 
 ## Test Instructions
 
+### Automated End-to-End Test Suite
+
+Run the complete automated test suite (exercises all 6 API modules against SQLite):
+
+```bash
+npm test
+```
+
+```
+🎉 ALL TESTS PASSED: 45 passed, 0 failed
+```
+
+This runs 45 automated test assertions covering:
+- **Health:** `/api/health` status and version checks
+- **Authentication:** Registration, login, JWT validation, profile retrieval (`/api/auth/me`), profile updates, and unauthenticated access prevention (401)
+- **Events:** Listing, category filtering, keyword search, community event submission with SQLite persistence, and bookmark/save toggles
+- **People Discovery:** Discoverable user queries, Jaccard + skill-exchange match calculation, match score sorting, and location privacy enforcement (exact coordinates stripped)
+- **Culture Locket:** Dialect archive vault retrieval, visible moments query, new dialect word/step moment creation with SQLite persistence, and peer reaction logging
+- **Messages:** Conversation listing, thread history retrieval, message sending with SQLite persistence, and read receipt marking
+
 ### Test with a browser
 
-1. Start both servers: `.\scripts\dev.ps1`
+1. Start both servers: `.\scripts\dev.ps1` (or `npm run dev`)
 2. Open http://localhost:5173
-3. Click **Get Started** → complete onboarding
-4. Or **Explore Demo** → use demo accounts above
+3. Look for the **"🟢 SQLite Live"** badge in the navbar indicating real-time database synchronization
+4. Click **Get Started** → complete onboarding to persist custom preferences to SQLite
+5. Or **Explore Demo** → browse events on the living map, submit a gathering, discover people, send a culture locket, and message connections
 
 ### Test the API directly
 
