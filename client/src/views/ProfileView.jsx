@@ -10,11 +10,12 @@ export default function ProfileView({
   onToggleSave,
   onSelectEvent,
   onUpdateUser,
-  onResetDemo
+  onResetDemo,
+  onSaveProfile
 }) {
   const [activeTab, setActiveTab] = useState('SAVED'); // 'SAVED', 'INTERESTS', 'PRIVACY'
   const [isDiscoverable, setIsDiscoverable] = useState(user.isDiscoverable);
-  const [fuzzedLocation, setFuzzedLocation] = useState(true);
+  const [fuzzedLocation, setFuzzedLocation] = useState(user.fuzzedLocation ?? true);
 
   const bookmarkedEvents = events.filter(e => savedEvents.includes(e.id));
 
@@ -158,7 +159,11 @@ export default function ProfileView({
               <input
                 type="checkbox"
                 checked={isDiscoverable}
-                onChange={() => setIsDiscoverable(!isDiscoverable)}
+                onChange={() => {
+                  const next = !isDiscoverable;
+                  setIsDiscoverable(next);
+                  onSaveProfile?.({ is_discoverable: next ? 1 : 0 });
+                }}
                 className="w-5 h-5 accent-terra-primary rounded cursor-pointer"
               />
             </div>
@@ -171,7 +176,11 @@ export default function ProfileView({
               <input
                 type="checkbox"
                 checked={fuzzedLocation}
-                onChange={() => setFuzzedLocation(!fuzzedLocation)}
+                onChange={() => {
+                  const next = !fuzzedLocation;
+                  setFuzzedLocation(next);
+                  onSaveProfile?.({ fuzzed_location: next ? 1 : 0 });
+                }}
                 className="w-5 h-5 accent-terra-primary rounded cursor-pointer"
               />
             </div>

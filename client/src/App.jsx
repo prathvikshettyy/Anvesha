@@ -39,6 +39,9 @@ function normaliseUser(backendUser) {
     isDiscoverable: backendUser.is_discoverable !== undefined
                       ? Boolean(backendUser.is_discoverable)
                       : INITIAL_USER.isDiscoverable,
+    fuzzedLocation: backendUser.fuzzed_location !== undefined
+                      ? Boolean(backendUser.fuzzed_location)
+                      : true,
     // Map interest array [{interest_id, intention}] → [id, id, ...]
     interests: Array.isArray(backendUser.interests)
       ? backendUser.interests.map(i => i.interest_id ?? i)
@@ -228,20 +231,29 @@ export default function App() {
   };
 
   const handleOnboardingComplete = async (preferences) => {
-    const updated = { ...user, ...preferences };
-    setUser(updated);
+    // Optimistic local update so UI reacts immediately
+    setUser(prev => ({ ...prev, ...preferences }));
 
-    // If logged in, persist to backend
+    // If logged in, persist to backend and then sync state from DB
     if (api.token.get()) {
-      const interestPayload = (preferences.interests || []).map(id => ({
-        interest_id: id,
-        intention: 'CASUAL_ENTHUSIAST',
-      }));
-      api.auth.updateMe({
-        neighborhood:    preferences.neighborhood,
-        preferred_mode:  preferences.preferredMode,
-        interests:       interestPayload,
-      }).catch(() => {});
+      try {
+        const interestPayload = (preferences.interests || []).map(id => ({
+          interest_id: id,
+          intention: 'CASUAL_ENTHUSIAST',
+        }));
+        await api.auth.updateMe({
+          neighborhood:   preferences.neighborhood,
+          preferred_mode: preferences.preferredMode,
+          interests:      interestPayload,
+        });
+        // Re-fetch /me so authUser and user are in sync with what is now in DB
+        const refreshed = await api.auth.me();
+        const u = normaliseUser(refreshed);
+        setAuthUser(refreshed);
+        setUser(u);
+      } catch {
+        // Non-fatal — local state already shows the picked interests
+      }
     }
     setCurrentView('home');
   };
