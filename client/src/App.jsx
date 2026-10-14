@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { connectSocket, disconnectSocket } from './services/socket';
 import Sidebar from './components/Sidebar';
 import WelcomeView from './views/WelcomeView';
 import OnboardingView from './views/OnboardingView';
@@ -215,6 +216,17 @@ export default function App() {
     }
   }, [authUser, loadPeople, loadLocket]);
 
+  // ── Socket.IO connection lifecycle ─────────────────────────────────────────
+  useEffect(() => {
+    const t = api.token.get();
+    if (authUser && t) {
+      connectSocket(t);
+    } else {
+      disconnectSocket();
+    }
+    return () => {};
+  }, [authUser]);
+
   // Scroll to top on view change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -328,6 +340,7 @@ export default function App() {
   };
 
   const handleResetDemo = () => {
+    disconnectSocket();
     api.auth.logout();
     setAuthUser(null);
     setUser(INITIAL_USER);
@@ -465,6 +478,7 @@ export default function App() {
             }}
             isAuthenticated={!!authUser}
             onUnreadCountChange={setUnreadCount}
+            authToken={api.token.get()}
           />
         )}
 
