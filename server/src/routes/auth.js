@@ -43,6 +43,10 @@ router.post('/register',
     `).run(id, username, handle, password_hash, name, bio.slice(0, 500), avatar_url);
 
     const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
+    user.interests = [];
+    user.languages = [];
+    user.skills = [];
+    user.saved_event_ids = [];
     const token = signToken(user);
 
     res.status(201).json({ token, user });
@@ -64,8 +68,9 @@ router.post('/login',
     // Build public user object (never return password_hash)
     const { password_hash, ...publicUser } = user;
     publicUser.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
-    publicUser.languages  = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(user.id).map(r => r.language);
-    publicUser.skills     = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(user.id);
+    publicUser.languages = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(user.id).map(r => r.language);
+    publicUser.skills    = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(user.id);
+    publicUser.saved_event_ids = db.prepare('SELECT event_id FROM saved_events WHERE user_id = ?').all(user.id).map(r => r.event_id);
 
     const token = signToken(publicUser);
     res.json({ token, user: publicUser });

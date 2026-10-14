@@ -24,10 +24,10 @@ export default function HomeView({
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      e.title.toLowerCase().includes(q) ||
-      e.description.toLowerCase().includes(q) ||
-      e.categoryLabel.toLowerCase().includes(q) ||
-      e.venue.toLowerCase().includes(q)
+      (e.title ?? '').toLowerCase().includes(q) ||
+      (e.description ?? '').toLowerCase().includes(q) ||
+      (e.categoryLabel ?? '').toLowerCase().includes(q) ||
+      (e.venue ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -56,7 +56,7 @@ export default function HomeView({
             <span className="text-xl">🌿</span>
           </div>
           <p className="text-sm text-cocoa-text/75 mt-1">
-            4 cultural gatherings happening near your campus this week.
+            {pickedEvents.length} gatherings matching your interests this week
           </p>
         </div>
 

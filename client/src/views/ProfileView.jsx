@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Bookmark, Heart, Shield, Settings, Sparkles, MapPin, CheckCircle, ExternalLink } from 'lucide-react';
 import { INITIAL_INTERESTS } from '../data/initialData';
 import EventCard from '../components/EventCard';
+import * as api from '../services/api';
 
 export default function ProfileView({
   user,
@@ -16,8 +17,25 @@ export default function ProfileView({
   const [activeTab, setActiveTab] = useState('SAVED'); // 'SAVED', 'INTERESTS', 'PRIVACY'
   const [isDiscoverable, setIsDiscoverable] = useState(user.isDiscoverable);
   const [fuzzedLocation, setFuzzedLocation] = useState(user.fuzzedLocation ?? true);
+  const [dbSavedEvents, setDbSavedEvents] = useState(null);
 
-  const bookmarkedEvents = events.filter(e => savedEvents.includes(e.id));
+  // Sync saved events directly from DB if authenticated
+  useEffect(() => {
+    if (api.token.get()) {
+      api.events.saved()
+        .then(data => {
+          if (Array.isArray(data)) setDbSavedEvents(data);
+        })
+        .catch(() => {});
+    }
+  }, [savedEvents]);
+
+  const bookmarkedEvents = useMemo(() => {
+    if (dbSavedEvents) {
+      return dbSavedEvents.filter(e => savedEvents.includes(e.id));
+    }
+    return events.filter(e => savedEvents.includes(e.id));
+  }, [dbSavedEvents, events, savedEvents]);
 
   return (
     <div className="max-w-5xl mx-auto py-6 sm:py-10 px-4 sm:px-6 space-y-8">

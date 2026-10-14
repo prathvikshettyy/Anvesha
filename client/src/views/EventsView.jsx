@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
 import StateDetailPanel from '../components/StateDetailPanel';
 import { PIN_CATEGORIES } from '../components/IllustratedPin';
+import * as api from '../services/api';
 
 export default function EventsView({
   events,
@@ -20,6 +21,30 @@ export default function EventsView({
   const [onlySaved, setOnlySaved] = useState(false);
   const [selectedStateId, setSelectedStateId] = useState(null);
   const [selectedStateName, setSelectedStateName] = useState(null);
+  const [apiEvents, setApiEvents] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Debounced API search on searchQuery + selectedCategory
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.events.list({
+          q: searchQuery,
+          category: selectedCategory
+        });
+        if (Array.isArray(res)) {
+          setApiEvents(res);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch events from API, using local events:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedCategory]);
 
   const categories = [
     { id: 'ALL', label: 'All Heritage', symbol: '🇮🇳' },
@@ -37,20 +62,21 @@ export default function EventsView({
 
   // Filter events based on state, category, search, and saved filter
   const filteredEvents = useMemo(() => {
-    return events.filter(evt => {
+    const source = apiEvents ?? events;
+    return source.filter(evt => {
       // Category filter
       const matchesCategory = selectedCategory === 'ALL' || evt.category === selectedCategory;
       
       // Saved filter
       const matchesSaved = !onlySaved || savedEvents.includes(evt.id);
       
-      // Search query
+      // Search query (null-safe with ?? '')
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q || (
-        evt.title.toLowerCase().includes(q) ||
-        evt.description.toLowerCase().includes(q) ||
-        evt.venue.toLowerCase().includes(q) ||
-        evt.organizer.toLowerCase().includes(q) ||
+        (evt.title ?? '').toLowerCase().includes(q) ||
+        (evt.description ?? '').toLowerCase().includes(q) ||
+        (evt.venue ?? '').toLowerCase().includes(q) ||
+        (evt.organizer ?? '').toLowerCase().includes(q) ||
         (evt.state && evt.state.toLowerCase().includes(q)) ||
         (evt.city && evt.city.toLowerCase().includes(q))
       );
@@ -62,7 +88,7 @@ export default function EventsView({
 
       return matchesCategory && matchesSaved && matchesSearch && matchesState;
     });
-  }, [events, selectedCategory, onlySaved, searchQuery, selectedStateId]);
+  }, [apiEvents, events, selectedCategory, onlySaved, searchQuery, selectedStateId, savedEvents]);
 
   const handleSelectState = (stateId, stateName) => {
     setSelectedStateId(stateId);
@@ -154,8 +180,13 @@ export default function EventsView({
             placeholder="Search by state, tradition, instrument, or topic..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-full border border-blush-surface bg-surface-container-lowest text-xs sm:text-sm text-cocoa-text placeholder-cocoa-text/50 focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+            className="w-full pl-10 pr-9 py-2.5 rounded-full border border-blush-surface bg-surface-container-lowest text-xs sm:text-sm text-cocoa-text placeholder-cocoa-text/50 focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
           />
+          {isLoading && (
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+              <span className="w-3.5 h-3.5 border-2 border-terra-primary border-t-transparent rounded-full animate-spin inline-block" />
+            </div>
+          )}
         </div>
 
         {/* Category Scrollable Pills */}
@@ -205,7 +236,7 @@ export default function EventsView({
             {/* Left Dominant Column: Interactive India Map Canvas (7 cols) */}
             <div className="lg:col-span-7 flex flex-col space-y-4">
               <InteractiveIndiaMap
-                events={events}
+                events={apiEvents ?? events}
                 selectedCategory={selectedCategory}
                 selectedStateId={selectedStateId}
                 onSelectState={handleSelectState}
