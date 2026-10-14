@@ -1,0 +1,77 @@
+<!doctype html>
+<html class="h-full bg-cream-canvas" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C56E50'><circle cx='12' cy='12' r='10'/><path d='M12 6v6l4 2' stroke='%23FCF7F0' stroke-width='2' stroke-linecap='round'/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>अnvesha: Discover India. Find Your Story.</title>
+    
+    <!-- Google Fonts: Fraunces & DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap" rel="stylesheet" />
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <!-- Tailwind CSS v3 with Plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "cream-canvas": "#FCF7F0",
+              "parchment": "#FCF7F0",
+              "blush-surface": "#E9CDB8",
+              "terra-primary": "#C56E50",
+              "cocoa-text": "#5B332C",
+              "ochre-accent": "#D9A441",
+              "peacock-teal": "#1A5B66",
+              "sindoor-red": "#A9332A",
+              "forest-mehndi": "#2D5F3E",
+              "marigold-gold": "#E09F3E",
+              "royal-indigo": "#283D70",
+              "primary": "#C56E50",
+              "primary-container": "#B05E41",
+              "on-primary": "#ffffff",
+              "secondary": "#6f5a4a",
+              "secondary-container": "#f7dac5",
+              "on-secondary": "#ffffff",
+              "surface": "#fff8f6",
+              "surface-container": "#ffe9e5",
+              "surface-container-high": "#ffe2dd",
+              "surface-container-lowest": "#ffffff",
+              "on-surface": "#32120c",
+              "outline": "#87736c",
+              "outline-variant": "#dac1ba"
+            },
+            fontFamily: {
+              serif: ["'Fraunces'", "Georgia", "serif"],
+              sans: ["'DM Sans'", "system-ui", "sans-serif"],
+              fraunces: ["'Fraunces'", "Georgia", "serif"],
+              body: ["'DM Sans'", "system-ui", "sans-serif"]
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              "2xl": "1rem",
+              "3xl": "1.5rem",
+              full: "9999px"
+            },
+            boxShadow: {
+              warm: "0 4px 20px -2px rgba(91, 51, 44, 0.08)",
+              "warm-hover": "0 8px 30px -4px rgba(91, 51, 44, 0.14)",
+              "locket-glow": "0 0 25px rgba(197, 110, 80, 0.25)"
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="h-full bg-cream-canvas text-cocoa-text font-sans antialiased selection:bg-terra-primary/20 selection:text-cocoa-text">
+    <div id="root" class="min-h-full"></div>
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>
