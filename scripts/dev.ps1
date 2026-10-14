@@ -55,6 +55,17 @@ Write-Host "  App  -> http://localhost:5173" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Magenta
 Write-Host ""
 
+# Free ports 3001 and 5173 if any orphaned processes are holding them
+foreach ($port in @(3001, 5173)) {
+    $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    foreach ($conn in $conns) {
+        if ($conn.OwningProcess -gt 0) {
+            Write-Host "[Setup] Releasing port $port held by PID $($conn.OwningProcess)..." -ForegroundColor Yellow
+            Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 # Start both servers
 Push-Location $Root
 npm run dev
