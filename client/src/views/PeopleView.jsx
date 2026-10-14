@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Users, Search, Sparkles, ShieldCheck, Filter } from 'lucide-react';
+import { Users, Search, Sparkles, ShieldCheck, Filter, LogIn } from 'lucide-react';
 import PersonCard from '../components/PersonCard';
 
-export default function PeopleView({ people, onConnect, onStartChat, onSendLocketPulse }) {
+export default function PeopleView({ people, onConnect, onStartChat, onSendLocketPulse, isAuthenticated }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 

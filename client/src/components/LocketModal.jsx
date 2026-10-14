@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Mic, Square, Play, Pause, Sparkles, Send, X, Volume2, Shield } from 'lucide-react';
+import { Mic, Square, Play, Pause, Sparkles, Send, X, Volume2, Shield, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import * as api from '../services/api';
 
-export default function LocketModal({ isOpen, onClose, onSendMoment, defaultRecipient }) {
+export default function LocketModal({ isOpen, onClose, onSendMoment, defaultRecipient, currentUser, isAuthenticated }) {
   const [momentType, setMomentType] = useState('WORD_OF_DAY');
   const [vernacularText, setVernacularText] = useState('');
   const [phoneticText, setPhoneticText] = useState('');
@@ -11,6 +12,8 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const [isRecording, setIsRecording] = useState(false);
   const [audioRecorded, setAudioRecorded] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const timerRef = useRef(null);
 
@@ -37,25 +40,51 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!vernacularText || !meaning) return;
+    setSubmitError('');
 
-    const newMoment = {
-      id: `lok_${Date.now()}`,
-      senderId: 'usr_rohan',
-      senderName: 'Rohan Shenoy',
-      senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-      momentType,
-      title: momentType === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment',
-      vernacularText,
-      phoneticText: phoneticText || `/${vernacularText.toLowerCase().replace(/\s+/g, '-')}/`,
+    const payload = {
+      moment_type:    momentType,
+      vernacular_text: vernacularText,
       meaning,
-      provenance: provenance || 'Preserved from coastal family traditions',
-      audioDuration: `0:0${recordingDuration || 4}`,
-      timestamp: 'Just now',
-      reactions: []
+      phonetic_text:  phoneticText || `/${vernacularText.toLowerCase().replace(/\s+/g, '-')}/`,
+      provenance:     provenance || 'Preserved from coastal family traditions',
+      audio_duration: `0:0${recordingDuration || 4}`,
+      recipient_id:   defaultRecipient?.id ?? null,
     };
+
+    let newMoment;
+    if (isAuthenticated && api.token.get()) {
+      setSubmitting(true);
+      try {
+        newMoment = await api.locket.create(payload);
+      } catch (err) {
+        setSubmitError(err.message || 'Failed to send moment.');
+        setSubmitting(false);
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      // Demo / guest mode: build local object
+      newMoment = {
+        id:             `lok_${Date.now()}`,
+        senderId:       currentUser?.id ?? 'usr_rohan',
+        senderName:     currentUser?.name ?? 'Rohan Shenoy',
+        senderAvatar:   currentUser?.avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+        momentType,
+        title:          momentType === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment',
+        vernacularText,
+        phoneticText:   payload.phonetic_text,
+        meaning,
+        provenance:     payload.provenance,
+        audioDuration:  payload.audio_duration,
+        timestamp:      'Just now',
+        reactions:      [],
+      };
+    }
 
     onSendMoment(newMoment);
     confetti({
@@ -240,6 +269,11 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
           </div>
 
           {/* Submit Action */}
+          {submitError && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">
+              {submitError}
+            </div>
+          )}
           <div className="pt-2 flex items-center justify-end gap-3">
             <button
               type="button"
@@ -250,10 +284,11 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all"
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all disabled:opacity-60"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send to Locket</span>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              <span>{submitting ? 'Sending...' : 'Send to Locket'}</span>
             </button>
           </div>
         </form>

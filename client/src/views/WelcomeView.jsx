@@ -6,7 +6,9 @@ import {
   CheckCircle,
   X,
   User,
-  LogIn
+  LogIn,
+  UserPlus,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -14,10 +16,17 @@ export default function WelcomeView({
   onGetStarted,
   onExploreDemo,
   onExploreIndia,
-  onDiscoverEvents
+  onDiscoverEvents,
+  onLogin,
+  onRegister
 }) {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [studentId, setStudentId] = useState('220911045');
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Floating Hero Pins with preview tooltips
   const heroPins = [
@@ -44,16 +53,35 @@ export default function WelcomeView({
     }
   ];
 
-  const handleQuickSignIn = (e) => {
+  const resetAuthForm = () => {
+    setUsername(''); setPassword(''); setName('');
+    setAuthError(''); setAuthLoading(false);
+  };
+
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#C56E50', '#D9A441', '#E9CDB8']
-    });
-    setIsSignInOpen(false);
-    onExploreDemo();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      if (authMode === 'login') {
+        await onLogin(username, password);
+      } else {
+        await onRegister({ username, password, name });
+      }
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#C56E50', '#D9A441', '#E9CDB8']
+      });
+      setIsSignInOpen(false);
+      resetAuthForm();
+      onExploreDemo();
+    } catch (err) {
+      setAuthError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   return (
@@ -188,9 +216,7 @@ export default function WelcomeView({
           <ShieldCheck className="w-3.5 h-3.5 text-ochre-accent" />
           <span>Opt-in discovery · Authentic cultural cartography</span>
         </div>
-      </div>
-
-      {/* 6. Quick Sign-In Modal (when user clicks 'Sign in') */}
+      </div>      {/* 6. Auth Modal (Sign-in / Register) */}
       {isSignInOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cocoa-text/70 backdrop-blur-sm animate-fadeIn">
           <div className="bg-cream-canvas text-cocoa-text w-full max-w-md rounded-3xl border-2 border-blush-surface shadow-2xl p-6 sm:p-7 space-y-5">
@@ -201,63 +227,114 @@ export default function WelcomeView({
                   Student & Mentor Access
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-cocoa-text mt-1.5">
-                  Sign in to <span className="text-terra-primary font-bold">अ</span>nvesha
+                  {authMode === 'login' ? 'Sign in to' : 'Join'}{' '}
+                  <span className="text-terra-primary font-bold">अ</span>nvesha
                 </h3>
               </div>
               <button
-                onClick={() => setIsSignInOpen(false)}
+                onClick={() => { setIsSignInOpen(false); resetAuthForm(); }}
                 className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-cocoa-text/70 hover:text-cocoa-text transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleQuickSignIn} className="space-y-4 text-xs">
+            {/* Mode toggle */}
+            <div className="flex rounded-full border border-blush-surface overflow-hidden text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                className={`flex-1 py-2 transition-all ${
+                  authMode === 'login'
+                    ? 'bg-terra-primary text-cream-canvas'
+                    : 'bg-surface-container-lowest text-cocoa-text/70 hover:bg-blush-surface/40'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                className={`flex-1 py-2 transition-all ${
+                  authMode === 'register'
+                    ? 'bg-terra-primary text-cream-canvas'
+                    : 'bg-surface-container-lowest text-cocoa-text/70 hover:bg-blush-surface/40'
+                }`}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+              {authMode === 'register' && (
+                <div>
+                  <label className="block font-bold text-cocoa-text mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Rohan Shenoy"
+                    className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+                    required
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="block font-bold text-cocoa-text mb-1.5">
-                  Student Reg ID / Campus Email
-                </label>
+                <label className="block font-bold text-cocoa-text mb-1">Username *</label>
                 <input
+                  id="auth-username"
                   type="text"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="e.g. 220911045 or user@learner.manipal.edu"
-                  className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text text-xs focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  placeholder="e.g. rohan_coastal"
+                  className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
                   required
+                  autoComplete="username"
                 />
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-surface-container/60 border border-blush-surface flex items-center gap-3">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                  alt="Rohan"
-                  className="w-9 h-9 rounded-full object-cover border border-terra-primary/30"
+              <div>
+                <label className="block font-bold text-cocoa-text mb-1">Password *</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={authMode === 'register' ? 'Min 6 characters' : '••••••••'}
+                  className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+                  required
+                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                 />
-                <div className="flex-1 min-w-0">
-                  <p className="font-serif text-xs font-bold text-cocoa-text">Rohan Shenoy</p>
-                  <p className="text-[11px] text-cocoa-text/60">Verified MAHE Student · Coastal Hub</p>
-                </div>
-                <CheckCircle className="w-4 h-4 text-terra-primary" />
               </div>
+
+              {authError && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2"
+                disabled={authLoading}
+                className="w-full py-3 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <LogIn className="w-4 h-4" />
-                <span>Enter <span className="font-bold">अ</span>nvesha Platform</span>
+                {authMode === 'login' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{authLoading ? 'Please wait...' : authMode === 'login' ? 'Enter Anvesha' : 'Create Account'}</span>
               </button>
             </form>
 
-            <div className="text-center">
+            <div className="text-center border-t border-blush-surface pt-3">
               <button
                 onClick={() => {
                   setIsSignInOpen(false);
+                  resetAuthForm();
                   onGetStarted();
                 }}
                 className="text-xs text-terra-primary font-bold hover:underline"
               >
-                New here? Tailor your cultural interests →
+                Explore as guest → Tailor interests
               </button>
             </div>
           </div>

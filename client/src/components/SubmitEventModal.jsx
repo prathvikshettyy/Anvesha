@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, Link2, Sparkles, PlusCircle } from 'lucide-react';
+import { X, Calendar, MapPin, Link2, Sparkles, PlusCircle, Loader2, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import * as api from '../services/api';
 
-export default function SubmitEventModal({ isOpen, onClose, onAddEvent }) {
+export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthenticated }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('culture');
   const [date, setDate] = useState('');
@@ -10,45 +11,78 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent }) {
   const [organizer, setOrganizer] = useState('');
   const [description, setDescription] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !venue) return;
+    setSubmitError('');
+    setSubmitting(true);
 
-    const newEvt = {
-      id: `evt_${Date.now()}`,
-      title,
-      category,
-      categoryLabel: category === 'languages' ? 'Dialects & Languages' :
-                     category === 'crafts' ? 'Traditional Crafts' :
-                     category === 'music' ? 'Folk & Classical Music' : 'Culture & Heritage',
-      date: date || 'Upcoming Weekend',
-      datetime: new Date().toISOString(),
-      venue,
-      neighborhood: 'Manipal Hub',
-      lat: 13.3530 + (Math.random() - 0.5) * 0.01,
-      lng: 74.7920 + (Math.random() - 0.5) * 0.01,
-      isOnline: false,
-      organizer: organizer || 'Campus Cultural Collective',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
-      description,
-      sourceUrl: sourceUrl || 'https://reddit.com/r/manipal',
-      sourceLabel: 'Community Submitted',
-      verificationStatus: 'COMMUNITY_REPORTED',
-      attendeeCount: 1,
-      isSaved: false
-    };
+    try {
+      let newEvt;
+      if (isAuthenticated && api.token.get()) {
+        newEvt = await api.events.submit({
+          title,
+          category,
+          date_label:  date || 'Upcoming Weekend',
+          venue,
+          organizer:   organizer || 'Campus Cultural Collective',
+          description,
+          source_url:  sourceUrl || '',
+        });
+        // normalise backend response
+        newEvt = {
+          ...newEvt,
+          date:         newEvt.date_label   ?? newEvt.date   ?? 'Upcoming Weekend',
+          datetime:     newEvt.datetime_iso ?? newEvt.datetime ?? new Date().toISOString(),
+          image:        newEvt.image_url    ?? newEvt.image   ?? 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+          categoryLabel: newEvt.category_label ?? newEvt.categoryLabel ?? category,
+          isSaved:      false,
+        };
+      } else {
+        // Demo mode — local only
+        newEvt = {
+          id: `evt_${Date.now()}`,
+          title,
+          category,
+          categoryLabel: category === 'languages' ? 'Dialects & Languages' :
+                         category === 'crafts' ? 'Traditional Crafts' :
+                         category === 'music' ? 'Folk & Classical Music' : 'Culture & Heritage',
+          date: date || 'Upcoming Weekend',
+          datetime: new Date().toISOString(),
+          venue,
+          neighborhood: 'Manipal Hub',
+          lat: 13.3530 + (Math.random() - 0.5) * 0.01,
+          lng: 74.7920 + (Math.random() - 0.5) * 0.01,
+          isOnline: false,
+          organizer: organizer || 'Campus Cultural Collective',
+          image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+          description,
+          sourceUrl: sourceUrl || 'https://reddit.com/r/manipal',
+          sourceLabel: 'Community Submitted',
+          verificationStatus: 'COMMUNITY_REPORTED',
+          attendeeCount: 1,
+          isSaved: false
+        };
+      }
 
-    onAddEvent(newEvt);
-    confetti({
-      particleCount: 35,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#C56E50', '#D9A441', '#E9CDB8']
-    });
-    onClose();
+      onAddEvent(newEvt);
+      confetti({
+        particleCount: 35,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#C56E50', '#D9A441', '#E9CDB8']
+      });
+      onClose();
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to submit event. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -150,12 +184,24 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent }) {
             />
           </div>
 
+          {submitError && (
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{submitError}</span>
+            </div>
+          )}
+
           <div className="pt-2 flex items-center justify-end gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-cocoa-text hover:bg-blush-surface/50 rounded-full">
               Cancel
             </button>
-            <button type="submit" className="px-6 py-2 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm">
-              Submit Event
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm disabled:opacity-60"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{submitting ? 'Submitting...' : 'Submit Event'}</span>
             </button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import WelcomeView from './views/WelcomeView';
 import OnboardingView from './views/OnboardingView';
@@ -20,29 +20,184 @@ import {
   INITIAL_LOCKET_MOMENTS
 } from './data/initialData';
 
+import * as api from './services/api';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Normalise a backend user into the shape initialData uses in views */
+function normaliseUser(backendUser) {
+  if (!backendUser) return null;
+  return {
+    ...INITIAL_USER,               // keep all UI-only fields as defaults
+    id:             backendUser.id,
+    name:           backendUser.name          ?? INITIAL_USER.name,
+    handle:         backendUser.handle        ?? INITIAL_USER.handle,
+    avatar:         backendUser.avatar_url    ?? INITIAL_USER.avatar,
+    bio:            backendUser.bio           ?? INITIAL_USER.bio,
+    neighborhood:   backendUser.neighborhood  ?? INITIAL_USER.neighborhood,
+    preferredMode:  backendUser.preferred_mode ?? INITIAL_USER.preferredMode,
+    isDiscoverable: backendUser.is_discoverable !== undefined
+                      ? Boolean(backendUser.is_discoverable)
+                      : INITIAL_USER.isDiscoverable,
+    // Map interest array [{interest_id, intention}] → [id, id, ...]
+    interests: Array.isArray(backendUser.interests)
+      ? backendUser.interests.map(i => i.interest_id ?? i)
+      : INITIAL_USER.interests,
+    savedEvents: Array.isArray(backendUser.saved_event_ids)
+      ? backendUser.saved_event_ids
+      : INITIAL_USER.savedEvents,
+  };
+}
+
+/** Map a backend person → shape expected by PersonCard */
+function normalisePerson(p) {
+  return {
+    id:               p.id,
+    name:             p.name,
+    handle:           p.handle        ?? `@${p.username}`,
+    avatar:           p.avatar_url    ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    bio:              p.bio           ?? '',
+    city:             p.city          ?? 'Manipal',
+    neighborhood:     p.neighborhood  ?? 'Campus Area',
+    speaks:           p.languages     ?? [],
+    interests:        Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
+    willingToTeach:   Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : [],
+    matchScore:       p.match_score   ?? null,
+    connectionStatus: p.connection_status ?? 'NONE',
+    isMentor:         p.is_mentor     ?? false,
+  };
+}
+
+/** Map a backend locket moment → shape expected by CultureLocketCard */
+function normaliseMoment(m) {
+  return {
+    id:             m.id,
+    senderId:       m.sender_id       ?? m.senderId,
+    senderName:     m.sender_name     ?? m.senderName     ?? 'Community Member',
+    senderAvatar:   m.sender_avatar   ?? m.senderAvatar   ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    momentType:     m.moment_type     ?? m.momentType,
+    title:          m.moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment',
+    vernacularText: m.vernacular_text ?? m.vernacularText ?? '',
+    phoneticText:   m.phonetic_text   ?? m.phoneticText   ?? '',
+    meaning:        m.meaning         ?? '',
+    provenance:     m.provenance      ?? '',
+    audioDuration:  m.audio_duration  ?? m.audioDuration  ?? '0:04',
+    timestamp:      m.created_at
+      ? new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      : m.timestamp ?? 'Recently',
+    reactions:      Array.isArray(m.reactions) ? m.reactions : [],
+  };
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('welcome');
-  const [user, setUser] = useState(INITIAL_USER);
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [people, setPeople] = useState(INITIAL_PEOPLE);
-  const [locketMoments, setLocketMoments] = useState(INITIAL_LOCKET_MOMENTS);
-  const [savedEvents, setSavedEvents] = useState(INITIAL_USER.savedEvents);
+  const [currentView, setCurrentView]             = useState('welcome');
+  const [authUser, setAuthUser]                   = useState(null);   // raw backend user
+  const [user, setUser]                           = useState(INITIAL_USER); // normalised UI user
+  const [events, setEvents]                       = useState(INITIAL_EVENTS);
+  const [people, setPeople]                       = useState(INITIAL_PEOPLE);
+  const [locketMoments, setLocketMoments]         = useState(INITIAL_LOCKET_MOMENTS);
+  const [savedEvents, setSavedEvents]             = useState(INITIAL_USER.savedEvents);
+  const [unreadCount, setUnreadCount]             = useState(0);
 
   // Modals
   const [activeDetailEvent, setActiveDetailEvent] = useState(null);
   const [isLocketModalOpen, setIsLocketModalOpen] = useState(false);
-  const [locketRecipient, setLocketRecipient] = useState(null);
+  const [locketRecipient, setLocketRecipient]     = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+
+  // ── Restore session on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    const savedToken = sessionStorage.getItem('ss_token');
+    if (savedToken) {
+      api.auth.me()
+        .then(backendUser => {
+          const u = normaliseUser(backendUser);
+          setAuthUser(backendUser);
+          setUser(u);
+          setSavedEvents(u.savedEvents);
+          setCurrentView('home');
+        })
+        .catch(() => {
+          // Invalid/expired token — clear it and stay on welcome
+          api.token.clear();
+        });
+    }
+  }, []);
+
+  // ── Fetch real events ───────────────────────────────────────────────────────
+  const loadEvents = useCallback(() => {
+    api.events.list().then(setEvents).catch(() => {/* keep initialData */});
+  }, []);
+
+  useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  // ── Fetch real people (only when logged in) ─────────────────────────────────
+  const loadPeople = useCallback(() => {
+    if (!api.token.get()) return;
+    api.people.discover()
+      .then(list => setPeople(list.map(normalisePerson)))
+      .catch(() => {/* keep initialData */});
+  }, []);
+
+  // ── Fetch real locket moments (only when logged in) ─────────────────────────
+  const loadLocket = useCallback(() => {
+    if (!api.token.get()) return;
+    api.locket.list()
+      .then(list => setLocketMoments(list.map(normaliseMoment)))
+      .catch(() => {/* keep initialData */});
+  }, []);
+
+  // Reload community data when user logs in
+  useEffect(() => {
+    if (authUser) {
+      loadPeople();
+      loadLocket();
+    }
+  }, [authUser, loadPeople, loadLocket]);
 
   // Scroll to top on view change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentView]);
 
-  const handleToggleSave = (eventId) => {
+  // ── Auth handlers ───────────────────────────────────────────────────────────
+  const handleLogin = async (username, password) => {
+    const { user: backendUser } = await api.auth.login({ username, password });
+    const u = normaliseUser(backendUser);
+    setAuthUser(backendUser);
+    setUser(u);
+    setSavedEvents(u.savedEvents);
+    loadPeople();
+    loadLocket();
+    return u;
+  };
+
+  const handleRegister = async (data) => {
+    const { user: backendUser } = await api.auth.register(data);
+    const u = normaliseUser(backendUser);
+    setAuthUser(backendUser);
+    setUser(u);
+    setSavedEvents([]);
+    return u;
+  };
+
+  // ── Event handlers ──────────────────────────────────────────────────────────
+  const handleToggleSave = async (eventId) => {
+    // Optimistic toggle
     setSavedEvents(prev =>
       prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]
     );
+    // Persist to backend if logged in
+    if (api.token.get()) {
+      api.events.toggleSave(eventId).catch(() => {
+        // Roll back on error
+        setSavedEvents(prev =>
+          prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]
+        );
+      });
+    }
   };
 
   const handleAddEvent = (newEvent) => {
@@ -53,10 +208,18 @@ export default function App() {
     setLocketMoments(prev => [newMoment, ...prev]);
   };
 
-  const handleConnectPerson = (personId) => {
+  const handleConnectPerson = async (personId) => {
+    // Optimistic UI
     setPeople(prev =>
       prev.map(p => p.id === personId ? { ...p, connectionStatus: 'CONNECTED' } : p)
     );
+    if (api.token.get()) {
+      api.people.connect(personId).catch(() => {
+        setPeople(prev =>
+          prev.map(p => p.id === personId ? { ...p, connectionStatus: 'NONE' } : p)
+        );
+      });
+    }
   };
 
   const handleOpenLocketForPerson = (person) => {
@@ -64,23 +227,49 @@ export default function App() {
     setIsLocketModalOpen(true);
   };
 
-  const handleOnboardingComplete = (preferences) => {
-    setUser(prev => ({
-      ...prev,
-      ...preferences
-    }));
+  const handleOnboardingComplete = async (preferences) => {
+    const updated = { ...user, ...preferences };
+    setUser(updated);
+
+    // If logged in, persist to backend
+    if (api.token.get()) {
+      const interestPayload = (preferences.interests || []).map(id => ({
+        interest_id: id,
+        intention: 'CASUAL_ENTHUSIAST',
+      }));
+      api.auth.updateMe({
+        neighborhood:    preferences.neighborhood,
+        preferred_mode:  preferences.preferredMode,
+        interests:       interestPayload,
+      }).catch(() => {});
+    }
     setCurrentView('home');
   };
 
   const handleResetDemo = () => {
+    api.auth.logout();
+    setAuthUser(null);
     setUser(INITIAL_USER);
     setEvents(INITIAL_EVENTS);
     setPeople(INITIAL_PEOPLE);
     setLocketMoments(INITIAL_LOCKET_MOMENTS);
     setSavedEvents(INITIAL_USER.savedEvents);
+    setUnreadCount(0);
     setCurrentView('welcome');
+    // Reload public events
+    loadEvents();
   };
 
+  const handleReactLocket = async (momentId, text) => {
+    if (api.token.get()) {
+      try {
+        await api.locket.react(momentId, text);
+        loadLocket();
+      } catch (_) {}
+    }
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className={`min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
       currentView === 'welcome' ? 'flex-col' : 'flex-col md:flex-row'
@@ -91,7 +280,7 @@ export default function App() {
         <Sidebar
           currentView={currentView}
           setCurrentView={setCurrentView}
-          unreadCount={1}
+          unreadCount={unreadCount}
           savedCount={savedEvents.length}
           user={user}
           onSignOut={handleResetDemo}
@@ -107,6 +296,8 @@ export default function App() {
             onExploreIndia={() => setCurrentView('events')}
             onDiscoverEvents={() => setCurrentView('events')}
             onNavigate={setCurrentView}
+            onLogin={handleLogin}
+            onRegister={handleRegister}
             events={events}
             people={people}
             savedEvents={savedEvents}
@@ -139,7 +330,7 @@ export default function App() {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
-            onReactLocket={(id, text) => {}}
+            onReactLocket={handleReactLocket}
             onNavigate={setCurrentView}
           />
         )}
@@ -165,6 +356,7 @@ export default function App() {
             onConnect={handleConnectPerson}
             onStartChat={() => setCurrentView('messages')}
             onSendLocketPulse={handleOpenLocketForPerson}
+            isAuthenticated={!!authUser}
           />
         )}
 
@@ -175,20 +367,23 @@ export default function App() {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
-            onReactLocket={(id, text) => {}}
+            onReactLocket={handleReactLocket}
           />
         )}
 
         {currentView === 'messages' && (
           <MessagesView
+            currentUser={user}
             onOpenLocketModal={() => {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
+            isAuthenticated={!!authUser}
+            onUnreadCountChange={setUnreadCount}
           />
         )}
 
-        {currentView === 'saved' && (
+        {(currentView === 'saved' || currentView === 'profile') && (
           <ProfileView
             user={user}
             events={events}
@@ -197,18 +392,16 @@ export default function App() {
             onSelectEvent={setActiveDetailEvent}
             onUpdateUser={setUser}
             onResetDemo={handleResetDemo}
-          />
-        )}
-
-        {currentView === 'profile' && (
-          <ProfileView
-            user={user}
-            events={events}
-            savedEvents={savedEvents}
-            onToggleSave={handleToggleSave}
-            onSelectEvent={setActiveDetailEvent}
-            onUpdateUser={setUser}
-            onResetDemo={handleResetDemo}
+            isAuthenticated={!!authUser}
+            onSaveProfile={async (updates) => {
+              if (api.token.get()) {
+                await api.auth.updateMe(updates);
+                const refreshed = await api.auth.me();
+                const u = normaliseUser(refreshed);
+                setAuthUser(refreshed);
+                setUser(u);
+              }
+            }}
           />
         )}
       </main>
@@ -227,12 +420,15 @@ export default function App() {
         onClose={() => setIsLocketModalOpen(false)}
         onSendMoment={handleSendLocketMoment}
         defaultRecipient={locketRecipient}
+        currentUser={user}
+        isAuthenticated={!!authUser}
       />
 
       <SubmitEventModal
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
         onAddEvent={handleAddEvent}
+        isAuthenticated={!!authUser}
       />
     </div>
   );

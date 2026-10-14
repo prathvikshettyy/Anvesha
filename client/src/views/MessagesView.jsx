@@ -1,63 +1,171 @@
-import React, { useState } from 'react';
-import { Send, Mic, Phone, Video, MoreVertical, Sparkles, Volume2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Mic, AlertCircle, Loader2 } from 'lucide-react';
 import { INITIAL_CONVERSATIONS } from '../data/initialData';
+import * as api from '../services/api';
 
-export default function MessagesView({ onOpenLocketModal }) {
-  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
-  const [activeConvId, setActiveConvId] = useState('conv_priya');
+export default function MessagesView({ currentUser, onOpenLocketModal, isAuthenticated, onUnreadCountChange }) {
+  const [conversations, setConversations] = useState([]);
+  const [activePartnerId, setActivePartnerId] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
 
-  const activeConv = conversations.find(c => c.id === activeConvId) || conversations[0];
+  // ── Load conversation list ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Use mock data in guest/demo mode
+      setConversations(INITIAL_CONVERSATIONS);
+      if (INITIAL_CONVERSATIONS.length > 0) {
+        setActivePartnerId(INITIAL_CONVERSATIONS[0].partnerId);
+        setMessages(INITIAL_CONVERSATIONS[0].messages || []);
+      }
+      setLoading(false);
+      return;
+    }
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
+    setLoading(true);
+    api.messages.conversations()
+      .then(convs => {
+        // normalise backend shape → UI shape
+        const normalised = convs.map(c => ({
+          id:           `conv_${c.partner_id}`,
+          partnerId:    c.partner_id,
+          partnerName:  c.partner_name   ?? 'Cultural Connection',
+          partnerAvatar: c.partner_avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+          lastMessage:  c.last_message   ?? '',
+          lastTime:     c.last_time      ?? '',
+          unread:       c.unread_count   ?? 0,
+        }));
+        setConversations(normalised);
 
-    const newMsg = {
-      id: `m_${Date.now()}`,
-      sender: 'usr_rohan',
-      text: inputText,
-      time: 'Just now'
-    };
+        const totalUnread = normalised.reduce((sum, c) => sum + (c.unread || 0), 0);
+        onUnreadCountChange?.(totalUnread);
 
-    setConversations(prev =>
-      prev.map(c => {
-        if (c.id === activeConvId) {
-          return {
-            ...c,
-            lastMessage: inputText,
-            lastTime: 'Just now',
-            messages: [...c.messages, newMsg]
-          };
+        if (normalised.length > 0 && !activePartnerId) {
+          setActivePartnerId(normalised[0].partnerId);
         }
-        return c;
       })
-    );
+      .catch(() => {
+        setConversations(INITIAL_CONVERSATIONS);
+        if (INITIAL_CONVERSATIONS.length > 0) {
+          setActivePartnerId(INITIAL_CONVERSATIONS[0].partnerId);
+          setMessages(INITIAL_CONVERSATIONS[0].messages || []);
+        }
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
+  // ── Load message thread when partner changes ──────────────────────────────
+  useEffect(() => {
+    if (!activePartnerId) return;
+
+    if (!isAuthenticated) {
+      // Demo mode: find messages in INITIAL_CONVERSATIONS
+      const conv = INITIAL_CONVERSATIONS.find(c => c.partnerId === activePartnerId || c.id === `conv_${activePartnerId}`);
+      setMessages(conv?.messages || []);
+      return;
+    }
+
+    api.messages.thread(activePartnerId)
+      .then(data => {
+        const msgs = (data.messages || []).map(m => ({
+          id:     m.id,
+          sender: m.sender_id,
+          text:   m.text,
+          time:   new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        }));
+        setMessages(msgs);
+        // Mark as read
+        api.messages.markRead(activePartnerId).catch(() => {});
+        // Update unread
+        setConversations(prev =>
+          prev.map(c => c.partnerId === activePartnerId ? { ...c, unread: 0 } : c)
+        );
+      })
+      .catch(() => setMessages([]));
+  }, [activePartnerId, isAuthenticated]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // ── Send message ──────────────────────────────────────────────────────────
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!inputText.trim() || !activePartnerId) return;
+
+    const text = inputText.trim();
     setInputText('');
 
-    // Simulated instant reply after 1.5 seconds from cultural partner
-    setTimeout(() => {
-      const reply = {
-        id: `m_${Date.now() + 1}`,
-        sender: activeConv.partnerId,
-        text: 'Glad we connected on Anvesha! See you at the gathering!',
-        time: 'Just now'
-      };
-      setConversations(prev =>
-        prev.map(c => {
-          if (c.id === activeConvId) {
-            return {
-              ...c,
-              lastMessage: reply.text,
-              messages: [...c.messages, reply]
-            };
-          }
-          return c;
-        })
-      );
-    }, 1500);
+    // Optimistic append
+    const optimistic = {
+      id:     `m_${Date.now()}`,
+      sender: currentUser?.id ?? 'usr_rohan',
+      text,
+      time:   'Just now',
+    };
+    setMessages(prev => [...prev, optimistic]);
+
+    if (isAuthenticated) {
+      setSending(true);
+      try {
+        await api.messages.send(activePartnerId, text);
+      } catch (err) {
+        setError('Message failed to send.');
+        // Roll back optimistic
+        setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+        setInputText(text);
+      } finally {
+        setSending(false);
+      }
+    } else {
+      // Demo mode: fake reply
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id:     `m_${Date.now() + 1}`,
+          sender: activePartnerId,
+          text:   'Glad we connected on Anvesha! See you at the gathering!',
+          time:   'Just now',
+        }]);
+      }, 1500);
+    }
+
+    // Update last message in conversation list
+    setConversations(prev =>
+      prev.map(c => c.partnerId === activePartnerId
+        ? { ...c, lastMessage: text, lastTime: 'Just now' }
+        : c
+      )
+    );
   };
+
+  const activeConv = conversations.find(
+    c => c.partnerId === activePartnerId || c.id === `conv_${activePartnerId}`
+  ) ?? conversations[0];
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-20 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-terra-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto py-12 sm:py-16 px-4 sm:px-6 text-center space-y-3">
+        <p className="font-serif text-xl font-bold text-cocoa-text">No conversations yet</p>
+        <p className="text-sm text-cocoa-text/70">
+          Connect with someone from the People tab to start a private conversation.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
@@ -72,11 +180,11 @@ export default function MessagesView({ onOpenLocketModal }) {
 
           <div className="flex-1 overflow-y-auto divide-y divide-blush-surface/50">
             {conversations.map(conv => {
-              const isActive = conv.id === activeConvId;
+              const isActive = conv.partnerId === activePartnerId;
               return (
                 <div
-                  key={conv.id}
-                  onClick={() => setActiveConvId(conv.id)}
+                  key={conv.id ?? conv.partnerId}
+                  onClick={() => setActivePartnerId(conv.partnerId)}
                   className={`p-4 flex items-center gap-3 cursor-pointer transition-all ${
                     isActive
                       ? 'bg-cream-canvas border-l-4 border-terra-primary shadow-xs'
@@ -97,7 +205,14 @@ export default function MessagesView({ onOpenLocketModal }) {
                       <h4 className="font-serif text-sm font-bold text-cocoa-text truncate">
                         {conv.partnerName}
                       </h4>
-                      <span className="text-[10px] text-cocoa-text/50">{conv.lastTime}</span>
+                      <div className="flex items-center gap-1">
+                        {conv.unread > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-terra-primary text-cream-canvas text-[9px] font-bold flex items-center justify-center">
+                            {conv.unread}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-cocoa-text/50">{conv.lastTime}</span>
+                      </div>
                     </div>
                     <p className="text-xs text-cocoa-text/70 truncate mt-0.5">{conv.lastMessage}</p>
                   </div>
@@ -111,30 +226,32 @@ export default function MessagesView({ onOpenLocketModal }) {
         <div className="md:col-span-8 flex flex-col bg-cream-canvas">
           
           {/* Active Conversation Header */}
-          <div className="p-4 border-b border-blush-surface flex items-center justify-between bg-surface-container/40">
-            <div className="flex items-center gap-3">
-              <img
-                src={activeConv.partnerAvatar}
-                alt={activeConv.partnerName}
-                className="w-10 h-10 rounded-full object-cover border border-terra-primary/30"
-              />
-              <div>
-                <h3 className="font-serif text-base font-bold text-cocoa-text">{activeConv.partnerName}</h3>
-                <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-600" />
-                  <span>Online · Paired Culture Connection</span>
-                </span>
+          {activeConv && (
+            <div className="p-4 border-b border-blush-surface flex items-center justify-between bg-surface-container/40">
+              <div className="flex items-center gap-3">
+                <img
+                  src={activeConv.partnerAvatar}
+                  alt={activeConv.partnerName}
+                  className="w-10 h-10 rounded-full object-cover border border-terra-primary/30"
+                />
+                <div>
+                  <h3 className="font-serif text-base font-bold text-cocoa-text">{activeConv.partnerName}</h3>
+                  <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-600" />
+                    <span>Online · Paired Culture Connection</span>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={onOpenLocketModal}
-              className="px-3.5 py-1.5 rounded-full bg-terra-primary/10 hover:bg-terra-primary hover:text-cream-canvas text-terra-primary text-xs font-bold border border-terra-primary/30 flex items-center gap-1.5 transition-all"
-            >
-              <Mic className="w-3.5 h-3.5" />
-              <span>Send Locket Pulse</span>
-            </button>
-          </div>
+              <button
+                onClick={onOpenLocketModal}
+                className="px-3.5 py-1.5 rounded-full bg-terra-primary/10 hover:bg-terra-primary hover:text-cream-canvas text-terra-primary text-xs font-bold border border-terra-primary/30 flex items-center gap-1.5 transition-all"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>Send Locket Pulse</span>
+              </button>
+            </div>
+          )}
 
           {/* Messages History */}
           <div className="flex-1 p-5 overflow-y-auto space-y-4">
@@ -144,8 +261,8 @@ export default function MessagesView({ onOpenLocketModal }) {
               </span>
             </div>
 
-            {activeConv.messages.map(msg => {
-              const isMe = msg.sender === 'usr_rohan';
+            {messages.map(msg => {
+              const isMe = msg.sender === (currentUser?.id ?? 'usr_rohan');
               return (
                 <div
                   key={msg.id}
@@ -166,7 +283,17 @@ export default function MessagesView({ onOpenLocketModal }) {
                 </div>
               );
             })}
+
+            <div ref={messagesEndRef} />
           </div>
+
+          {/* Error banner */}
+          {error && (
+            <div className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Input Bar */}
           <form onSubmit={handleSendMessage} className="p-3.5 border-t border-blush-surface bg-surface-container-lowest flex items-center gap-2">
@@ -181,17 +308,22 @@ export default function MessagesView({ onOpenLocketModal }) {
 
             <input
               type="text"
-              placeholder={`Message ${activeConv.partnerName.split(' ')[0]}...`}
+              placeholder={activeConv ? `Message ${activeConv.partnerName?.split(' ')[0] ?? ''}...` : 'Select a conversation'}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 px-4 py-2.5 rounded-full border border-blush-surface bg-cream-canvas text-xs sm:text-sm text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+              disabled={!activeConv}
+              className="flex-1 px-4 py-2.5 rounded-full border border-blush-surface bg-cream-canvas text-xs sm:text-sm text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30 disabled:opacity-50"
             />
 
             <button
               type="submit"
-              className="w-10 h-10 rounded-full bg-terra-primary text-cream-canvas flex items-center justify-center hover:bg-primary-container shadow-warm transition-all flex-shrink-0"
+              disabled={sending || !inputText.trim()}
+              className="w-10 h-10 rounded-full bg-terra-primary text-cream-canvas flex items-center justify-center hover:bg-primary-container shadow-warm transition-all flex-shrink-0 disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
+              {sending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Send className="w-4 h-4" />
+              }
             </button>
           </form>
         </div>
