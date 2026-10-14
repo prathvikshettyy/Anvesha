@@ -149,6 +149,7 @@ async function runTests() {
     assert(searchData.length > 0 && searchData.some(e => e.title.includes('Yakshagana')), 'Keyword search matches "Yakshagana"');
 
     // Submit new event
+    const testEventTitle = `KMC Greens Dialect Exchange Circle ${Date.now()}`;
     const newEventRes = await fetch(`${BASE}/events`, {
       method: 'POST',
       headers: {
@@ -156,16 +157,26 @@ async function runTests() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+<<<<<<< HEAD
         title: 'Bengaluru Dialect Exchange Circle',
         category: 'community',
         venue: 'Cubbon Park Bandstand',
+=======
+        title: testEventTitle,
+        category: 'languages',
+        venue: 'KMC Greens Gazebo',
+>>>>>>> 414f83ca74179a93dfbf728cb56b6f8f7085cb47
         date: 'Sunday, Oct 25 • 4:00 PM',
         description: 'Interactive conversational session practicing coastal phrases.',
       }),
     });
     assert(newEventRes.status === 201, 'POST /api/events returns 201 Created');
     const newEvent = await newEventRes.json();
+<<<<<<< HEAD
     assert(newEvent.id && newEvent.title === 'Bengaluru Dialect Exchange Circle', 'Created event persisted and returned with ID');
+=======
+    assert(newEvent.id && newEvent.title === testEventTitle, 'Created event persisted and returned with ID');
+>>>>>>> 414f83ca74179a93dfbf728cb56b6f8f7085cb47
     createdEventId = newEvent.id;
 
     // Toggle save / bookmark
