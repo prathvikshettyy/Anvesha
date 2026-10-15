@@ -19,8 +19,12 @@ function assert(condition, message) {
 }
 
 async function runTests() {
+  const { createServer } = await import('http');
+  const { initRealtime } = await import('../src/realtime/socket.js');
+  const httpServer = createServer(app);
+  initRealtime(httpServer, '*');
   const server = await new Promise((resolve) => {
-    const s = app.listen(0, () => resolve(s));
+    const s = httpServer.listen(0, () => resolve(s));
   });
   const port = server.address().port;
   const BASE = `http://localhost:${port}/api`;
@@ -933,6 +937,14 @@ async function runTests() {
       }
     }
     assert(successfulLoginsCount === 25, '25 successful logins in a row are not blocked by auth rate limiter (skipSuccessfulRequests: true)');
+
+    // 10. Security Gap Verification Suite (Cases 1 - 11)
+    const { runSecurityGapTests } = await import('./security_gaps.test.mjs');
+    const gapResults = await runSecurityGapTests(BASE, port, server);
+    for (const r of gapResults) {
+      if (r.passed) passed++;
+      else failed++;
+    }
 
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);

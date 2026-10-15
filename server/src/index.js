@@ -35,9 +35,9 @@ if (process.env.NODE_ENV === 'production') {
 const rawOrigin = process.env.CLIENT_ORIGIN;
 let corsOrigin;
 if (process.env.NODE_ENV === 'production') {
-  if (!rawOrigin || rawOrigin.trim() === '*') {
-    // Wildcard origin cannot be used with credentials: true
-    corsOrigin = false;
+  if (!rawOrigin || rawOrigin.trim() === '*' || rawOrigin.trim() === '') {
+    console.error('[FATAL] CLIENT_ORIGIN must be configured in production and cannot be a wildcard');
+    process.exit(1);
   } else {
     corsOrigin = rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim();
   }

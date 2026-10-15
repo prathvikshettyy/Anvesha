@@ -48,7 +48,7 @@ export function initRealtime(httpServer, corsOrigin) {
       if (typeof to === 'string' && to) {
         try {
           const friendIds = getConnectedFriendIds(db, userId);
-          if (friendIds.includes(to)) {
+          if (friendIds.has(to)) {
             ioInstance.to(`user:${to}`).emit('typing', { from: userId });
           }
         } catch (err) {

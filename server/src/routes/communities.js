@@ -327,4 +327,54 @@ router.post('/:id/report', requireAuth, requireFields('reason'), (req, res) => {
   });
 });
 
+// ── PATCH /api/communities/:id — edit community (creator or admin only) ───────
+router.patch('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const comm = db.prepare('SELECT * FROM communities WHERE id = ? OR slug = ?').get(id, id);
+  if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(comm.id, req.user.id);
+  const isOwner = comm.created_by === req.user.id || member?.role === 'ADMIN';
+  if (!isOwner) {
+    return res.status(403).json({ error: 'Only the community creator or admin can edit this community' });
+  }
+
+  const allowed = ['name', 'description', 'location', 'image_url', 'icon'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  if (updates.name && updates.name.length > 200) {
+    return res.status(400).json({ error: 'Name too long (max 200 chars)' });
+  }
+  if (updates.description && updates.description.length > 2000) {
+    return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
+  }
+
+  if (Object.keys(updates).length > 0) {
+    const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+    db.prepare(`UPDATE communities SET ${sets} WHERE id = @id`).run({ ...updates, id: comm.id });
+  }
+
+  const updated = db.prepare('SELECT * FROM communities WHERE id = ?').get(comm.id);
+  res.json(updated);
+});
+
+// ── DELETE /api/communities/:id — delete community (creator or admin only) ─────
+router.delete('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const comm = db.prepare('SELECT * FROM communities WHERE id = ? OR slug = ?').get(id, id);
+  if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(comm.id, req.user.id);
+  const isOwner = comm.created_by === req.user.id || member?.role === 'ADMIN';
+  if (!isOwner) {
+    return res.status(403).json({ error: 'Only the community creator or admin can delete this community' });
+  }
+
+  db.prepare('DELETE FROM communities WHERE id = ?').run(comm.id);
+  res.json({ success: true, message: 'Community deleted successfully' });
+});
+
 export default router;

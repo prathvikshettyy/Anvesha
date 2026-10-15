@@ -359,6 +359,20 @@ router.patch('/:id',
   }
 );
 
+// ── DELETE /api/events/:id — delete event (owner only) ────────────────────────
+router.delete('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Event not found' });
+
+  if (existing.submitted_by !== req.user.id) {
+    return res.status(403).json({ error: 'Only the event creator can delete this event' });
+  }
+
+  db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  res.json({ success: true, message: 'Event deleted successfully' });
+});
+
 // ── POST /api/events/:id/save — toggle save ───────────────────────────────────
 router.post('/:id/save', requireAuth, (req, res) => {
   const { id } = req.params;
