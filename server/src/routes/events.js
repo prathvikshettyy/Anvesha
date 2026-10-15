@@ -73,10 +73,46 @@ function resolveCoords(venue, lat, lng) {
   };
 }
 
+function inferStateAndCity(row) {
+  const text = `${row.state || ''} ${row.neighborhood || ''} ${row.venue || ''} ${row.title || ''}`.toLowerCase();
+  
+  if (text.includes('karnataka') || text.includes('manipal') || text.includes('bengaluru') || text.includes('bangalore') || text.includes('mysuru') || text.includes('mysore') || text.includes('udupi') || text.includes('mangaluru') || text.includes('mangalore') || text.includes('hubli') || text.includes('hubballi') || text.includes('cubbon') || text.includes('indiranagar')) {
+    const city = text.includes('manipal') ? 'Manipal' : text.includes('mysuru') || text.includes('mysore') ? 'Mysuru' : text.includes('udupi') ? 'Udupi' : text.includes('mangaluru') || text.includes('mangalore') ? 'Mangaluru' : 'Bengaluru';
+    return { state: 'Karnataka', stateId: 'karnataka', city };
+  }
+  if (text.includes('kerala') || text.includes('kochi') || text.includes('thrissur') || text.includes('thiruvananthapuram')) {
+    return { state: 'Kerala', stateId: 'kerala', city: text.includes('kochi') ? 'Kochi' : 'Thrissur' };
+  }
+  if (text.includes('tamil nadu') || text.includes('chennai') || text.includes('thanjavur') || text.includes('madurai')) {
+    return { state: 'Tamil Nadu', stateId: 'tamil-nadu', city: text.includes('thanjavur') ? 'Thanjavur' : 'Chennai' };
+  }
+  if (text.includes('maharashtra') || text.includes('mumbai') || text.includes('pune') || text.includes('palghar')) {
+    return { state: 'Maharashtra', stateId: 'maharashtra', city: text.includes('pune') ? 'Pune' : 'Mumbai' };
+  }
+  if (text.includes('rajasthan') || text.includes('jaipur') || text.includes('jodhpur')) {
+    return { state: 'Rajasthan', stateId: 'rajasthan', city: text.includes('jodhpur') ? 'Jodhpur' : 'Jaipur' };
+  }
+  if (text.includes('west bengal') || text.includes('kolkata') || text.includes('shantiniketan')) {
+    return { state: 'West Bengal', stateId: 'west-bengal', city: 'Kolkata' };
+  }
+  if (text.includes('delhi')) {
+    return { state: 'Delhi', stateId: 'delhi', city: 'Delhi' };
+  }
+  return {
+    state: row.state || 'Karnataka',
+    stateId: (row.state || 'karnataka').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    city: row.city || row.neighborhood || 'Bengaluru'
+  };
+}
+
 function formatEvent(row) {
   if (!row) return null;
+  const geo = inferStateAndCity(row);
   return {
     ...row,
+    state: row.state || geo.state,
+    stateId: row.state_id || row.stateId || geo.stateId,
+    city: row.city || geo.city,
     image: row.image_url || row.image || '',
     imageUrl: row.image_url || row.image || '',
     date: row.date_label || row.date || 'Upcoming Weekend',

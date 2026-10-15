@@ -131,3 +131,81 @@ export function resolveEventCoords(evt, index = 0, total = 1) {
 
   return baseCoords;
 }
+
+/**
+ * Accurately determines if an event belongs to a target state,
+ * checking stateId, state, city, neighborhood, venue, and geographical coordinates.
+ */
+export function matchesEventState(evt, targetStateId) {
+  if (!targetStateId) return true;
+  if (!evt) return false;
+
+  const target = targetStateId.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+  
+  const normStateId = (evt.stateId || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+  if (normStateId && (normStateId === target || normStateId.includes(target) || target.includes(normStateId))) return true;
+
+  const normState = (evt.state || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+  if (normState && (normState === target || normState.includes(target) || target.includes(normState))) return true;
+
+  const normCity = (evt.city || '').toLowerCase().trim();
+  const normNeigh = (evt.neighborhood || '').toLowerCase().trim();
+  const normVenue = (evt.venue || '').toLowerCase().trim();
+  const allText = `${normCity} ${normNeigh} ${normVenue}`;
+
+  if (target === 'karnataka') {
+    return ['bengaluru', 'bangalore', 'manipal', 'mysore', 'mysuru', 'udupi', 'mangaluru', 'mangalore', 'hubli', 'hubballi', 'belagavi', 'hampi', 'gokarna', 'karnataka'].some(k => 
+      allText.includes(k)
+    );
+  }
+  if (target === 'kerala') {
+    return ['kochi', 'cochin', 'thrissur', 'trivandrum', 'thiruvananthapuram', 'kalamandalam', 'calicut', 'kozhikode', 'kerala'].some(k => 
+      allText.includes(k)
+    );
+  }
+  if (target === 'tamil-nadu') {
+    return ['chennai', 'madras', 'madurai', 'thanjavur', 'swamimalai', 'coimbatore', 'tamil nadu', 'tamil-nadu'].some(k => 
+      allText.includes(k)
+    );
+  }
+  if (target === 'maharashtra') {
+    return ['mumbai', 'bombay', 'pune', 'palghar', 'dahanu', 'nagpur', 'nashik', 'maharashtra'].some(k => 
+      allText.includes(k)
+    );
+  }
+  if (target === 'delhi') {
+    return ['delhi', 'new delhi', 'ncr'].some(k => allText.includes(k));
+  }
+  if (target === 'rajasthan') {
+    return ['jaipur', 'jodhpur', 'udaipur', 'pushkar', 'jaisalmer', 'rajasthan'].some(k => allText.includes(k));
+  }
+  if (target === 'west-bengal') {
+    return ['kolkata', 'calcutta', 'shantiniketan', 'darjeeling', 'bengal'].some(k => allText.includes(k));
+  }
+  if (target === 'uttar-pradesh') {
+    return ['lucknow', 'varanasi', 'banaras', 'kashi', 'agra', 'uttar pradesh'].some(k => allText.includes(k));
+  }
+  if (target === 'gujarat') {
+    return ['ahmedabad', 'gandhinagar', 'surat', 'vadodara', 'kutch', 'gujarat'].some(k => allText.includes(k));
+  }
+  if (target === 'odisha') {
+    return ['bhubaneswar', 'puri', 'konark', 'cuttack', 'odisha'].some(k => allText.includes(k));
+  }
+  if (target === 'punjab') {
+    return ['amritsar', 'ludhiana', 'chandigarh', 'punjab'].some(k => allText.includes(k));
+  }
+
+  // Coordinate bounding box fallback
+  if (evt.lat && evt.lng) {
+    const lat = Number(evt.lat);
+    const lng = Number(evt.lng);
+    if (target === 'karnataka' && lat >= 11.5 && lat <= 18.5 && lng >= 74.0 && lng <= 78.6) return true;
+    if (target === 'kerala' && lat >= 8.2 && lat <= 12.8 && lng >= 74.8 && lng <= 77.4) return true;
+    if (target === 'tamil-nadu' && lat >= 8.0 && lat <= 13.6 && lng >= 76.2 && lng <= 80.4) return true;
+    if (target === 'maharashtra' && lat >= 15.6 && lat <= 22.0 && lng >= 72.6 && lng <= 80.9) return true;
+    if (target === 'rajasthan' && lat >= 23.3 && lat <= 30.2 && lng >= 69.5 && lng <= 78.3) return true;
+    if (target === 'delhi' && lat >= 28.4 && lat <= 28.9 && lng >= 76.8 && lng <= 77.4) return true;
+  }
+
+  return false;
+}

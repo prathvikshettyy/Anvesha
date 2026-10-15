@@ -1,8 +1,58 @@
 import React from 'react';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { PIN_CATEGORIES } from './IllustratedPin';
-import { Calendar, MapPin, Bookmark, ArrowRight, Sparkles, X, ChevronRight, Award } from 'lucide-react';
+import { matchesEventState } from '../data/indiaGeoData';
+import { Calendar, MapPin, Bookmark, Users, CheckCircle2, ChevronRight, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+function getPlatformBadge(evt) {
+  const p = evt.sourcePlatform || (
+    evt.sourceUrl?.includes('lu.ma') ? 'Luma' :
+    evt.sourceUrl?.includes('unstop.com') ? 'Unstop' :
+    evt.sourceUrl?.includes('linkedin.com') ? 'LinkedIn' :
+    evt.sourceUrl?.includes('instagram.com') ? 'Instagram' :
+    evt.sourceUrl?.includes('meetup.com') ? 'Meetup' : null
+  );
+
+  switch (p) {
+    case 'Luma':
+      return {
+        label: 'Luma Verified',
+        symbol: '🟣',
+        classes: 'bg-purple-50 text-purple-800 border-purple-200'
+      };
+    case 'Unstop':
+      return {
+        label: 'Unstop Premier',
+        symbol: '★',
+        classes: 'bg-amber-50 text-amber-900 border-amber-200'
+      };
+    case 'LinkedIn':
+      return {
+        label: 'LinkedIn Event',
+        symbol: 'in',
+        classes: 'bg-blue-50 text-blue-800 border-blue-200'
+      };
+    case 'Instagram':
+      return {
+        label: 'Instagram Circle',
+        symbol: '◎',
+        classes: 'bg-pink-50 text-pink-800 border-pink-200'
+      };
+    case 'Meetup':
+      return {
+        label: 'Meetup Group',
+        symbol: '⚑',
+        classes: 'bg-rose-50 text-rose-800 border-rose-200'
+      };
+    default:
+      return {
+        label: evt.sourceLabel || 'Community Gathering',
+        symbol: '🌱',
+        classes: 'bg-stone-50 text-stone-700 border-stone-200'
+      };
+  }
+}
 
 export default function StateDetailPanel({
   selectedStateId,
@@ -17,7 +67,7 @@ export default function StateDetailPanel({
 
   const stateEvents = events.filter(e => {
     if (!selectedStateId) return true;
-    return e.stateId === selectedStateId || e.state?.toLowerCase().replace(/\s+/g, '-') === selectedStateId;
+    return matchesEventState(e, selectedStateId);
   });
 
   const handleSaveClick = (e, eventId) => {
@@ -54,7 +104,7 @@ export default function StateDetailPanel({
 
             <button
               onClick={onClearState}
-              className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blush-surface/50 hover:bg-blush-surface text-cocoa-text transition-all"
+              className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blush-surface/50 hover:bg-blush-surface text-cocoa-text transition-all cursor-pointer"
               title="Return to full India view"
             >
               Reset view
@@ -113,21 +163,31 @@ export default function StateDetailPanel({
           stateEvents.map(evt => {
             const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
             const isSaved = savedEvents.includes(evt.id);
+            const platformBadge = getPlatformBadge(evt);
 
             return (
               <div
                 key={evt.id}
                 onClick={() => onSelectEvent(evt)}
-                className="group p-4 rounded-2xl bg-cream-canvas border border-blush-surface hover:border-terra-primary/40 shadow-xs hover:shadow-warm transition-all cursor-pointer flex flex-col justify-between space-y-2.5"
+                className="group p-4 rounded-2xl bg-cream-canvas border border-blush-surface hover:border-terra-primary/40 shadow-xs hover:shadow-warm transition-all cursor-pointer flex flex-col justify-between space-y-3"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-cream-canvas flex items-center gap-1"
-                    style={{ backgroundColor: cat.color }}
-                  >
-                    <span>{cat.symbol}</span>
-                    <span>{cat.label.split(' ')[0]}</span>
-                  </span>
+                {/* Header: Category Badge + Source Platform Tag + Bookmark */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-cream-canvas flex items-center gap-1"
+                      style={{ backgroundColor: cat.color }}
+                    >
+                      <span>{cat.symbol}</span>
+                      <span>{cat.label.split(' ')[0]}</span>
+                    </span>
+
+                    {/* Sourced Platform Badge (Luma / Unstop / LinkedIn / Instagram / Meetup) */}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${platformBadge.classes}`}>
+                      <span>{platformBadge.symbol}</span>
+                      <span>{platformBadge.label}</span>
+                    </span>
+                  </div>
 
                   <button
                     onClick={(e) => handleSaveClick(e, evt.id)}
@@ -140,24 +200,37 @@ export default function StateDetailPanel({
                   </button>
                 </div>
 
+                {/* Content */}
                 <div>
                   <h4 className="font-serif text-sm font-bold text-cocoa-text leading-snug group-hover:text-terra-primary transition-colors">
                     {evt.title}
                   </h4>
-                  <p className="text-[11px] text-cocoa-text/70 mt-1 flex items-center gap-1">
+                  <p className="text-[11px] text-cocoa-text/70 mt-1 flex items-center gap-1.5">
                     <Calendar className="w-3 h-3 text-terra-primary flex-shrink-0" />
                     <span>{evt.date}</span>
                   </p>
-                  <p className="text-[11px] text-cocoa-text/70 mt-0.5 flex items-center gap-1 truncate">
+                  <p className="text-[11px] text-cocoa-text/70 mt-0.5 flex items-center gap-1.5 truncate">
                     <MapPin className="w-3 h-3 text-terra-primary flex-shrink-0" />
                     <span className="truncate">{evt.venue} · {evt.city}</span>
                   </p>
                 </div>
 
+                {/* Footer with attendees and details CTA */}
                 <div className="pt-2 border-t border-blush-surface/50 flex items-center justify-between text-[11px]">
-                  <span className="text-cocoa-text/60 italic truncate">
-                    {evt.sourceLabel}
-                  </span>
+                  <div className="flex items-center gap-2 text-cocoa-text/60">
+                    {evt.attendeeCount ? (
+                      <span className="flex items-center gap-1 font-medium">
+                        <Users className="w-3 h-3 text-terra-primary/70" />
+                        <span>{evt.attendeeCount} attending</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Verified host</span>
+                      </span>
+                    )}
+                  </div>
+
                   <span className="font-bold text-terra-primary flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
                     <span>Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />

@@ -3,7 +3,7 @@ import L from 'leaflet';
 import indiaData from '../data/indiaStatesData.json';
 import indiaBoundariesData from '../data/indiaStateBoundaries.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
-import { STATE_CENTROIDS, resolveEventCoords } from '../data/indiaGeoData';
+import { STATE_CENTROIDS, resolveEventCoords, matchesEventState } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
 import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
 
@@ -36,14 +36,18 @@ export default function InteractiveIndiaMap({
     return norm;
   };
 
-  // Filter events based on active category and state
-  const filteredEvents = useMemo(() => {
+  // Events filtered by active category (keeps all states visible across the canvas!)
+  const categoryEvents = useMemo(() => {
     return events.filter(e => {
-      const matchCat = selectedCategory === 'ALL' || e.category === selectedCategory;
-      const matchState = !selectedStateId || e.stateId === selectedStateId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId;
-      return matchCat && matchState;
+      return selectedCategory === 'ALL' || e.category === selectedCategory;
     });
-  }, [events, selectedCategory, selectedStateId]);
+  }, [events, selectedCategory]);
+
+  // Specific events matching the selected state (for elevation, counts, and ribbons)
+  const stateEvents = useMemo(() => {
+    if (!selectedStateId) return categoryEvents;
+    return categoryEvents.filter(e => matchesEventState(e, selectedStateId));
+  }, [categoryEvents, selectedStateId]);
 
   // Separate states into unselected and selected for proper SVG layer stacking (elevates selected state above others)
   const { unselectedStates, activeSelectedState } = useMemo(() => {
@@ -219,27 +223,28 @@ export default function InteractiveIndiaMap({
 
     // Group events by location anchor to avoid overlapping collisions
     const locationGroups = {};
-    filteredEvents.forEach(evt => {
+    categoryEvents.forEach(evt => {
       const baseKey = (evt.city || evt.neighborhood || evt.stateId || evt.state || 'default').toLowerCase().trim();
       if (!locationGroups[baseKey]) locationGroups[baseKey] = [];
       locationGroups[baseKey].push(evt);
     });
 
-    let firstMarker = null;
+    let firstActiveMarker = null;
 
     Object.values(locationGroups).forEach(group => {
       group.forEach((evt, idx) => {
         const [lat, lng] = resolveEventCoords(evt, idx, group.length);
         const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
-        const isSelectedState = selectedStateId && (evt.stateId === selectedStateId || evt.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId);
+        const isSelectedState = selectedStateId ? matchesEventState(evt, selectedStateId) : false;
+        const isDimmed = Boolean(selectedStateId && !isSelectedState);
 
         const pinHtml = `
-          <div class="relative group cursor-pointer ${isSelectedState ? 'pin-drop-bounce' : ''}" style="transform: translate(-50%, -50%);">
-            <div class="absolute -inset-1.5 rounded-full animate-ping opacity-40" style="background-color: ${cat.color};"></div>
-            <div class="relative ${isSelectedState ? 'w-9 h-9' : 'w-8 h-8'} rounded-full flex items-center justify-center shadow-xl border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
+          <div class="relative group cursor-pointer ${isSelectedState ? 'pin-drop-bounce' : ''}" style="transform: translate(-50%, -50%); opacity: ${isDimmed ? 0.6 : 1.0}; transition: all 0.25s ease;">
+            <div class="absolute -inset-1.5 rounded-full ${isSelectedState ? 'animate-ping' : ''} opacity-40" style="background-color: ${cat.color};"></div>
+            <div class="relative ${isSelectedState ? 'w-10 h-10 ring-4 ring-terra-primary/40' : (isDimmed ? 'w-7 h-7' : 'w-8 h-8')} rounded-full flex items-center justify-center shadow-xl border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
               <span>${cat.symbol}</span>
             </div>
-            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 ${isSelectedState ? 'opacity-90' : 'opacity-0 group-hover:opacity-100'} transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
+            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 ${isSelectedState ? 'opacity-95' : 'opacity-0 group-hover:opacity-100'} transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
               ${evt.title.length > 20 ? `${evt.title.slice(0, 19)}…` : evt.title}
             </div>
           </div>
@@ -248,13 +253,13 @@ export default function InteractiveIndiaMap({
         const icon = L.divIcon({
           html: pinHtml,
           className: 'leaflet-event-pin',
-          iconSize: isSelectedState ? [36, 36] : [32, 32],
-          iconAnchor: isSelectedState ? [18, 18] : [16, 16]
+          iconSize: isSelectedState ? [40, 40] : (isDimmed ? [28, 28] : [32, 32]),
+          iconAnchor: isSelectedState ? [20, 20] : (isDimmed ? [14, 14] : [16, 16])
         });
 
         const marker = L.marker([lat, lng], {
           icon,
-          zIndexOffset: isSelectedState ? 1500 : 200
+          zIndexOffset: isSelectedState ? 1500 : (isDimmed ? 100 : 300)
         });
 
         // Build popup content
@@ -270,7 +275,7 @@ export default function InteractiveIndiaMap({
                 ${evt.title}
               </h4>
               <p style="font-size: 11px; color: #6e5548; margin: 0 0 0.5rem; line-height: 1.3;">
-                📍 ${evt.venue || evt.city || 'Karnataka'}
+                📍 ${evt.venue || evt.city || 'Heritage Center'}
                 ${evt.date ? `<br />🗓️ ${evt.date}` : ''}
               </p>
               <button id="leaflet-btn-${evt.id}" style="width: 100%; background-color: #c56e50; color: white; border: none; padding: 0.45rem 0.75rem; border-radius: 9999px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(197, 110, 80, 0.3);">
@@ -294,20 +299,20 @@ export default function InteractiveIndiaMap({
 
         markersGroup.addLayer(marker);
 
-        if (!firstMarker && isSelectedState) {
-          firstMarker = marker;
+        if (!firstActiveMarker && isSelectedState) {
+          firstActiveMarker = marker;
         }
       });
     });
 
     // When a state is selected, automatically open popup of primary pin after flyTo settles
-    if (firstMarker && selectedStateId) {
+    if (firstActiveMarker && selectedStateId) {
       const timer = setTimeout(() => {
-        firstMarker.openPopup();
+        firstActiveMarker.openPopup();
       }, 700);
       return () => clearTimeout(timer);
     }
-  }, [filteredEvents, selectedStateId, onSelectEvent]);
+  }, [categoryEvents, selectedStateId, onSelectEvent]);
 
   // ── SVG Mode Helpers (Folk Canvas) ──────────────────────────────────────────
   const handleSvgStateClick = (state) => {
@@ -377,7 +382,9 @@ export default function InteractiveIndiaMap({
               </span>
             </div>
             <p className="text-[10px] sm:text-[11px] text-cocoa-text/70">
-              {filteredEvents.length} living cultural gathering{filteredEvents.length !== 1 ? 's' : ''} mapped
+              {selectedStateId
+                ? `${stateEvents.length} living cultural gathering${stateEvents.length !== 1 ? 's' : ''} mapped in ${STATE_CENTROIDS[selectedStateId]?.name || selectedStateId}`
+                : `${categoryEvents.length} living cultural gathering${categoryEvents.length !== 1 ? 's' : ''} mapped across India`}
             </p>
           </div>
           {selectedStateId && (
@@ -616,34 +623,36 @@ export default function InteractiveIndiaMap({
               </g>
             )}
 
-            {/* Event Pins on SVG */}
+            {/* Event Pins on SVG Canvas */}
             <g id="event-pins-overlay">
-              {filteredEvents.map(evt => {
+              {categoryEvents.map(evt => {
                 if (evt.mapX === undefined || evt.mapY === undefined) return null;
                 const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
-                const isSelectedState = selectedStateId && (evt.stateId === selectedStateId || evt.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId);
+                const isSelectedState = selectedStateId ? matchesEventState(evt, selectedStateId) : false;
+                const isDimmed = Boolean(selectedStateId && !isSelectedState);
 
                 return (
                   <g
                     key={evt.id}
                     transform={`translate(${evt.mapX}, ${evt.mapY})`}
                     className={`cursor-pointer group ${isSelectedState ? 'pin-drop-bounce' : ''}`}
+                    opacity={isDimmed ? 0.45 : 1.0}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectEvent(evt);
                     }}
                   >
-                    <circle cx="0" cy="-15" r="14" fill={cat.color} opacity="0.3" className="animate-ping" />
+                    <circle cx="0" cy="-15" r="14" fill={cat.color} opacity={isSelectedState ? 0.45 : 0.25} className="animate-ping" />
                     <circle
                       cx="0"
                       cy="-15"
-                      r={isSelectedState ? 12 : 10}
+                      r={isSelectedState ? 13 : (isDimmed ? 8 : 10)}
                       fill={cat.color}
                       stroke="#FCF7F0"
-                      strokeWidth="2.5"
+                      strokeWidth={isSelectedState ? 3 : 2}
                       className="group-hover:scale-125 transition-transform origin-center shadow-lg"
                     />
-                    <text x="0" y="-11" textAnchor="middle" fontSize={isSelectedState ? 11 : 10} fill="#FFFFFF" fontWeight="bold" pointerEvents="none">
+                    <text x="0" y="-11" textAnchor="middle" fontSize={isSelectedState ? 11 : 9} fill="#FFFFFF" fontWeight="bold" pointerEvents="none">
                       {cat.symbol}
                     </text>
                     <line x1="0" y1="-3" x2="0" y2="3" stroke={cat.color} strokeWidth="2.5" strokeLinecap="round" />
@@ -651,7 +660,7 @@ export default function InteractiveIndiaMap({
 
                     {/* Pin Label Chip */}
                     {isSelectedState && (
-                      <g transform="translate(0, 16)" className="pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                      <g transform="translate(0, 16)" className="pointer-events-none opacity-95 group-hover:opacity-100 transition-opacity">
                         <rect x="-45" y="-6" width="90" height="15" rx="4" fill="#3B2D26" />
                         <text x="0" y="4" textAnchor="middle" fontSize="8" fill="#FAF4EA" fontWeight="bold">
                           {evt.title.length > 15 ? `${evt.title.slice(0, 14)}…` : evt.title}
@@ -675,7 +684,7 @@ export default function InteractiveIndiaMap({
                     {STATE_CENTROIDS[selectedStateId]?.name || selectedStateId}
                   </h4>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-terra-primary/10 text-terra-primary">
-                    {filteredEvents.length} Gathering Pin{filteredEvents.length !== 1 ? 's' : ''}
+                    {stateEvents.length} Gathering Pin{stateEvents.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-cocoa-text/75 line-clamp-1">
@@ -685,9 +694,9 @@ export default function InteractiveIndiaMap({
             </div>
 
             {/* Quick Event Pills for this State */}
-            {filteredEvents.length > 0 ? (
+            {stateEvents.length > 0 ? (
               <div className="flex items-center gap-1.5 overflow-x-auto max-w-full sm:max-w-md py-0.5 scrollbar-none no-scrollbar">
-                {filteredEvents.map(evt => {
+                {stateEvents.map(evt => {
                   const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
                   return (
                     <button
