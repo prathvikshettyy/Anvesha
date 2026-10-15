@@ -33,7 +33,7 @@ export default function Sidebar({
     <>
       {/* Desktop Left Sidebar (Fixed on the left side) */}
       <aside className="hidden md:flex flex-col justify-between w-64 lg:w-72 h-screen sticky top-0 bg-cream-canvas/98 border-r border-blush-surface/80 p-5 z-40 flex-shrink-0 select-none shadow-xs">
-        
+
         {/* Top: Brand Header */}
         <div className="space-y-6">
           <div
@@ -69,11 +69,10 @@ export default function Sidebar({
                   <button
                     key={item.id}
                     onClick={() => setCurrentView(item.id)}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${
-                      isActive
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${isActive
                         ? 'bg-terra-primary text-cream-canvas shadow-warm font-bold'
                         : 'text-cocoa-text hover:bg-blush-surface/50 hover:text-cocoa-text'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`w-4 h-4 ${isActive ? 'text-cream-canvas' : 'text-terra-primary'}`} />
@@ -82,16 +81,14 @@ export default function Sidebar({
 
                     <div className="flex items-center gap-1.5">
                       {item.badge && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                          isActive ? 'bg-ochre-accent text-cocoa-text' : 'bg-terra-primary text-cream-canvas'
-                        }`}>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-ochre-accent text-cocoa-text' : 'bg-terra-primary text-cream-canvas'
+                          }`}>
                           {item.badge}
                         </span>
                       )}
                       {item.count !== undefined && item.count > 0 && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                          isActive ? 'bg-cream-canvas text-terra-primary' : 'bg-terra-primary text-cream-canvas'
-                        }`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-cream-canvas text-terra-primary' : 'bg-terra-primary text-cream-canvas'
+                          }`}>
                           {item.count}
                         </span>
                       )}
@@ -108,11 +105,10 @@ export default function Sidebar({
           {/* User profile card */}
           <div
             onClick={() => setCurrentView('profile')}
-            className={`flex items-center gap-3 p-2 rounded-2xl cursor-pointer transition-all border ${
-              currentView === 'profile'
+            className={`flex items-center gap-3 p-2 rounded-2xl cursor-pointer transition-all border ${currentView === 'profile'
                 ? 'border-terra-primary bg-blush-surface/40 ring-1 ring-terra-primary/20'
                 : 'border-transparent hover:bg-blush-surface/40'
-            }`}
+              }`}
           >
             <img
               src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"}
@@ -151,9 +147,8 @@ export default function Sidebar({
             <button
               key={item.id}
               onClick={() => setCurrentView(item.id)}
-              className={`flex flex-col items-center justify-center p-1.5 relative ${
-                isActive ? 'text-terra-primary font-bold' : 'text-cocoa-text/70'
-              }`}
+              className={`flex flex-col items-center justify-center p-1.5 relative ${isActive ? 'text-terra-primary font-bold' : 'text-cocoa-text/70'
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="text-[10px] mt-0.5">{item.label.split(' ')[0]}</span>

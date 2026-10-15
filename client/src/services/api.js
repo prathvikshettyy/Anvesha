@@ -250,6 +250,31 @@ export const communities = {
   report: (id, { reason, messageId = null }) => post(`/communities/${id}/report`, { reason, messageId }),
 };
 
+// ── Local Food Discovery ──────────────────────────────────────────────────────
+export const food = {
+  /**
+   * List traditional dishes with optional filters.
+   * @param {{ state?, stateId?, city?, eventId?, dietary?, category?, q? }} params
+   */
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/food${qs ? `?${qs}` : ''}`);
+  },
+
+  /** Get dishes associated with an event or its location */
+  byEvent: (eventId) => get(`/food/event/${eventId}`),
+
+  /** Get regional dishes for a state */
+  byState: (stateId) => get(`/food/state/${stateId}`),
+
+  /** Get single dish details */
+  get: (id) => get(`/food/${id}`),
+
+  /** Suggest or contribute an authentic traditional dish */
+  suggest: (dishData) => post('/food/suggest', dishData),
+};
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const health = () => get('/health');
+
 

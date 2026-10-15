@@ -214,6 +214,34 @@ export function applySchema(db) {
 
     CREATE INDEX IF NOT EXISTS idx_event_reviews_event ON event_reviews(event_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_event_reviews_user ON event_reviews(user_id);
+
+    -- ─── Local Dishes & Food Discovery ──────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS local_dishes (
+      id                 TEXT PRIMARY KEY,
+      name               TEXT NOT NULL,
+      regional_name      TEXT DEFAULT '',
+      region             TEXT NOT NULL,
+      state_id           TEXT NOT NULL,
+      city               TEXT DEFAULT '',
+      event_id           TEXT REFERENCES events(id) ON DELETE SET NULL,
+      category           TEXT DEFAULT 'TRADITIONAL_DISH'
+                           CHECK(category IN ('BREAKFAST','MAINS','SWEETS_DESSERTS','BEVERAGES','SNACKS_STREET','TRADITIONAL_DISH')),
+      category_label     TEXT DEFAULT 'Traditional Dish',
+      description        TEXT NOT NULL,
+      cultural_tradition TEXT NOT NULL,
+      image_url          TEXT DEFAULT '',
+      dietary_type       TEXT DEFAULT 'UNKNOWN'
+                           CHECK(dietary_type IN ('VEGETARIAN','VEGAN','NON_VEGETARIAN','UNKNOWN')),
+      allergens          TEXT DEFAULT '[]',
+      is_sample_data     INTEGER DEFAULT 1,
+      source_attribution TEXT DEFAULT 'Curated Heritage Archive (Sample Data)',
+      created_at         TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_dishes_state ON local_dishes(state_id);
+    CREATE INDEX IF NOT EXISTS idx_dishes_event ON local_dishes(event_id);
+    CREATE INDEX IF NOT EXISTS idx_dishes_city ON local_dishes(city);
+    CREATE INDEX IF NOT EXISTS idx_dishes_dietary ON local_dishes(dietary_type);
   `);
 
   migrateLegacyColumns(db);

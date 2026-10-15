@@ -34,21 +34,21 @@ function normaliseUser(backendUser) {
   if (!backendUser) return null;
   return {
     ...INITIAL_USER,               // keep all UI-only fields as defaults
-    id:             backendUser.id,
-    name:           backendUser.name          ?? INITIAL_USER.name,
-    handle:         backendUser.handle        ?? INITIAL_USER.handle,
-    avatar:         backendUser.avatar_url || (backendUser.username ? generateIdenticon(backendUser.username) : INITIAL_USER.avatar),
-    bio:            backendUser.bio           ?? INITIAL_USER.bio,
-    state:          backendUser.state         ?? INITIAL_USER.state,
-    city:           backendUser.city          ?? INITIAL_USER.city,
-    neighborhood:   backendUser.neighborhood  ?? INITIAL_USER.neighborhood,
-    preferredMode:  backendUser.preferred_mode ?? INITIAL_USER.preferredMode,
+    id: backendUser.id,
+    name: backendUser.name ?? INITIAL_USER.name,
+    handle: backendUser.handle ?? INITIAL_USER.handle,
+    avatar: backendUser.avatar_url || (backendUser.username ? generateIdenticon(backendUser.username) : INITIAL_USER.avatar),
+    bio: backendUser.bio ?? INITIAL_USER.bio,
+    state: backendUser.state ?? INITIAL_USER.state,
+    city: backendUser.city ?? INITIAL_USER.city,
+    neighborhood: backendUser.neighborhood ?? INITIAL_USER.neighborhood,
+    preferredMode: backendUser.preferred_mode ?? INITIAL_USER.preferredMode,
     isDiscoverable: backendUser.is_discoverable !== undefined
-                      ? Boolean(backendUser.is_discoverable)
-                      : INITIAL_USER.isDiscoverable,
+      ? Boolean(backendUser.is_discoverable)
+      : INITIAL_USER.isDiscoverable,
     fuzzedLocation: backendUser.fuzzed_location !== undefined
-                      ? Boolean(backendUser.fuzzed_location)
-                      : true,
+      ? Boolean(backendUser.fuzzed_location)
+      : true,
     // Map interest array [{interest_id, intention}] → [id, id, ...]
     interests: Array.isArray(backendUser.interests)
       ? backendUser.interests.map(i => i.interest_id ?? i)
@@ -67,74 +67,74 @@ function normaliseUser(backendUser) {
  */
 function normalisePerson(p) {
   return {
-    id:               p.id,
-    name:             p.name,
-    handle:           p.handle        ?? `@${p.username}`,
-    avatar:           p.avatar || p.avatar_url || (p.username ? generateIdenticon(p.username) : '/avatars/rohan.jpg'),
-    bio:              p.bio           ?? '',
-    city:             p.city          ?? 'India',
-    broadRegion:      p.broadRegion  ?? p.city ?? p.neighborhood ?? 'India',
-    neighborhood:     p.neighborhood  ?? 'Nearby',
-    speaks:           p.speaks       ?? p.languages ?? [],
-    interests:        Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
-    willingToTeach:   p.willingToTeach ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : []),
-    wantsToLearn:     p.wantsToLearn  ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill) : []),
-    matchScore:       p.matchScore    ?? p.match_score ?? null,
-    matchReason:      p.matchReason   ?? '',
-    matchReasons:     Array.isArray(p.matchReasons) ? p.matchReasons : [],
+    id: p.id,
+    name: p.name,
+    handle: p.handle ?? `@${p.username}`,
+    avatar: p.avatar || p.avatar_url || (p.username ? generateIdenticon(p.username) : '/avatars/rohan.jpg'),
+    bio: p.bio ?? '',
+    city: p.city ?? 'India',
+    broadRegion: p.broadRegion ?? p.city ?? p.neighborhood ?? 'India',
+    neighborhood: p.neighborhood ?? 'Nearby',
+    speaks: p.speaks ?? p.languages ?? [],
+    interests: Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
+    willingToTeach: p.willingToTeach ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : []),
+    wantsToLearn: p.wantsToLearn ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill) : []),
+    matchScore: p.matchScore ?? p.match_score ?? null,
+    matchReason: p.matchReason ?? '',
+    matchReasons: Array.isArray(p.matchReasons) ? p.matchReasons : [],
     mutualConnections: p.mutualConnections ?? 0,
     connectionStatus: p.connectionStatus ?? p.connection_status ?? 'NONE',
-    isMentor:         p.isMentor      ?? p.is_mentor ?? false,
+    isMentor: p.isMentor ?? p.is_mentor ?? false,
   };
 }
 
 /** Map a backend locket moment → shape expected by CultureLocketCard */
 function normaliseMoment(m) {
   return {
-    id:             m.id,
-    senderId:       m.sender_id       ?? m.senderId,
-    senderName:     m.sender_name     ?? m.senderName     ?? 'Community Member',
-    senderAvatar:   m.sender_avatar   ?? m.senderAvatar   ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-    momentType:     m.moment_type     ?? m.momentType,
-    title:          m.title           ?? (m.moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment'),
+    id: m.id,
+    senderId: m.sender_id ?? m.senderId,
+    senderName: m.sender_name ?? m.senderName ?? 'Community Member',
+    senderAvatar: m.sender_avatar ?? m.senderAvatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    momentType: m.moment_type ?? m.momentType,
+    title: m.title ?? (m.moment_type === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment'),
     vernacularText: m.vernacular_text ?? m.vernacularText ?? '',
-    phoneticText:   m.phonetic_text   ?? m.phoneticText   ?? '',
-    meaning:        m.meaning         ?? '',
-    provenance:     m.provenance      ?? '',
-    audioUrl:       m.audio_url       ?? m.audioUrl       ?? '',
-    imageUrl:       m.image_url       ?? m.imageUrl       ?? m.image ?? '',
-    image:          m.image_url       ?? m.imageUrl       ?? m.image ?? '',
-    audioDuration:  m.audio_duration  ?? m.audioDuration  ?? '0:04',
-    timestamp:      m.timestamp       ?? (m.timestamp_iso
+    phoneticText: m.phonetic_text ?? m.phoneticText ?? '',
+    meaning: m.meaning ?? '',
+    provenance: m.provenance ?? '',
+    audioUrl: m.audio_url ?? m.audioUrl ?? '',
+    imageUrl: m.image_url ?? m.imageUrl ?? m.image ?? '',
+    image: m.image_url ?? m.imageUrl ?? m.image ?? '',
+    audioDuration: m.audio_duration ?? m.audioDuration ?? '0:04',
+    timestamp: m.timestamp ?? (m.timestamp_iso
       ? new Date(m.timestamp_iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
       : m.created_at
         ? new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
         : 'Recently'),
-    reactions:      Array.isArray(m.reactions) ? m.reactions : [],
+    reactions: Array.isArray(m.reactions) ? m.reactions : [],
   };
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [currentView, setCurrentView]             = useState('welcome');
-  const [authUser, setAuthUser]                   = useState(null);   // raw backend user
-  const [user, setUser]                           = useState(INITIAL_USER); // normalised UI user
-  const [events, setEvents]                       = useState(() => dedupeEvents(INITIAL_EVENTS));
-  const [people, setPeople]                       = useState(INITIAL_PEOPLE);
-  const [locketMoments, setLocketMoments]         = useState(INITIAL_LOCKET_MOMENTS);
-  const [savedEvents, setSavedEvents]             = useState(INITIAL_USER.savedEvents);
-  const [unreadCount, setUnreadCount]             = useState(0);
+  const [currentView, setCurrentView] = useState('welcome');
+  const [authUser, setAuthUser] = useState(null);   // raw backend user
+  const [user, setUser] = useState(INITIAL_USER); // normalised UI user
+  const [events, setEvents] = useState(() => dedupeEvents(INITIAL_EVENTS));
+  const [people, setPeople] = useState(INITIAL_PEOPLE);
+  const [locketMoments, setLocketMoments] = useState(INITIAL_LOCKET_MOMENTS);
+  const [savedEvents, setSavedEvents] = useState(INITIAL_USER.savedEvents);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Modals
   const [activeDetailEvent, setActiveDetailEvent] = useState(null);
   const [isLocketModalOpen, setIsLocketModalOpen] = useState(false);
-  const [locketRecipient, setLocketRecipient]     = useState(null);
-  const [chatPartner, setChatPartner]             = useState(null);
+  const [locketRecipient, setLocketRecipient] = useState(null);
+  const [chatPartner, setChatPartner] = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [connectTab, setConnectTab]               = useState('communities'); // 'communities' | 'messages'
+  const [connectTab, setConnectTab] = useState('communities'); // 'communities' | 'messages'
   const [targetCommunityId, setTargetCommunityId] = useState(null);
-  const [communities, setCommunities]             = useState([]);
+  const [communities, setCommunities] = useState([]);
 
   const loadCommunities = useCallback(() => {
     api.communities.list()
@@ -209,7 +209,7 @@ export default function App() {
     if (!api.token.get()) return;
     api.people.discover()
       .then(list => setPeople(list.map(normalisePerson)))
-      .catch(() => {/* keep initialData */});
+      .catch(() => {/* keep initialData */ });
   }, []);
 
   // ── Fetch real locket moments (available for both authenticated users & guests)
@@ -220,7 +220,7 @@ export default function App() {
           setLocketMoments(list.map(normaliseMoment));
         }
       })
-      .catch(() => {/* keep initialData */});
+      .catch(() => {/* keep initialData */ });
   }, []);
 
   // Fetch moments on mount and refresh periodically / on window focus
@@ -267,7 +267,7 @@ export default function App() {
     } else {
       disconnectSocket();
     }
-    return () => {};
+    return () => { };
   }, [authUser]);
 
   // Scroll to top on view change
@@ -348,11 +348,11 @@ export default function App() {
     if (api.token.get()) {
       try {
         await api.auth.updateMe({
-          state:          preferences.state,
-          city:           preferences.city,
-          neighborhood:   preferences.neighborhood,
+          state: preferences.state,
+          city: preferences.city,
+          neighborhood: preferences.neighborhood,
           preferred_mode: preferences.preferredMode,
-          interests:      preferences.interests, // already [{interest_id, intention}]
+          interests: preferences.interests, // already [{interest_id, intention}]
         });
         // Re-fetch /me so authUser and user are in sync with what is now in DB
         const refreshed = await api.auth.me();
@@ -378,7 +378,7 @@ export default function App() {
         await api.auth.updateMe({
           interests: newInterests.map(id => ({ interest_id: id, intention: 'CASUAL_ENTHUSIAST' }))
         });
-      } catch (_) {}
+      } catch (_) { }
     }
   };
 
@@ -402,15 +402,14 @@ export default function App() {
       try {
         await api.locket.react(momentId, text);
         loadLocket();
-      } catch (_) {}
+      } catch (_) { }
     }
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className={`relative min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
-      currentView === 'welcome' ? 'h-screen overflow-hidden flex-col' : 'flex-col md:flex-row'
-    }`}>
+    <div className={`relative min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${currentView === 'welcome' ? 'h-screen overflow-hidden flex-col' : 'flex-col md:flex-row'
+      }`}>
 
       {/* Ambient Transparent Mandala & Sacred Geometry Background Layer */}
       <AestheticMandalaBg />

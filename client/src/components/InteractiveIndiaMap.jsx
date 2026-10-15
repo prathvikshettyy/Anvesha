@@ -311,7 +311,7 @@ export default function InteractiveIndiaMap({
   };
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden border-2 border-blush-surface shadow-warm parchment-canvas select-none">
+    <div className="isolate relative w-full rounded-3xl overflow-hidden border-2 border-blush-surface shadow-warm parchment-canvas select-none z-0">
 
       {/* ── Top Map Header & Controls Bar ───────────────────────────────────── */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">

@@ -49,6 +49,7 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
         { name: 'Culture Locket', description: 'Dialect preservation, audio snippets, and cultural vault' },
         { name: 'Messages', description: 'Direct conversations and private peer messaging' },
         { name: 'Health', description: 'Service health and operational status' },
+        { name: 'Food', description: 'Local food discovery, regional culinary heritage, and dietary traditions' },
     ],
     components: {
         securitySchemes: {
@@ -85,6 +86,25 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     service: { type: 'string', example: 'ShareSpot API' },
                     version: { type: 'string', example: '1.0.0' },
                     timestamp: { type: 'string', format: 'date-time', example: '2026-10-14T12:00:00.000Z' },
+                },
+            },
+            LocalDish: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', example: 'dish_neer_dosa' },
+                    name: { type: 'string', example: 'Neer Dosa' },
+                    local_name: { type: 'string', example: 'ನೀರು ದೋಸೆ' },
+                    state_id: { type: 'string', example: 'IN-KA' },
+                    city: { type: 'string', example: 'Mangalore / Udupi' },
+                    region: { type: 'string', example: 'Coastal Karnataka (Tulu Nadu)' },
+                    cultural_tradition: { type: 'string', example: 'Breakfast staple of the Bunt and coastal communities' },
+                    description: { type: 'string', example: 'Delicate, lacy crepes made from unfermented rice batter...' },
+                    dietary_type: { type: 'string', enum: ['VEGETARIAN', 'VEGAN', 'NON_VEGETARIAN', 'UNKNOWN'], example: 'VEGAN' },
+                    allergens: { type: 'array', items: { type: 'string' }, example: ['Coconut (in chutney)'] },
+                    image_url: { type: 'string', format: 'uri' },
+                    category: { type: 'string', example: 'Breakfast / Tiffin' },
+                    event_id: { type: 'string', nullable: true },
+                    is_sample_data: { type: 'integer', enum: [0, 1], example: 1 },
                 },
             },
             UserInterest: {
@@ -1612,6 +1632,198 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     },
                     401: {
                         description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food': {
+            get: {
+                tags: ['Food'],
+                summary: 'Discover traditional and local foods',
+                description: 'Browse local dishes by location (state, city), event association, dietary preference, or keyword query.',
+                parameters: [
+                    {
+                        name: 'stateId',
+                        in: 'query',
+                        description: 'Filter dishes by state identifier (e.g. IN-KA, IN-KL, IN-MH)',
+                        schema: { type: 'string', example: 'IN-KA' },
+                    },
+                    {
+                        name: 'city',
+                        in: 'query',
+                        description: 'Filter dishes by city name',
+                        schema: { type: 'string', example: 'Mangalore' },
+                    },
+                    {
+                        name: 'eventId',
+                        in: 'query',
+                        description: 'Filter dishes associated with a specific event ID',
+                        schema: { type: 'string', example: 'evt_yakshagana' },
+                    },
+                    {
+                        name: 'dietary',
+                        in: 'query',
+                        description: 'Filter by dietary preference (VEGETARIAN, VEGAN, NON_VEGETARIAN)',
+                        schema: { type: 'string', enum: ['VEGETARIAN', 'VEGAN', 'NON_VEGETARIAN', 'UNKNOWN'] },
+                    },
+                    {
+                        name: 'category',
+                        in: 'query',
+                        description: 'Filter by culinary category',
+                        schema: { type: 'string', example: 'Breakfast / Tiffin' },
+                    },
+                    {
+                        name: 'q',
+                        in: 'query',
+                        description: 'Search keyword across dish name, description, region, or tradition',
+                        schema: { type: 'string', example: 'dosa' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'List of regional dishes matching criteria',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 5 },
+                                        disclaimer: { type: 'string', example: 'Curated cultural food archive for development and cultural exploration.' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/event/{eventId}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get local flavours for an event',
+                description: 'Retrieves dishes directly associated with the cultural event or regional to the event city/state.',
+                parameters: [
+                    {
+                        name: 'eventId',
+                        in: 'path',
+                        required: true,
+                        description: 'Unique event identifier',
+                        schema: { type: 'string', example: 'evt_yakshagana' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Regional dishes associated with or nearby the event',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 4 },
+                                        event: {
+                                            type: 'object',
+                                            properties: {
+                                                id: { type: 'string' },
+                                                title: { type: 'string' },
+                                                city: { type: 'string' },
+                                                state_id: { type: 'string' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/state/{stateId}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get local flavours for a state',
+                description: 'Retrieves traditional dishes and heritage foods associated with an Indian state.',
+                parameters: [
+                    {
+                        name: 'stateId',
+                        in: 'path',
+                        required: true,
+                        description: 'State identifier (e.g. IN-KA, IN-KL, IN-TN, IN-MH)',
+                        schema: { type: 'string', example: 'IN-KA' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Regional dishes for the specified state',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 7 },
+                                        stateId: { type: 'string', example: 'IN-KA' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/{id}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get details for a single dish',
+                description: 'Fetches dish details including cultural background, dietary classification, and known allergens.',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Unique dish identifier',
+                        schema: { type: 'string', example: 'dish_neer_dosa' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Dish details',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dish: { $ref: '#/components/schemas/LocalDish' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Dish not found',
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' },

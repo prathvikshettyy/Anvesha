@@ -32,6 +32,7 @@ async function runTests() {
   let createdEventId = '';
   let createdLocketId = '';
   let createdAudioUrl = '';
+  let createdDishId = '';
 
   try {
     // ── 1. Health Check & Documentation ─────────────────────────────────────
@@ -760,6 +761,94 @@ async function runTests() {
     const deleteData = await deleteReviewRes.json();
     assert(deleteData.message.includes('deleted'), 'Review deletion confirmed');
 
+    // ── 7. Local Food Discovery & Dietary Intelligence ───────────────────────
+    console.log('[Test Suite 7/7] Local Food Discovery & Dietary Intelligence');
+
+    // 1. List all dishes
+    const allDishesRes = await fetch(`${BASE}/food`);
+    assert(allDishesRes.status === 200, 'GET /api/food returns 200');
+    const allDishes = await allDishesRes.json();
+    assert(Array.isArray(allDishes), 'Food response is an array of dishes');
+    assert(allDishes.length >= 8, 'At least 8 authentic regional dishes seeded');
+
+    // Verify dish object structure and dietary validation
+    const sampleDish = allDishes.find(d => d.id === 'dish_neer_dosa');
+    assert(!!sampleDish, 'Neer Dosa found in seeded food archive');
+    assert(sampleDish.name.includes('Neer Dosa'), 'Dish name includes "Neer Dosa"');
+    assert(sampleDish.regionalName === 'ನೀರು ದೋಸೆ', 'Dish includes local language script (Kannada)');
+    assert(sampleDish.dietaryType === 'VEGAN', 'Dish dietary classification is VEGAN');
+    assert(Array.isArray(sampleDish.allergens), 'Dish allergens is parsed array');
+    assert(sampleDish.isSampleData === true, 'Sample data flag is set to true for developmental transparency');
+
+    // 2. Filter by dietary type (VEGAN)
+    const veganDishesRes = await fetch(`${BASE}/food?dietary=VEGAN`);
+    assert(veganDishesRes.status === 200, 'GET /api/food?dietary=VEGAN returns 200');
+    const veganDishes = await veganDishesRes.json();
+    assert(Array.isArray(veganDishes) && veganDishes.length > 0, 'Found vegan dishes');
+    assert(veganDishes.every(d => d.dietaryType === 'VEGAN'), 'All returned dishes have dietaryType VEGAN');
+
+    // 3. Filter by state (Karnataka IN-KA)
+    const kaFoodRes = await fetch(`${BASE}/food/state/IN-KA`);
+    assert(kaFoodRes.status === 200, 'GET /api/food/state/IN-KA returns 200');
+    const kaFood = await kaFoodRes.json();
+    assert(Array.isArray(kaFood) && kaFood.length >= 5, 'Karnataka state returns regional heritage dishes');
+    assert(kaFood.some(d => d.id === 'dish_mangalore_buns' || (d.name.includes('Mangalore') && d.name.includes('Buns'))), 'Mangalore Buns present in Karnataka food');
+
+    // 4. Query food for an event (evt_1 in Manipal / Coastal Karnataka)
+    const eventFoodRes = await fetch(`${BASE}/food/event/evt_1`);
+    assert(eventFoodRes.status === 200, 'GET /api/food/event/:eventId returns 200');
+    const eventFoodData = await eventFoodRes.json();
+    assert(Array.isArray(eventFoodData.dishes) && eventFoodData.dishes.length > 0, 'Event returns associated regional dishes');
+    assert(eventFoodData.event && eventFoodData.event.id === 'evt_1', 'Event context included in response');
+
+    // 5. Search keyword filter
+    const searchFoodRes = await fetch(`${BASE}/food?q=dosa`);
+    assert(searchFoodRes.status === 200, 'GET /api/food?q=dosa returns 200');
+    const searchFood = await searchFoodRes.json();
+    assert(Array.isArray(searchFood) && searchFood.some(d => d.name.toLowerCase().includes('dosa')), 'Search returns matching dishes');
+
+    // 6. Get single dish by ID
+    const singleDishRes = await fetch(`${BASE}/food/dish_neer_dosa`);
+    assert(singleDishRes.status === 200, 'GET /api/food/:id returns 200');
+    const singleDish = await singleDishRes.json();
+    assert(singleDish.id === 'dish_neer_dosa', 'Returned single dish matches ID');
+    assert(singleDish.region.includes('Coastal Karnataka'), 'Region accurately describes Coastal Karnataka');
+
+    // 7. Non-existent dish returns 404
+    const notFoundDishRes = await fetch(`${BASE}/food/dish_non_existent_999`);
+    assert(notFoundDishRes.status === 404, 'GET /api/food/:id returns 404 for non-existent dish');
+
+    // 8. Suggest a traditional dish (Validation & Persistence)
+    const invalidDishRes = await fetch(`${BASE}/food/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'A' }),
+    });
+    assert(invalidDishRes.status === 400, 'POST /api/food/suggest invalid input returns 400');
+
+    const validDishRes = await fetch(`${BASE}/food/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Goli Baje (Mangalore Bajji)',
+        regionalName: 'ಗೋಳಿ ಬಜೆ',
+        region: 'Coastal Karnataka / Canara',
+        stateId: 'karnataka',
+        city: 'Mangalore',
+        category: 'SNACKS_STREET',
+        categoryLabel: 'Iconic Raintime Tea Snack',
+        description: 'Crisp golden fritters made of seasoned flour, sour curd, green chillies, ginger, and curry leaves.',
+        culturalTradition: 'Traditional evening accompaniment with ginger tea in Dakshina Kannada coastal cafés.',
+        dietaryType: 'VEGETARIAN',
+        allergens: ['Gluten', 'Dairy'],
+      }),
+    });
+    assert(validDishRes.status === 201, 'POST /api/food/suggest returns 201 Created');
+    const validDishData = await validDishRes.json();
+    assert(validDishData.dish && validDishData.dish.name === 'Goli Baje (Mangalore Bajji)', 'Dish persisted in archive');
+    assert(validDishData.dish.isSampleData === false, 'User contributed dish marked with isSampleData: false');
+    createdDishId = validDishData.dish.id;
+
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
     console.log('='.repeat(55) + '\n');
@@ -771,6 +860,9 @@ async function runTests() {
       const { db } = await import('../src/db/index.js');
       const fs = await import('fs');
       const path = await import('path');
+      if (createdDishId) {
+        db.prepare('DELETE FROM local_dishes WHERE id = ?').run(createdDishId);
+      }
       if (createdLocketId) {
         db.prepare('DELETE FROM locket_reactions WHERE moment_id = ?').run(createdLocketId);
         db.prepare('DELETE FROM locket_moments WHERE id = ?').run(createdLocketId);

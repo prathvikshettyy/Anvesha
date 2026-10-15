@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 import { generateIdenticon } from '../utils/identicon';
 import * as api from '../services/api';
+import LocalFoodFlavours from './LocalFoodFlavours';
 
 const RATING_LABELS = {
   1: 'Disappointing',
@@ -250,7 +251,7 @@ export default function EventDetailModal({
   const reviewCountDisplay = reviewStats.reviewCount || event.reviewCount || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-cocoa-text/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center p-3 sm:p-4 bg-cocoa-text/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-cream-canvas w-full max-w-2xl rounded-3xl border-2 border-blush-surface shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
         {/* Banner with Close button */}
@@ -423,6 +424,16 @@ export default function EventDetailModal({
               </div>
             </div>
           )}
+
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* LOCAL FOOD DISCOVERY: TASTE THE LOCAL FLAVOURS                   */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          <LocalFoodFlavours
+            eventId={event.id}
+            stateId={event.stateId || event.state_id}
+            cityName={event.city || event.neighborhood || 'Local Area'}
+            contextTitle={event.title}
+          />
 
           {/* ═══════════════════════════════════════════════════════════════════ */}
           {/* RATINGS & ATTENDEE FEEDBACK SECTION                               */}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles, CalendarX2, Compass } from 'lucide-react';
+import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles, CalendarX2, Compass, Utensils } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
 import StateDetailPanel from '../components/StateDetailPanel';
@@ -7,6 +7,7 @@ import { PIN_CATEGORIES } from '../components/IllustratedPin';
 import { dedupeEvents, CATEGORY_MAP } from './HomeView';
 import { matchesEventState } from '../data/indiaGeoData';
 import * as api from '../services/api';
+import FoodDiscoveryView from './FoodDiscoveryView';
 
 export default function EventsView({
   user,
@@ -16,7 +17,8 @@ export default function EventsView({
   onToggleSave,
   onSelectEvent,
   onSelectPerson,
-  onOpenSubmitModal
+  onOpenSubmitModal,
+  onNavigateFood
 }) {
   const [viewMode, setViewMode] = useState('MAP'); // 'MAP' or 'GRID'
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,7 +144,7 @@ export default function EventsView({
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-      
+
       {/* Top Banner and Navigation Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-blush-surface/60 pb-5">
         <div>
@@ -163,39 +165,46 @@ export default function EventsView({
           {/* Saved Filter Toggle */}
           <button
             onClick={() => setOnlySaved(!onlySaved)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${
-              onlySaved
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${onlySaved
                 ? 'bg-terra-primary text-cream-canvas border-terra-primary shadow-xs'
                 : 'bg-surface-container-lowest border-blush-surface text-cocoa-text hover:bg-blush-surface/40'
-            }`}
+              }`}
           >
             <Bookmark className={`w-3.5 h-3.5 ${onlySaved ? 'fill-cream-canvas' : ''}`} />
             <span>Saved ({savedEvents.length})</span>
           </button>
 
-          {/* Toggle between Map and Grid */}
-          <div className="bg-surface-container p-1 rounded-full border border-blush-surface flex items-center shadow-xs">
+          {/* Toggle between Map, Grid, and Local Flavours */}
+          <div className="bg-surface-container p-1 rounded-full border border-blush-surface flex items-center shadow-xs flex-wrap">
             <button
               onClick={() => setViewMode('MAP')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                viewMode === 'MAP'
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'MAP'
                   ? 'bg-terra-primary text-cream-canvas shadow-sm'
                   : 'text-cocoa-text hover:bg-blush-surface/50'
-              }`}
+                }`}
             >
               <Map className="w-3.5 h-3.5" />
               <span>Atlas Map</span>
             </button>
             <button
               onClick={() => setViewMode('GRID')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                viewMode === 'GRID'
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'GRID'
                   ? 'bg-terra-primary text-cream-canvas shadow-sm'
                   : 'text-cocoa-text hover:bg-blush-surface/50'
-              }`}
+                }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>List View</span>
+            </button>
+            <button
+              onClick={() => setViewMode('FOOD')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'FOOD'
+                  ? 'bg-terra-primary text-cream-canvas shadow-sm'
+                  : 'text-cocoa-text hover:bg-blush-surface/50'
+                }`}
+            >
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Taste Local Flavours</span>
             </button>
           </div>
 
@@ -210,46 +219,47 @@ export default function EventsView({
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-cocoa-text/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by state, tradition, instrument, or topic..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-9 py-2.5 rounded-full border border-blush-surface bg-surface-container-lowest text-xs sm:text-sm text-cocoa-text placeholder-cocoa-text/50 focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
-          />
-          {isLoading && (
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-              <span className="w-3.5 h-3.5 border-2 border-terra-primary border-t-transparent rounded-full animate-spin inline-block" />
-            </div>
-          )}
-        </div>
+      {/* Filter and Search Bar (for Map & Grid views) */}
+      {viewMode !== 'FOOD' && (
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-cocoa-text/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by state, tradition, instrument, or topic..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 rounded-full border border-blush-surface bg-surface-container-lowest text-xs sm:text-sm text-cocoa-text placeholder-cocoa-text/50 focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+            />
+            {isLoading && (
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                <span className="w-3.5 h-3.5 border-2 border-terra-primary border-t-transparent rounded-full animate-spin inline-block" />
+              </div>
+            )}
+          </div>
 
-        {/* Category Scrollable Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                selectedCategory === cat.id
-                  ? 'bg-terra-primary text-cream-canvas shadow-sm'
-                  : 'bg-surface-container-lowest hover:bg-blush-surface/40 text-cocoa-text border border-blush-surface'
-              }`}
-            >
-              <span>{cat.symbol}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
+          {/* Category Scrollable Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${selectedCategory === cat.id
+                    ? 'bg-terra-primary text-cream-canvas shadow-sm'
+                    : 'bg-surface-container-lowest hover:bg-blush-surface/40 text-cocoa-text border border-blush-surface'
+                  }`}
+              >
+                <span>{cat.symbol}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Active State / Filter Toast Notice if State Selected */}
-      {selectedStateId && (
+      {selectedStateId && viewMode !== 'FOOD' && (
         <div className="flex items-center justify-between bg-surface-container px-4 py-2.5 rounded-2xl border border-blush-surface text-xs">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-terra-primary text-base">pin_drop</span>
@@ -267,12 +277,18 @@ export default function EventsView({
         </div>
       )}
 
-      {/* Dynamic View: Illustrated Atlas Map or Card Grid */}
-      {viewMode === 'MAP' ? (
+      {/* Dynamic View: Food Discovery, Illustrated Atlas Map, or Card Grid */}
+      {viewMode === 'FOOD' ? (
+        <FoodDiscoveryView
+          events={allUniqueEvents}
+          onSelectEvent={onSelectEvent}
+          initialStateId={selectedStateId || 'ALL'}
+        />
+      ) : viewMode === 'MAP' ? (
         <div className="space-y-6">
           {/* Desktop: 2-Column Side-by-Side Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
+
             {/* Left Dominant Column: Interactive India Map Canvas (7 cols) */}
             <div className="lg:col-span-7 flex flex-col space-y-4">
               <InteractiveIndiaMap
