@@ -221,17 +221,18 @@ export default function InteractiveIndiaMap({
     const markersGroup = markersLayerRef.current;
     markersGroup.clearLayers();
 
-    // Group events by location anchor to avoid overlapping collisions
-    const locationGroups = {};
+    // Group events ONLY if they share the exact same geographic coordinate
+    const coordGroups = {};
     categoryEvents.forEach(evt => {
-      const baseKey = (evt.city || evt.neighborhood || evt.stateId || evt.state || 'default').toLowerCase().trim();
-      if (!locationGroups[baseKey]) locationGroups[baseKey] = [];
-      locationGroups[baseKey].push(evt);
+      const [baseLat, baseLng] = resolveEventCoords(evt, 0, 1);
+      const key = `${baseLat.toFixed(3)},${baseLng.toFixed(3)}`;
+      if (!coordGroups[key]) coordGroups[key] = [];
+      coordGroups[key].push(evt);
     });
 
     let firstActiveMarker = null;
 
-    Object.values(locationGroups).forEach(group => {
+    Object.values(coordGroups).forEach(group => {
       group.forEach((evt, idx) => {
         const [lat, lng] = resolveEventCoords(evt, idx, group.length);
         const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;

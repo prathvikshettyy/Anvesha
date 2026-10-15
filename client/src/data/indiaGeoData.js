@@ -119,13 +119,14 @@ export function resolveEventCoords(evt, index = 0, total = 1) {
     }
   }
 
-  // If there are multiple events grouped or index provided, distribute them radially around the base coordinate
+  // Only micro-jitter if multiple events share the EXACT same coordinate (e.g. 2 events at the exact same gazebo)
+  // Use a tiny ~60-80 meter radius (0.0006 deg) so pins are clickable side-by-side on land, NEVER 25km into the ocean!
   if (total > 1 && index > 0) {
-    const radius = 0.22; // ~20-25 km dispersion on map view
+    const microRadius = 0.0006; // ~60 meters
     const angle = (index * (2 * Math.PI)) / total;
     return [
-      Number((baseCoords[0] + radius * Math.sin(angle)).toFixed(4)),
-      Number((baseCoords[1] + (radius * 1.2) * Math.cos(angle)).toFixed(4))
+      Number((baseCoords[0] + microRadius * Math.sin(angle)).toFixed(5)),
+      Number((baseCoords[1] + microRadius * Math.cos(angle)).toFixed(5))
     ];
   }
 
