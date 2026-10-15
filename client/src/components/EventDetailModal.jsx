@@ -18,10 +18,10 @@ export default function EventDetailModal({
   // Find linked community for this event if one exists
   const matchedCommunity = communities.find(c => c.eventId === event.id || c.event_id === event.id)
     || (event.id === 'evt_1' ? { id: 'comm_evt_manipal_fest', name: 'Manipal Cultural Fest 2026', memberCount: 38 }
-    : event.id === 'evt_2' ? { id: 'comm_evt_dasara', name: 'Mysuru Dasara Cultural Circle', memberCount: 42 }
-    : event.id === 'evt_3' || event.id === 'evt_k1' ? { id: 'comm_evt_hackathon', name: 'Bengaluru Culture Tech Hackers', memberCount: 54 }
-    : event.id === 'evt_6' ? { id: 'comm_dialects_lit', name: 'Tulu & Konkani Dialect Circle', memberCount: 22 }
-    : null);
+      : event.id === 'evt_2' ? { id: 'comm_evt_dasara', name: 'Mysuru Dasara Cultural Circle', memberCount: 42 }
+        : event.id === 'evt_3' || event.id === 'evt_k1' ? { id: 'comm_evt_hackathon', name: 'Bengaluru Culture Tech Hackers', memberCount: 54 }
+          : event.id === 'evt_6' ? { id: 'comm_dialects_lit', name: 'Tulu & Konkani Dialect Circle', memberCount: 22 }
+            : null);
 
   const [isJoined, setIsJoined] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -69,7 +69,7 @@ export default function EventDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cocoa-text/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-cream-canvas w-full max-w-2xl rounded-3xl border-2 border-blush-surface shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-        
+
         {/* Banner with Close button */}
         <div className="relative h-56 sm:h-64 w-full bg-blush-surface/30">
           <img
@@ -234,11 +234,10 @@ export default function EventDetailModal({
         <div className="p-5 sm:p-6 bg-surface-container/60 border-t border-blush-surface flex items-center justify-between gap-3">
           <button
             onClick={() => onToggleSave(event.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold transition-all ${
-              isSaved
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold transition-all ${isSaved
                 ? 'bg-blush-surface border-terra-primary text-terra-primary'
                 : 'border-blush-surface text-cocoa-text hover:bg-blush-surface/40'
-            }`}
+              }`}
           >
             <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-terra-primary' : ''}`} />
             <span>{isSaved ? 'Saved to Calendar' : 'Save Event'}</span>
