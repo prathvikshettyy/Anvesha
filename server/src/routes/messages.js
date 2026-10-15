@@ -80,10 +80,18 @@ function isPermittedToMessage(userId1, userId2) {
   if (isConnected(userId1, userId2)) return true;
   // Allow attendees and event organisers to message each other regarding events
   try {
-    const isOrganiser = db.prepare(`
+    const isEventOrganiser = db.prepare(`
       SELECT 1 FROM events WHERE submitted_by = ? OR submitted_by = ?
     `).get(userId1, userId2);
-    return Boolean(isOrganiser);
+    if (isEventOrganiser) return true;
+
+    // Allow members and community circle organisers/admins to message each other
+    const isCommunityAdmin = db.prepare(`
+      SELECT 1 FROM communities WHERE created_by = ? OR created_by = ?
+      UNION
+      SELECT 1 FROM community_members WHERE role = 'ADMIN' AND (user_id = ? OR user_id = ?)
+    `).get(userId1, userId2, userId1, userId2);
+    return Boolean(isCommunityAdmin);
   } catch (_) {
     return false;
   }

@@ -341,8 +341,10 @@ export default function App() {
     setIsLocketModalOpen(true);
   };
 
-  const handleContactOrganiser = (organizerUser, eventContext) => {
+  const handleContactOrganiser = (organizerUser, contextObj) => {
     setActiveDetailEvent(null);
+    const title = contextObj?.title || contextObj?.name || '';
+    const isCircle = contextObj?.type === 'circle' || (!contextObj?.venue && Boolean(contextObj?.location));
     setChatPartner({
       id: organizerUser.id,
       name: organizerUser.name,
@@ -350,13 +352,19 @@ export default function App() {
       handle: organizerUser.handle,
       bio: organizerUser.bio,
       city: organizerUser.city,
-      eventContext: eventContext ? {
-        id: eventContext.id,
-        title: eventContext.title,
-        date: eventContext.date,
-        venue: eventContext.venue,
+      eventContext: contextObj ? {
+        id: contextObj.id,
+        title: title,
+        date: contextObj.date || null,
+        venue: contextObj.venue || null,
+        location: contextObj.location || contextObj.venue || null,
+        type: isCircle ? 'circle' : 'event',
       } : null,
-      initialMessage: eventContext ? `Hi ${organizerUser.name}, I am reaching out regarding "${eventContext.title}".` : '',
+      initialMessage: contextObj
+        ? (isCircle
+            ? `Hi ${organizerUser.name}, I am reaching out regarding the "${title}" circle.`
+            : `Hi ${organizerUser.name}, I am reaching out regarding "${title}".`)
+        : '',
     });
     setConnectTab('messages');
     setCurrentView('messages');
@@ -547,6 +555,7 @@ export default function App() {
         {(currentView === 'messages' || currentView === 'communities') && (
           <MessagesView
             currentUser={user}
+            people={people}
             initialPartner={chatPartner}
             onOpenLocketModal={() => {
               setLocketRecipient(null);
@@ -558,6 +567,7 @@ export default function App() {
             initialTab={currentView === 'communities' ? 'communities' : (currentView === 'messages' ? 'messages' : connectTab)}
             initialCommunityId={targetCommunityId}
             onSelectEvent={setActiveDetailEvent}
+            onContactOrganiser={handleContactOrganiser}
             onTabChange={(tab) => {
               setConnectTab(tab);
               if (currentView === 'messages' || currentView === 'communities') {

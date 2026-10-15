@@ -14,12 +14,15 @@ import {
   ShieldCheck,
   ChevronLeft,
   ArrowRight,
-  Loader2
+  Loader2,
+  MessageCircle,
+  Shield
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as api from '../services/api';
 import { getSocket } from '../services/socket';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
+import { COMMUNITY_ORGANIZER_MAP, INITIAL_PEOPLE } from '../data/initialData';
 
 export default function CommunityDetailModal({
   community,
@@ -28,7 +31,9 @@ export default function CommunityDetailModal({
   currentUser,
   isAuthenticated,
   onJoinToggle,
-  onSelectEvent
+  onSelectEvent,
+  onContactOrganiser,
+  people = []
 }) {
   const [messages, setMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
@@ -40,6 +45,36 @@ export default function CommunityDetailModal({
   const [members, setMembers] = useState(community?.members || []);
 
   const messagesEndRef = useRef(null);
+
+  // Resolve circle organiser user from backend data, people directory, or community members
+  const organizerId = community?.createdBy || community?.created_by || (community?.id ? COMMUNITY_ORGANIZER_MAP[community.id] : null);
+  const adminMember = community?.members?.find(m => m.role === 'ADMIN') || members?.find(m => m.role === 'ADMIN');
+  const resolvedOrganizerId = organizerId || adminMember?.id;
+
+  const organizerUser = community?.organizerUser
+    || (resolvedOrganizerId ? (people.find(p => p.id === resolvedOrganizerId) || INITIAL_PEOPLE.find(p => p.id === resolvedOrganizerId)) : null)
+    || (adminMember ? {
+        id: adminMember.id,
+        name: adminMember.name,
+        handle: adminMember.handle,
+        avatar: adminMember.avatar || adminMember.avatar_url,
+        city: adminMember.city || community.location,
+        role: 'Circle Organiser & Lead Admin',
+      } : null);
+
+  const isSelf = Boolean(currentUser && organizerUser && (currentUser.id === organizerUser.id));
+
+  const handleContactOrganiserClick = () => {
+    if (isSelf) return;
+    if (!organizerUser) {
+      alert('This circle organiser does not have an active chat profile on Anvesha.');
+      return;
+    }
+    onClose();
+    if (onContactOrganiser) {
+      onContactOrganiser(organizerUser, community);
+    }
+  };
 
   // Clean deduplication for rendered messages
   const displayedMessages = useMemo(() => {
@@ -236,8 +271,25 @@ export default function CommunityDetailModal({
               </h2>
             </div>
 
-            {/* Join / Leave Action Button */}
-            <div className="flex-shrink-0">
+            {/* Action Buttons */}
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {organizerUser && (
+                <button
+                  type="button"
+                  onClick={handleContactOrganiserClick}
+                  disabled={isSelf}
+                  className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isSelf
+                      ? 'bg-cream-canvas/50 text-cocoa-text/50 cursor-not-allowed'
+                      : 'bg-cream-canvas/90 hover:bg-cream-canvas text-cocoa-text hover:text-terra-primary border border-blush-surface'
+                  }`}
+                  title={isSelf ? 'You are the circle lead' : `Contact Organiser (${organizerUser.name})`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-terra-primary" />
+                  <span>{isSelf ? 'Lead Admin' : 'Contact Organiser'}</span>
+                </button>
+              )}
+
               <button
                 onClick={handleJoinToggleClick}
                 className={`px-4 sm:px-5 py-2 rounded-full text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer ${
@@ -341,6 +393,58 @@ export default function CommunityDetailModal({
               {community.description}
             </p>
           </div>
+
+          {/* Circle Organiser & Lead Admin Profile Card */}
+          {organizerUser ? (
+            <div className="bg-surface-container-lowest p-3.5 sm:p-4 rounded-2xl border border-terra-primary/25 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={organizerUser.avatar || organizerUser.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${organizerUser.name}`}
+                    alt={organizerUser.name}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-terra-primary/30"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-cream-canvas" title="Active Circle Lead" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-terra-primary flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Circle Organiser & Lead Admin
+                    </span>
+                  </div>
+                  <h4 className="font-serif font-bold text-cocoa-text text-sm sm:text-base">
+                    {organizerUser.name}
+                  </h4>
+                  <div className="flex items-center gap-2 text-[11px] text-cocoa-text/70">
+                    {organizerUser.handle && <span>{organizerUser.handle}</span>}
+                    {organizerUser.city && <span>• {organizerUser.city}</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleContactOrganiserClick}
+                  disabled={isSelf}
+                  className={`px-4 py-2 rounded-full text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isSelf
+                      ? 'bg-blush-surface text-cocoa-text/50 cursor-not-allowed'
+                      : 'bg-terra-primary hover:bg-primary-container text-cream-canvas hover:scale-102'
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>{isSelf ? 'You are Lead Admin' : 'Contact Organiser'}</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-surface-container/60 p-3 rounded-2xl border border-blush-surface flex items-center gap-2 text-xs text-cocoa-text/70">
+              <AlertCircle className="w-4 h-4 text-cocoa-text/50 flex-shrink-0" />
+              <span>Circle organiser contact is not currently configured for this community. You can share thoughts in the group discussion below.</span>
+            </div>
+          )}
 
           {/* Group Discussion Header */}
           <div className="flex items-center justify-between border-b border-blush-surface/60 pb-2">

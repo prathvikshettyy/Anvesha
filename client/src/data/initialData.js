@@ -67,6 +67,17 @@ export const EVENT_ORGANIZER_MAP = {
   evt_21: 'usr_aditya',
 };
 
+export const COMMUNITY_ORGANIZER_MAP = {
+  comm_classical_music: 'usr_vikram',
+  comm_folk_art: 'usr_kavya',
+  comm_loc_manipal: 'usr_arjun',
+  comm_evt_manipal_fest: 'usr_arjun',
+  comm_evt_dasara: 'usr_ananya',
+  comm_evt_hackathon: 'usr_vikram',
+  comm_dialects_lit: 'usr_priya',
+  comm_loc_bengaluru: 'usr_rohan',
+};
+
 export const INITIAL_EVENTS = [
   // 1. KARNATAKA (Coastal & Bengaluru Cultural Circles)
   {
@@ -723,6 +734,46 @@ export const INITIAL_PEOPLE = [
     willingToTeach: ['Baul Ektara Chants', 'Bengali Folk Poetry'],
     matchScore: 86,
     matchReason: 'Debayan researches indigenous folk strings and oral ballads across Bengal and Karnataka.',
+    connectionStatus: 'NONE'
+  },
+  {
+    id: 'usr_vikram',
+    name: 'Vikram Rao',
+    handle: '@vikram_dev',
+    avatar: '/avatars/vikram.jpg',
+    bio: 'Hackathon organizer and community lead in Hubballi. Passionate about Hindustani classical music and open-source cultural tech.',
+    broadRegion: 'Vidyanagar, Hubballi (Karnataka)',
+    state: 'Karnataka',
+    stateId: 'karnataka',
+    city: 'Hubballi',
+    mapX: 230,
+    mapY: 620,
+    interests: ['music', 'technology', 'festivals'],
+    speaks: ['Kannada', 'Hindi', 'English'],
+    wantsToLearn: ['Carnatic Violin'],
+    willingToTeach: ['Python for Creative Coding', 'Raga Structures'],
+    matchScore: 92,
+    matchReason: 'Vikram leads the Indian Music & Festivals circle and Hubballi tech gatherings.',
+    connectionStatus: 'NONE'
+  },
+  {
+    id: 'usr_kavya',
+    name: 'Kavya Bopanna',
+    handle: '@kavya_kodava',
+    avatar: '/avatars/kavya.jpg',
+    bio: 'Kodava speaker and heritage architect in Madikeri, documenting indigenous art forms, Warli murals, and temple iconography.',
+    broadRegion: 'Mahadevpet, Madikeri (Karnataka)',
+    state: 'Karnataka',
+    stateId: 'karnataka',
+    city: 'Madikeri',
+    mapX: 220,
+    mapY: 670,
+    interests: ['art', 'culture', 'workshops'],
+    speaks: ['Kodava', 'Kannada', 'English'],
+    wantsToLearn: ['Clay Murals'],
+    willingToTeach: ['Traditional Ainmane Architecture', 'Kodava Folk Embroidery'],
+    matchScore: 90,
+    matchReason: 'Kavya curates the Art & Folk Traditions community circle.',
     connectionStatus: 'NONE'
   }
 ];

@@ -28,15 +28,23 @@ router.get('/', optionalAuth, (req, res) => {
       c.location,
       c.image_url,
       c.icon,
+      c.created_by,
       (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count,
       c.created_at,
       ${currentUserId ? `(SELECT COUNT(*) FROM community_members cm WHERE cm.community_id = c.id AND cm.user_id = ?) > 0 AS is_member` : '0 AS is_member'},
       e.title AS event_title,
       e.date_label AS event_date,
       e.venue AS event_venue,
-      e.image_url AS event_image
+      e.image_url AS event_image,
+      u.id AS organizer_id,
+      u.name AS organizer_name,
+      u.handle AS organizer_handle,
+      u.avatar_url AS organizer_avatar,
+      u.bio AS organizer_bio,
+      u.city AS organizer_city
     FROM communities c
     LEFT JOIN events e ON e.id = c.event_id
+    LEFT JOIN users u ON u.id = COALESCE(c.created_by, (SELECT user_id FROM community_members WHERE community_id = c.id AND role = 'ADMIN' LIMIT 1))
     WHERE 1=1
   `;
 
@@ -85,6 +93,16 @@ router.get('/', optionalAuth, (req, res) => {
       memberCount: r.member_count,
       isMember: Boolean(r.is_member),
       createdAt: r.created_at,
+      createdBy: r.created_by,
+      organizerUser: r.organizer_id ? {
+        id: r.organizer_id,
+        name: r.organizer_name,
+        handle: r.organizer_handle,
+        avatar: r.organizer_avatar,
+        bio: r.organizer_bio,
+        city: r.organizer_city,
+        role: 'Circle Organiser & Lead Admin'
+      } : null,
       event: r.event_id ? {
         id: r.event_id,
         title: r.event_title,
@@ -115,9 +133,16 @@ router.get('/:id', optionalAuth, (req, res) => {
       e.date_label AS event_date,
       e.venue AS event_venue,
       e.image_url AS event_image,
-      e.category_label AS event_category
+      e.category_label AS event_category,
+      u.id AS organizer_id,
+      u.name AS organizer_name,
+      u.handle AS organizer_handle,
+      u.avatar_url AS organizer_avatar,
+      u.bio AS organizer_bio,
+      u.city AS organizer_city
     FROM communities c
     LEFT JOIN events e ON e.id = c.event_id
+    LEFT JOIN users u ON u.id = COALESCE(c.created_by, (SELECT user_id FROM community_members WHERE community_id = c.id AND role = 'ADMIN' LIMIT 1))
     WHERE c.id = ? OR c.slug = ?
   `).get(...(currentUserId ? [currentUserId, currentUserId, id, id] : [id, id]));
 
@@ -149,6 +174,16 @@ router.get('/:id', optionalAuth, (req, res) => {
     isMember: Boolean(comm.is_member),
     userRole: comm.user_role || null,
     createdAt: comm.created_at,
+    createdBy: comm.created_by,
+    organizerUser: comm.organizer_id ? {
+      id: comm.organizer_id,
+      name: comm.organizer_name,
+      handle: comm.organizer_handle,
+      avatar: comm.organizer_avatar,
+      bio: comm.organizer_bio,
+      city: comm.organizer_city,
+      role: 'Circle Organiser & Lead Admin'
+    } : null,
     event: comm.event_id ? {
       id: comm.event_id,
       title: comm.event_title,
