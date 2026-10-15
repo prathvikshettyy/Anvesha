@@ -909,7 +909,9 @@ async function runTests() {
 
     // 8. Item 11: Demo seeding production guard test
     const { execSync } = await import('child_process');
-    const seedOutput = execSync('node server/src/db/seed.js', {
+    const { fileURLToPath } = await import('url');
+    const seedScriptPath = fileURLToPath(new URL('../src/db/seed.js', import.meta.url));
+    const seedOutput = execSync(`node "${seedScriptPath}"`, {
       env: { ...process.env, NODE_ENV: 'production', ALLOW_DEMO_SEED: 'false' },
       encoding: 'utf8',
     });

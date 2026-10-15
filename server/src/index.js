@@ -28,6 +28,10 @@ import helmet from 'helmet';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 const rawOrigin = process.env.CLIENT_ORIGIN;
 let corsOrigin;
 if (process.env.NODE_ENV === 'production') {
@@ -71,15 +75,15 @@ app.use(helmet({
 // Rate limiters for abuse prevention
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 40, // 40 attempts per 15 mins
+  max: 20, // Strict limit: 20 attempts per 15 mins
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests from this IP, please try again later.' },
 });
 
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500, // 500 requests per 15 mins
+  windowMs: 60 * 1000, // 1 minute
+  max: 300, // 300 requests per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please slow down.' },
