@@ -75,3 +75,8 @@ docs/IMPLEMENTATION_CHECKLIST.md
 # User uploads
 server/uploads/
 !server/uploads/locket/.gitkeep
+
+
+.dockerignore
+Dockerfile
+render.yaml
