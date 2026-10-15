@@ -272,6 +272,142 @@ async function runTests() {
     assert(newLocket.audioUrl === uploadData.url, 'Locket moment contains uploaded audioUrl');
     createdLocketId = newLocket.id;
 
+    // STEP 3 Requirement: Unauthenticated POST returns 401
+    const unauthPostRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vernacular_text: 'Unauthenticated test',
+        meaning: 'Should fail with 401',
+      }),
+    });
+    assert(unauthPostRes.status === 401, 'Unauthenticated POST returns 401');
+
+    // STEP 3 Requirement: POST a text moment, then GET /api/locket/mine returns it
+    const textMomentRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'ಬಲೆ ಒಣಸ್ ಮಲ್ಪಾ (Bale Onas Malpa)',
+        meaning: 'Come, let us share a meal together',
+      }),
+    });
+    assert(textMomentRes.status === 201, 'POST a text moment returns 201 Created');
+    const textMoment = await textMomentRes.json();
+
+    const checkMineRes = await fetch(`${BASE}/locket/mine`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(checkMineRes.status === 200, 'GET /api/locket/mine returns 200');
+    const checkMineData = await checkMineRes.json();
+    assert(checkMineData.some(m => m.id === textMoment.id), 'POST a text moment, then GET /api/locket/mine returns it');
+
+    // STEP 3 Requirement: POST an audio moment under the limit works
+    const sampleBase64Audio = 'data:audio/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwE=';
+    const audioMomentRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'ಸೊಲ್ಮೆಲು (Solmelu)',
+        meaning: 'Thank you in Tulu',
+        audio_url: sampleBase64Audio,
+        audio_duration: '0:03',
+      }),
+    });
+    assert(audioMomentRes.status === 201, 'POST an audio moment under the limit works');
+    const audioMoment = await audioMomentRes.json();
+    assert(audioMoment.audioUrl.startsWith('data:audio/'), 'Audio moment under limit stores data URI');
+
+    // STEP 3 Requirement: Oversize audio returns 413 with a clear message
+    const oversizeAudioPayload = 'data:audio/webm;base64,' + 'A'.repeat(2.5 * 1024 * 1024);
+    const oversizeRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'Oversize test',
+        meaning: 'Oversize test meaning',
+        audio_url: oversizeAudioPayload,
+      }),
+    });
+    assert(oversizeRes.status === 413, 'Oversize audio returns 413');
+    const oversizeBody = await oversizeRes.json();
+    assert(oversizeBody.error && oversizeBody.error.includes('Recording too long. Keep it under 30 seconds.'), 'Oversize audio returns clear message');
+
+    // Requirement: Non-locket route returns 413 with "Request too large."
+    const oversizeOtherRes = await fetch(`${BASE}/events`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: 'A'.repeat(2.5 * 1024 * 1024),
+      }),
+    });
+    assert(oversizeOtherRes.status === 413, 'Non-locket route oversize returns 413');
+    const oversizeOtherBody = await oversizeOtherRes.json();
+    assert(oversizeOtherBody.error === 'Request too large.', 'Non-locket route returns "Request too large."');
+
+    // Requirement: svg data URI rejected
+    const svgRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'SVG test',
+        meaning: 'SVG rejection test',
+        image_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="5"/></svg>',
+      }),
+    });
+    assert(svgRes.status === 400, 'svg data URI rejected');
+
+    // Requirement: disallowed audio type rejected
+    const disallowedAudioRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'WAV test',
+        meaning: 'Disallowed audio type test',
+        audio_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
+      }),
+    });
+    assert(disallowedAudioRes.status === 400, 'disallowed audio type rejected');
+
+    // Requirement: allowed webm accepted
+    const allowedWebmRes = await fetch(`${BASE}/locket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        moment_type: 'WORD_OF_DAY',
+        vernacular_text: 'ಬಲೆ, ಒಣಸ್ ಮಲ್ಪಾ',
+        meaning: 'Come, let us share a meal together',
+        audio_url: 'data:audio/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwE=',
+      }),
+    });
+    assert(allowedWebmRes.status === 201, 'allowed webm accepted');
+
     // React to locket moment as sender/connection
     const reactRes = await fetch(`${BASE}/locket/${createdLocketId}/react`, {
       method: 'POST',
@@ -373,7 +509,7 @@ async function runTests() {
     });
     assert(connectedRes.status === 200, 'GET /api/locket/connections returns 200 when connected');
     const connectedData = await connectedRes.json();
-    assert(connectedData.some(m => m.id === createdLocketId), 'User A sees B moments when connection is CONNECTED');
+    assert(connectedData.some(m => m.id === createdLocketId), 'A moment appears in another user\'s connections feed only if the connection is CONNECTED');
     const matchedMoment = connectedData.find(m => m.id === createdLocketId);
     assert(matchedMoment.authorName || matchedMoment.senderName, 'Locket moment includes author name');
     assert(typeof matchedMoment.reactionCount === 'number', 'Locket moment includes reactionCount number');

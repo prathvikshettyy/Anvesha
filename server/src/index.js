@@ -160,7 +160,17 @@ app.use((_req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   console.error('[Error]', err);
-  res.status(500).json({
+  const status = err.status || err.statusCode || 500;
+  if (status === 413 || err.type === 'entity.too.large') {
+    const isLocket = (req.path && req.path.startsWith('/api/locket')) ||
+                     (req.originalUrl && req.originalUrl.startsWith('/api/locket')) ||
+                     (req.url && req.url.startsWith('/api/locket'));
+    const errorMsg = isLocket
+      ? 'Recording too long. Keep it under 30 seconds.'
+      : 'Request too large.';
+    return res.status(413).json({ error: errorMsg });
+  }
+  res.status(status).json({
     error: process.env.NODE_ENV === 'production'
       ? 'Internal server error'
       : err.message,

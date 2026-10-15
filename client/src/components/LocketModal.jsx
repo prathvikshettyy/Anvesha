@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import * as api from '../services/api';
 
 const BAR_COUNT = 40;
-const MAX_REC_SECONDS = 15;
+const MAX_REC_SECONDS = 30;
 
 // ─── MIME probe — pick best format this browser supports ──────────────────────
 function getBestMime() {
@@ -354,6 +354,11 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
     if (!vernacularText.trim() || !meaning.trim()) return;
     setSubmitError('');
 
+    if (!api.token.get()) {
+      setSubmitError('You must be logged in to share a Culture Locket moment.');
+      return;
+    }
+
     // Auto-upload clip if not done yet
     let finalAudioUrl = uploadedUrl;
     let finalDuration = uploadedDuration;
@@ -377,35 +382,22 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
     };
 
     setSubmitting(true);
-    let newMoment;
     try {
-      newMoment = await api.locket.create(payload);
+      const newMoment = await api.locket.create(payload);
+      onSendMoment(newMoment);
+      confetti({ particleCount: 40, spread: 70, origin: { y: 0.6 }, colors: ['#C56E50', '#D9A441', '#E9CDB8'] });
+      onClose();
     } catch (err) {
-      console.warn('Locket save fallback:', err);
-      // Fallback if network or server is temporarily unreachable
-      newMoment = {
-        id:             `lok_${Date.now()}`,
-        senderId:       currentUser?.id ?? 'usr_rohan',
-        senderName:     currentUser?.name ?? 'You',
-        senderAvatar:   currentUser?.avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-        momentType,
-        title:          momentType === 'WORD_OF_DAY' ? 'Dialect Word of the Day' : 'Cultural Moment',
-        vernacularText:  payload.vernacular_text,
-        phoneticText:    payload.phonetic_text,
-        meaning:         payload.meaning,
-        provenance:      payload.provenance,
-        audioUrl:        finalAudioUrl || audioBlobUrl, // server URL or local fallback
-        audioDuration:   payload.audio_duration,
-        timestamp:       'Just now',
-        reactions:       [],
-      };
+      console.error('Locket submit failed:', err);
+      const msg = err.status === 413
+        ? 'Recording too long. Keep it under 30 seconds.'
+        : err.status === 401
+        ? 'You must be logged in to share a Culture Locket moment.'
+        : (err.message || 'Failed to submit moment. Please try again.');
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
     }
-
-    onSendMoment(newMoment);
-    confetti({ particleCount: 40, spread: 70, origin: { y: 0.6 }, colors: ['#C56E50', '#D9A441', '#E9CDB8'] });
-    onClose();
   };
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -504,7 +496,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
                 : recState === 'recorded'   ? uploadedUrl ? '✓ Saved to server' : 'Recorded — preview below'
                 : recState === 'requesting' ? 'Waiting for mic…'
                 : recState === 'denied'     ? 'Permission denied'
-                : 'Optional · up to 15 s'}
+                : 'Optional · up to 30 s'}
               </span>
             </div>
 
