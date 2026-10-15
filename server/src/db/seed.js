@@ -22,7 +22,7 @@ const users = [
     password: 'demo1234',
     name: 'Rohan Shenoy',
     bio: 'Software engineer in Bengaluru, originally from Mangaluru. Trying to hold onto Tulu and coastal folklore while living in the city.',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/rohan.jpg',
     state: 'Karnataka',
     city: 'Bengaluru',
     neighborhood: 'Indiranagar',
@@ -39,7 +39,7 @@ const users = [
     password: 'demo1234',
     name: 'Priya Sharma',
     bio: 'Native Tulu & Konkani speaker in Mangaluru. Loves sharing folklore stories and helping beginners learn coastal dialects.',
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/priya.jpg',
     state: 'Karnataka',
     city: 'Mangaluru',
     neighborhood: 'Kadri',
@@ -56,7 +56,7 @@ const users = [
     password: 'demo1234',
     name: 'Arjun Nayak',
     bio: 'Yakshagana Tala performer in Udupi. Preserving the Maddale drumming rhythms and traditional makeup styles.',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/arjun.jpg',
     state: 'Karnataka',
     city: 'Udupi',
     neighborhood: 'Kadiyali',
@@ -73,7 +73,7 @@ const users = [
     password: 'demo1234',
     name: 'Ananya Hegde',
     bio: 'Food historian in Mysuru exploring heirloom Karnataka recipes and running community cooking circles.',
-    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/ananya.jpg',
     state: 'Karnataka',
     city: 'Mysuru',
     neighborhood: 'Vijayanagar',
@@ -90,7 +90,7 @@ const users = [
     password: 'demo1234',
     name: 'Kavya Pillai',
     bio: 'Kodava speaker and architect in Madikeri, documenting traditional Ainmane ancestral wooden houses of Kodagu.',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/kavya.jpg',
     state: 'Karnataka',
     city: 'Madikeri',
     neighborhood: 'Mahadevpet',
@@ -107,7 +107,7 @@ const users = [
     password: 'demo1234',
     name: 'Vikram Rao',
     bio: 'Hackathon organizer in Hubballi. Teaches Python to first-time coders and is slowly learning Hindustani classical music.',
-    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/vikram.jpg',
     state: 'Karnataka',
     city: 'Hubballi',
     neighborhood: 'Vidyanagar',
@@ -124,7 +124,7 @@ const users = [
     password: 'demo1234',
     name: 'Aditya Kulkarni',
     bio: 'New to Bengaluru, working in tech and wanting to pick up basic Tulu and Kannada from people around the city.',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/aditya.jpg',
     state: 'Karnataka',
     city: 'Bengaluru',
     neighborhood: 'Koramangala',
@@ -141,7 +141,7 @@ const users = [
     password: 'demo1234',
     name: 'Meera Joshi',
     bio: 'Folk singer in Mumbai, curious about coastal Karnataka dialects and always happy to trade a song for a phrase.',
-    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
+    avatar_url: '/avatars/meera.jpg',
     state: 'Maharashtra',
     city: 'Mumbai',
     neighborhood: 'Bandra',
@@ -154,12 +154,13 @@ const users = [
 ];
 
 const insertUser = db.prepare(`
-  INSERT OR IGNORE INTO users
+  INSERT INTO users
     (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood,
      lat, lng, preferred_mode, is_discoverable, fuzzed_location)
   VALUES
     (@id, @username, @handle, @password_hash, @name, @bio, @avatar_url, @state, @city,
      @neighborhood, @lat, @lng, @preferred_mode, @is_discoverable, @fuzzed_location)
+  ON CONFLICT(id) DO UPDATE SET avatar_url = excluded.avatar_url
 `);
 
 for (const u of users) {
