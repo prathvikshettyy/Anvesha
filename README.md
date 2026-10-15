@@ -167,6 +167,7 @@ For a production deployment, build the client (`npm run build`) and serve `clien
 | `ALLOW_DEMO_SEED` | No | `false` | Security guard for database seeding. In production (`NODE_ENV=production`), `seed.js` exits immediately without creating demo users or the shared demo password unless explicitly set to `true`. |
 | `ENABLE_DOCS` | No | `false` (prod) / `true` (dev) | Set to `true` to enable Swagger UI documentation (`/api/docs`) in production. |
 | `DB_PATH` | No | `server/data/sharespot.db` | Filesystem path for the SQLite database. For persistent Render deployments, set this to a mounted persistent disk path (e.g. `/var/data/sharespot.db`). |
+| `UPLOADS_DIR` | No | `server/uploads` | Filesystem path for stored user audio recordings and avatars. Created automatically if missing, and used for both file writes and static serving. In persistent Render deployments, set this to a mounted persistent disk path (e.g. `/var/data/uploads`). |
 | `VITE_API_URL` | No | `/api` | Base URL used by the React client to contact backend API routes. |
 | `VITE_SOCKET_URL` | No | `window.location.origin` | Optional WebSocket URL override for the Socket.IO client. |
 

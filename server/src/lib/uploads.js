@@ -5,17 +5,23 @@
 
 import multer from 'multer';
 import { fileURLToPath } from 'url';
-import { dirname, join, extname } from 'path';
+import { dirname, join, extname, resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-export const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
+const DEFAULT_UPLOADS_DIR = resolve(__dirname, '..', '..', 'uploads');
+export const UPLOADS_DIR = process.env.UPLOADS_DIR ? resolve(process.env.UPLOADS_DIR) : DEFAULT_UPLOADS_DIR;
 export const LOCKET_AUDIO_DIR = join(UPLOADS_DIR, 'locket');
 
+if (!existsSync(UPLOADS_DIR)) {
+  mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 if (!existsSync(LOCKET_AUDIO_DIR)) {
   mkdirSync(LOCKET_AUDIO_DIR, { recursive: true });
 }
+
+console.log(`[Uploads] Storage → ${UPLOADS_DIR}`);
 
 import fs from 'fs';
 
