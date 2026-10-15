@@ -166,6 +166,9 @@ export default function CultureLocketCard({ moment, onOpenCreate, onReact }) {
                 <span className="text-[11px] font-serif text-[#78543E] italic">
                   Entry #{moment.id ? moment.id.slice(-3) : '01'}
                 </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FAF4E8] text-[#8C5229] border border-[#DECDB3]">
+                  {moment.recipientName ? `Direct to ${moment.recipientName}` : 'Connections Circle'}
+                </span>
               </div>
               <p className="text-xs text-[#5C4033] font-medium mt-0.5">
                 Penned by <strong>{moment.senderName}</strong> · {moment.timestamp || 'Today'}

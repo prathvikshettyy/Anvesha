@@ -37,6 +37,28 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const [submitting, setSubmitting]          = useState(false);
   const [submitError, setSubmitError]        = useState('');
 
+  // ── Connection Audience State ───────────────────────────────────────────────
+  const [connections, setConnections]                 = useState([]);
+  const [selectedRecipientId, setSelectedRecipientId] = useState(defaultRecipient?.id || 'ALL_CONNECTIONS');
+
+  useEffect(() => {
+    if (defaultRecipient?.id) {
+      setSelectedRecipientId(defaultRecipient.id);
+    } else {
+      setSelectedRecipientId('ALL_CONNECTIONS');
+    }
+  }, [defaultRecipient, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && isAuthenticated) {
+      api.people.connections()
+        .then(list => {
+          if (Array.isArray(list)) setConnections(list);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, isAuthenticated]);
+
   // ── Recording state machine ──────────────────────────────────────────────────
   // 'idle' | 'requesting' | 'denied' | 'recording' | 'recorded'
   const [recState, setRecState]          = useState('idle');
@@ -341,6 +363,8 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
       finalDuration = result.duration;
     }
 
+    const targetRecipientId = selectedRecipientId === 'ALL_CONNECTIONS' ? null : selectedRecipientId;
+
     const payload = {
       moment_type:     momentType,
       vernacular_text: vernacularText.trim(),
@@ -349,7 +373,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
       provenance:      provenance.trim() || 'Preserved from coastal family traditions',
       audio_url:       finalAudioUrl || '',
       audio_duration:  finalDuration || (recSeconds > 0 ? `0:${String(recSeconds).padStart(2, '0')}` : ''),
-      recipient_id:    defaultRecipient?.id ?? null,
+      recipient_id:    targetRecipientId,
     };
 
     setSubmitting(true);
@@ -402,7 +426,11 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
             </div>
             <div>
               <h3 className="font-serif text-lg font-bold text-cocoa-text">Send a Culture Locket Pulse</h3>
-              <p className="text-xs text-cocoa-text/60">To: {defaultRecipient?.name || 'Your Paired Culture Circle'}</p>
+              <p className="text-xs text-cocoa-text/60">
+                {selectedRecipientId !== 'ALL_CONNECTIONS'
+                  ? `To: ${connections.find(c => c.id === selectedRecipientId)?.name || defaultRecipient?.name || 'Connected Peer'} (Direct Pulse)`
+                  : 'To: Your Accepted Connections Circle'}
+              </p>
             </div>
           </div>
           <button onClick={onClose}
@@ -413,6 +441,40 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm flex-1">
+
+          {/* ── Audience Selector: Strictly Connections Only ───────────────── */}
+          <div className="p-3.5 rounded-2xl bg-terra-primary/5 border border-terra-primary/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-xs uppercase tracking-wider text-terra-primary flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" />
+                <span>Audience: Connections Only</span>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cream-canvas text-cocoa-text/80 border border-blush-surface font-semibold">
+                🔒 Private Circle
+              </span>
+            </div>
+
+            <select
+              value={selectedRecipientId}
+              onChange={(e) => setSelectedRecipientId(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-blush-surface bg-cream-canvas text-xs font-semibold text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+            >
+              <option value="ALL_CONNECTIONS">
+                All My Connections ({connections.length > 0 ? `${connections.length} connected friends` : 'Your Connected Circle'})
+              </option>
+              {connections.map(c => (
+                <option key={c.id} value={c.id}>
+                  Direct Pulse to {c.name} ({c.handle})
+                </option>
+              ))}
+            </select>
+
+            <p className="text-[11px] text-cocoa-text/70 leading-relaxed">
+              {selectedRecipientId === 'ALL_CONNECTIONS'
+                ? 'Only users who share an accepted connection with you will see this moment in their feed. Strangers cannot view it.'
+                : 'Direct pulse: strictly private between you and this specific connected friend.'}
+            </p>
+          </div>
 
           {/* Moment Type */}
           <div>

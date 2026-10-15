@@ -272,7 +272,7 @@ async function runTests() {
     assert(newLocket.audioUrl === uploadData.url, 'Locket moment contains uploaded audioUrl');
     createdLocketId = newLocket.id;
 
-    // React to locket moment
+    // React to locket moment as sender/connection
     const reactRes = await fetch(`${BASE}/locket/${createdLocketId}/react`, {
       method: 'POST',
       headers: {
@@ -282,6 +282,25 @@ async function runTests() {
       body: JSON.stringify({ text: '❤️ Heard and practiced!' }),
     });
     assert(reactRes.status === 201 || reactRes.status === 200, 'POST /api/locket/:id/react returns 201 Created');
+
+    // Connection Privacy Check: Unconnected user (Test Student) must NOT see Rohan's circle moment
+    const strangerLocketRes = await fetch(`${BASE}/locket`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(strangerLocketRes.status === 200, 'GET /api/locket for stranger returns 200');
+    const strangerLockets = await strangerLocketRes.json();
+    assert(!strangerLockets.some(m => m.id === createdLocketId), 'Privacy check: unconnected user cannot see circle locket moment');
+
+    // Connection Privacy Check: Unconnected user cannot react to Rohan's moment
+    const strangerReactRes = await fetch(`${BASE}/locket/${createdLocketId}/react`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Trying to snoop' }),
+    });
+    assert(strangerReactRes.status === 403, 'Privacy check: unconnected user gets 403 Forbidden reacting to moment');
 
     // ── 6. Messages Suite ────────────────────────────────────────────────────
     console.log('\n[Test Suite 6/6] Private Peer Messaging');
