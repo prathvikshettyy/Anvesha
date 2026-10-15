@@ -177,7 +177,7 @@ export default function PeopleView({ user, people, onConnect, onStartChat, onSen
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar">
           {[
             { id: 'ALL', label: 'All Members' },
             ...(userInterests.length > 0 ? [{ id: 'MATCHED', label: '🎯 Best Matched for You' }] : []),

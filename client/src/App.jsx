@@ -13,6 +13,7 @@ import ProfileView from './views/ProfileView';
 import EventDetailModal from './components/EventDetailModal';
 import LocketModal from './components/LocketModal';
 import SubmitEventModal from './components/SubmitEventModal';
+import AestheticMandalaBg from './components/AestheticMandalaBg';
 
 import {
   INITIAL_USER,
@@ -367,9 +368,12 @@ export default function App() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className={`min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
+    <div className={`relative min-h-screen bg-cream-canvas text-cocoa-text flex font-sans selection:bg-terra-primary/20 selection:text-cocoa-text ${
       currentView === 'welcome' ? 'h-screen overflow-hidden flex-col' : 'flex-col md:flex-row'
     }`}>
+
+      {/* Ambient Transparent Mandala & Sacred Geometry Background Layer */}
+      <AestheticMandalaBg />
 
       {/* Left Sidebar (visible on all screens except onboarding & welcome) */}
       {currentView !== 'welcome' && currentView !== 'onboarding' && (

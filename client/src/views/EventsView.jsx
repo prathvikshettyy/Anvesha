@@ -5,6 +5,7 @@ import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
 import StateDetailPanel from '../components/StateDetailPanel';
 import { PIN_CATEGORIES } from '../components/IllustratedPin';
 import { dedupeEvents, CATEGORY_MAP } from './HomeView';
+import { matchesEventState } from '../data/indiaGeoData';
 import * as api from '../services/api';
 
 export default function EventsView({
@@ -66,12 +67,18 @@ export default function EventsView({
     { id: 'community', label: 'Community Circles', symbol: '🤝' }
   ];
 
-  // Filter events based on state, category, search, and saved filter — strictly deduplicated
-  const filteredEvents = useMemo(() => {
-    const rawSource = apiEvents ?? events;
-    const source = dedupeEvents(rawSource);
+  // Merge local initial events + backend API events safely so no events are lost
+  const allSourceEvents = useMemo(() => {
+    const list = [...(events || [])];
+    if (Array.isArray(apiEvents) && apiEvents.length > 0) {
+      list.push(...apiEvents);
+    }
+    return dedupeEvents(list);
+  }, [events, apiEvents]);
 
-    return source.filter(evt => {
+  // Events filtered by category, search and saved (used by Map across India so pins don't disappear!)
+  const mapEvents = useMemo(() => {
+    return allSourceEvents.filter(evt => {
       // Category filter with alias mapping support
       let matchesCategory = true;
       if (selectedCategory === 'ALL') {
@@ -83,11 +90,11 @@ export default function EventsView({
         const accepted = new Set(CATEGORY_MAP[selectedCategory] || [selectedCategory]);
         matchesCategory = accepted.has(evt.category);
       }
-      
+
       // Saved filter
       const matchesSaved = !onlySaved || savedEvents.includes(evt.id);
-      
-      // Search query (null-safe with ?? '')
+
+      // Search query
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q || (
         (evt.title ?? '').toLowerCase().includes(q) ||
@@ -98,17 +105,20 @@ export default function EventsView({
         (evt.city && evt.city.toLowerCase().includes(q))
       );
 
-      // State filter if in grid mode or map mode
-      const matchesState = !selectedStateId ||
-        evt.stateId === selectedStateId ||
-        (evt.state && evt.state.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId);
-
-      return matchesCategory && matchesSaved && matchesSearch && matchesState;
+      return matchesCategory && matchesSaved && matchesSearch;
     });
-  }, [apiEvents, events, selectedCategory, userInterests, onlySaved, searchQuery, selectedStateId, savedEvents]);
+  }, [allSourceEvents, selectedCategory, userInterests, onlySaved, searchQuery, savedEvents]);
+
+  // Events filtered including active state (for StateDetailPanel and Grid View)
+  const filteredEvents = useMemo(() => {
+    return mapEvents.filter(evt => {
+      if (!selectedStateId) return true;
+      return matchesEventState(evt, selectedStateId);
+    });
+  }, [mapEvents, selectedStateId]);
 
   // All deduplicated events across categories for computing alternative suggestions
-  const allUniqueEvents = useMemo(() => dedupeEvents(apiEvents ?? events), [apiEvents, events]);
+  const allUniqueEvents = useMemo(() => allSourceEvents, [allSourceEvents]);
 
   const availableCategoriesWithEvents = useMemo(() => {
     const counts = {};
@@ -220,7 +230,7 @@ export default function EventsView({
         </div>
 
         {/* Category Scrollable Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar">
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -266,7 +276,7 @@ export default function EventsView({
             {/* Left Dominant Column: Interactive India Map Canvas (7 cols) */}
             <div className="lg:col-span-7 flex flex-col space-y-4">
               <InteractiveIndiaMap
-                events={apiEvents ?? events}
+                events={mapEvents}
                 selectedCategory={selectedCategory}
                 selectedStateId={selectedStateId}
                 onSelectState={handleSelectState}

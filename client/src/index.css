@@ -1,3 +1,5 @@
+@import 'leaflet/dist/leaflet.css';
+
 @layer base {
   body {
     background-color: #FCF7F0;
@@ -9,6 +11,19 @@
     font-family: 'Fraunces', Georgia, serif;
     font-optical-sizing: auto;
   }
+}
+
+/* Hide scrollbars cleanly for horizontal pill rails */
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.scrollbar-none,
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* Warm parchment textured map canvas */
@@ -42,6 +57,58 @@
   stroke: #C56E50;
   stroke-width: 2.8;
   filter: drop-shadow(0 6px 16px rgba(197, 110, 80, 0.35));
+}
+
+/* Visually elevated state styling when clicked/selected */
+.elevated-state-path,
+path.elevated-state-path {
+  filter: drop-shadow(0 14px 24px rgba(91, 51, 44, 0.5)) drop-shadow(0 2px 6px rgba(197, 110, 80, 0.45)) !important;
+  stroke: #C56E50 !important;
+  stroke-width: 3.5px !important;
+  stroke-linejoin: round !important;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Base interactive state boundary in Leaflet */
+path.india-state-boundary {
+  cursor: pointer;
+  stroke: #8C7563;
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+  fill: #D1B9A2;
+  fill-opacity: 0.05;
+  transition: all 0.2s ease;
+}
+
+path.india-state-boundary:hover {
+  stroke: #C56E50 !important;
+  stroke-width: 2.4px !important;
+  fill: #C56E50 !important;
+  fill-opacity: 0.18 !important;
+}
+
+/* Animated Pin Drop Bounce */
+@keyframes pinDropBounce {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -140%) scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -42%) scale(1.18);
+  }
+  80% {
+    transform: translate(-50%, -54%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.pin-drop-bounce {
+  animation: pinDropBounce 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 /* State outline shadow simulation */
@@ -177,5 +244,74 @@
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* Leaflet Custom Styling for Anvesha Heritage Atlas */
+.leaflet-container {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important;
+  background-color: #f7ede2 !important;
+  z-index: 10;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #FCF7F0 !important;
+  color: #5B332C !important;
+  border: 2px solid #E9CDB8 !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 10px 25px -5px rgba(91, 51, 44, 0.2) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background: #FCF7F0 !important;
+  border: 2px solid #E9CDB8 !important;
+  box-shadow: none !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: #8C7563 !important;
+  top: 10px !important;
+  right: 12px !important;
+  font-size: 18px !important;
+  padding: 4px !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #C56E50 !important;
+}
+
+/* ── Ambient Aesthetic Mandala Slow Drift ──────────────────────────────────── */
+@keyframes mandalaSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mandalaSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-mandala-slow {
+  animation: mandalaSpin 220s linear infinite;
+  transform-origin: center center;
+}
+
+.animate-mandala-slow-reverse {
+  animation: mandalaSpinReverse 280s linear infinite;
+  transform-origin: center center;
 }
 
