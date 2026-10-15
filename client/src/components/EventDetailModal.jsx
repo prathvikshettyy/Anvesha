@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, CheckCircle, ExternalLink, Bookmark, Users, Heart, Share2, Loader2, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
 export default function EventDetailModal({
   event,
@@ -72,13 +73,10 @@ export default function EventDetailModal({
         {/* Banner with Close button */}
         <div className="relative h-56 sm:h-64 w-full bg-blush-surface/30">
           <img
-            src={event.image || event.image_url || '/images/cinematic_india_hero.jpg'}
+            src={getEventImage(event)}
             alt={event.title}
+            onError={(e) => handleEventImageError(e, event?.category)}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = '/images/cinematic_india_hero.jpg';
-            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-cocoa-text/75 via-cocoa-text/20 to-transparent" />
 

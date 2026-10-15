@@ -153,7 +153,7 @@ export default function InteractiveIndiaMap({
         mapInstanceRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Sync Active State with Leaflet GeoJSON Boundaries (Protruding Border) ───
@@ -240,9 +240,13 @@ export default function InteractiveIndiaMap({
         });
 
         // Build popup content
+        const mapImg = getEventImage(evt);
+        const mapFallback = getCategorySvgPlaceholder(evt?.category);
         const popupHtml = `
           <div style="min-width: 220px; max-width: 270px; font-family: system-ui, sans-serif;">
-            ${evt.image ? `<div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
+            <div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;">
+              <img src="${mapImg}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${mapFallback}';" />
+            </div>
             <div style="padding: 0.85rem;">
               <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}18; color: ${cat.color}; font-size: 10px; font-weight: bold;">
                 <span>${cat.symbol}</span>
@@ -307,10 +311,10 @@ export default function InteractiveIndiaMap({
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border-2 border-blush-surface shadow-warm parchment-canvas select-none">
-      
+
       {/* ── Top Map Header & Controls Bar ───────────────────────────────────── */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        
+
         {/* State/Atlas Status Banner */}
         <div className="bg-cream-canvas/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-blush-surface shadow-sm pointer-events-auto flex items-center gap-2.5">
           <span className="material-symbols-outlined text-terra-primary text-xl">travel_explore</span>
@@ -340,7 +344,7 @@ export default function InteractiveIndiaMap({
 
         {/* Map Controls */}
         <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          
+
           {/* State Quick-Fly Selector Dropdown */}
           <select
             value={selectedStateId || ''}
@@ -387,7 +391,7 @@ export default function InteractiveIndiaMap({
 
       {/* ── Main Map Canvas: Leaflet OSM Vibrant ──────────────── */}
       <div className="relative w-full h-[620px] sm:h-[750px] lg:h-[820px] overflow-hidden">
-        
+
         {/* Leaflet (OpenStreetMap Vibrant) Canvas with Interactive State Boundaries */}
         <div
           ref={leafletContainerRef}
@@ -423,12 +427,12 @@ export default function InteractiveIndiaMap({
                     <button
                       key={evt.id}
                       onClick={() => {
-                      onSelectEvent(evt);
-                      if (mapInstanceRef.current) {
-                        const [lat, lng] = resolveEventCoords(evt);
-                        mapInstanceRef.current.flyTo([lat, lng], 10, { duration: 0.8 });
-                      }
-                    }}
+                        onSelectEvent(evt);
+                        if (mapInstanceRef.current) {
+                          const [lat, lng] = resolveEventCoords(evt);
+                          mapInstanceRef.current.flyTo([lat, lng], 10, { duration: 0.8 });
+                        }
+                      }}
                       className="px-2.5 py-1 rounded-full bg-surface-container-lowest hover:bg-terra-primary/15 border border-blush-surface text-cocoa-text text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                     >
                       <span>{cat.symbol}</span>

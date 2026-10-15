@@ -188,9 +188,9 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
             {[
-              { id: 'BOTH', label: '🤝 Both in-person and virtual' },
-              { id: 'IN_PERSON', label: '📍 In-person only' },
-              { id: 'ONLINE', label: '💻 Virtual / remote only' }
+              { id: 'BOTH', label: 'Both in-person and virtual' },
+              { id: 'IN_PERSON', label: 'In-person only' },
+              { id: 'ONLINE', label: 'Virtual / remote only' }
             ].map(opt => (
               <label
                 key={opt.id}

@@ -7,7 +7,9 @@ import {
   User,
   LogIn,
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -23,6 +25,7 @@ export default function WelcomeView({
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -54,6 +57,7 @@ export default function WelcomeView({
 
   const resetAuthForm = () => {
     setUsername(''); setPassword(''); setName('');
+    setShowPassword(false);
     setAuthError(''); setAuthLoading(false);
   };
 
@@ -182,7 +186,7 @@ export default function WelcomeView({
           {/* Call to Actions */}
           <div className="pt-1 flex flex-wrap items-center gap-2.5 sm:gap-4 animate-hero-cta">
             <button
-              onClick={() => { setAuthMode('register'); setAuthError(''); setIsSignInOpen(true); }}
+              onClick={() => { setAuthMode('login'); setAuthError(''); setIsSignInOpen(true); }}
               className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas font-bold text-xs sm:text-sm shadow-warm transition-all flex items-center justify-center gap-2 hover:scale-105 cursor-pointer"
             >
               <span>Start exploring</span>
@@ -280,16 +284,31 @@ export default function WelcomeView({
 
               <div>
                 <label className="block font-bold text-cocoa-text mb-1">Password *</label>
-                <input
-                  id="auth-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={authMode === 'register' ? 'Min 6 characters' : '••••••••'}
-                  className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
-                  required
-                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                />
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={authMode === 'register' ? 'Min 6 characters' : '••••••••'}
+                    className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
+                    required
+                    autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-cocoa-text/50 hover:text-cocoa-text p-1 transition-colors focus:outline-none cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {authError && (
