@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { requireFields, isValidMode } from '../middleware/validate.js';
+import { generateIdenticon } from '../lib/identicon.js';
 
 const router = Router();
 const HASH_ROUNDS = 10;
@@ -36,11 +37,12 @@ router.post('/register',
     const id = `usr_${uuid().replace(/-/g, '').slice(0, 12)}`;
     const handle = `@${username}`;
     const password_hash = bcrypt.hashSync(password, HASH_ROUNDS);
+    const effectiveAvatar = avatar_url && avatar_url.trim() ? avatar_url.trim() : generateIdenticon(username);
 
     db.prepare(`
       INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), avatar_url, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
+    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), effectiveAvatar, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
 
     const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
     user.interests = [];

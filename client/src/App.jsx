@@ -25,6 +25,7 @@ import {
 import * as api from './services/api';
 import { dedupeEvents } from './views/HomeView';
 import { io } from 'socket.io-client';
+import { generateIdenticon } from './utils/identicon';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ function normaliseUser(backendUser) {
     id:             backendUser.id,
     name:           backendUser.name          ?? INITIAL_USER.name,
     handle:         backendUser.handle        ?? INITIAL_USER.handle,
-    avatar:         backendUser.avatar_url    ?? INITIAL_USER.avatar,
+    avatar:         backendUser.avatar_url || (backendUser.username ? generateIdenticon(backendUser.username) : INITIAL_USER.avatar),
     bio:            backendUser.bio           ?? INITIAL_USER.bio,
     state:          backendUser.state         ?? INITIAL_USER.state,
     city:           backendUser.city          ?? INITIAL_USER.city,
@@ -69,7 +70,7 @@ function normalisePerson(p) {
     id:               p.id,
     name:             p.name,
     handle:           p.handle        ?? `@${p.username}`,
-    avatar:           p.avatar       ?? p.avatar_url ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    avatar:           p.avatar || p.avatar_url || (p.username ? generateIdenticon(p.username) : '/avatars/rohan.jpg'),
     bio:              p.bio           ?? '',
     city:             p.city          ?? 'India',
     broadRegion:      p.broadRegion  ?? p.city ?? p.neighborhood ?? 'India',

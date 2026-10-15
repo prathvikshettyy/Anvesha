@@ -46,7 +46,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Static file serving — real uploaded Culture Locket recordings ────────────
+// ── Static file serving — real uploaded Culture Locket recordings & avatars ────
 app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders: (res, filePath) => {
     const lower = filePath.toLowerCase();
@@ -64,6 +64,7 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
     res.setHeader('Accept-Ranges', 'bytes');
   },
 }));
+app.use('/avatars', express.static(path.join(UPLOADS_DIR, 'avatars')));
 
 // ── Request logging (dev only) ────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
