@@ -34,7 +34,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const [phoneticText, setPhoneticText]      = useState('');
   const [meaning, setMeaning]               = useState('');
   const [provenance, setProvenance]          = useState('');
-  const [recipeQuestion, setRecipeQuestion]  = useState('');
+  const [title, setTitle]                   = useState('');
   const [submitting, setSubmitting]          = useState(false);
   const [submitError, setSubmitError]        = useState('');
 
@@ -126,7 +126,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
       setPhoneticText('');
       setMeaning('');
       setProvenance('');
-      setRecipeQuestion('');
+      setTitle('');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -356,6 +356,10 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!vernacularText.trim() || !meaning.trim()) return;
+    if (isRecipe && !title.trim()) {
+      setSubmitError('Please enter a Title / Question for this recipe step.');
+      return;
+    }
     setSubmitError('');
 
     if (!api.token.get()) {
@@ -376,11 +380,9 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
 
     const payload = {
       moment_type:     momentType,
-      title:           isRecipe ? `${vernacularText.trim()} Recipe Step` : 'Dialect Word of the Day',
+      title:           isRecipe ? (title.trim() || `${vernacularText.trim()} Recipe Step`) : (title.trim() || 'Dialect Word of the Day'),
       vernacular_text: vernacularText.trim(),
       meaning:         meaning.trim(),
-      recipe_question: isRecipe ? recipeQuestion.trim() : '',
-      recipeQuestion:  isRecipe ? recipeQuestion.trim() : '',
       phonetic_text:   phoneticText.trim() || `/${vernacularText.trim().toLowerCase().replace(/\s+/g, '-')}/`,
       provenance:      provenance.trim() || (isRecipe ? 'Heirloom family kitchen tradition' : 'Preserved from coastal family traditions'),
       audio_url:       finalAudioUrl || '',
@@ -616,6 +618,19 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
               <p className="px-4 pb-3 text-xs text-red-600">{uploadError} (clip will still attach locally)</p>
             )}
           </div>
+
+          {/* Title / Question (Specifically for Recipe / Craft step) */}
+          {isRecipe && (
+            <div>
+              <label className="block font-bold text-cocoa-text text-xs mb-1">
+                Title / Question <span className="text-terra-primary">*</span>
+              </label>
+              <input type="text" required={isRecipe}
+                placeholder="e.g., Mangalore Buns Fermentation Secret or How to keep buns fluffy?"
+                value={title} onChange={e => setTitle(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
+            </div>
+          )}
 
           {/* Field 1: Local Name / Vernacular Word */}
           <div>
