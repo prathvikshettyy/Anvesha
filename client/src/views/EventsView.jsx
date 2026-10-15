@@ -220,7 +220,7 @@ export default function EventsView({
         </div>
 
         {/* Category Scrollable Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar">
           {categories.map(cat => (
             <button
               key={cat.id}
