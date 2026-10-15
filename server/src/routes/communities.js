@@ -123,12 +123,12 @@ router.get('/:id', optionalAuth, (req, res) => {
 
   if (!comm) return res.status(404).json({ error: 'Community not found' });
 
-  // Get sample of active members
+  // Get sample of active members who have opted into discoverability
   const members = db.prepare(`
     SELECT u.id, u.name, u.handle, u.avatar_url, u.city, cm.role, cm.joined_at
     FROM community_members cm
     JOIN users u ON u.id = cm.user_id
-    WHERE cm.community_id = ?
+    WHERE cm.community_id = ? AND u.is_discoverable = 1
     ORDER BY cm.role = 'ADMIN' DESC, cm.joined_at DESC
     LIMIT 20
   `).all(comm.id);
@@ -213,10 +213,19 @@ router.post('/:id/leave', requireAuth, (req, res) => {
 });
 
 // ── GET /api/communities/:id/messages — group discussion messages ────────────
-router.get('/:id/messages', optionalAuth, (req, res) => {
+router.get('/:id/messages', requireAuth, (req, res) => {
   const { id } = req.params;
   const comm = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id);
   if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  // Enforce server-side membership permission
+  const isMember = db.prepare(`
+    SELECT 1 FROM community_members WHERE community_id = ? AND user_id = ?
+  `).get(comm.id, req.user.id);
+
+  if (!isMember) {
+    return res.status(403).json({ error: 'You must join this community to view discussion messages.' });
+  }
 
   const rows = db.prepare(`
     SELECT

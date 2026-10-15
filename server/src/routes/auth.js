@@ -40,9 +40,9 @@ router.post('/register',
     const effectiveAvatar = avatar_url && avatar_url.trim() ? avatar_url.trim() : generateIdenticon(username);
 
     db.prepare(`
-      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), effectiveAvatar, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
+      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood, is_discoverable)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, username, handle, password_hash, name, bio.slice(0, 500), effectiveAvatar, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120), req.body.is_discoverable ? 1 : 0);
 
     const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
     user.interests = [];

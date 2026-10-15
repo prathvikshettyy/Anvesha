@@ -272,43 +272,90 @@ router.post('/',
 
     // Check for existing identical event to prevent duplicate submissions
     const existing = db.prepare(
-      'SELECT * FROM events WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND LOWER(TRIM(venue)) = LOWER(TRIM(?))'
+      'SELECT id FROM events WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND LOWER(TRIM(venue)) = LOWER(TRIM(?))'
     ).get(title, venue);
 
-    const id = existing ? existing.id : `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
     if (existing) {
-      db.prepare(`
-        UPDATE events SET
-          category = ?, category_label = ?, date_label = ?, datetime_iso = ?,
-          neighborhood = ?, lat = ?, lng = ?, organizer = ?, image_url = ?,
-          description = ?, source_url = ?, submitted_by = ?
-        WHERE id = ?
-      `).run(
-        category, categoryLabels[category] || 'Culture & Heritage',
-        date_label.slice(0, 100), datetime_iso,
-        neighborhood.slice(0, 200), coords.lat, coords.lng,
-        organizer.slice(0, 200), image_url, description.slice(0, 2000),
-        source_url, req.user.id, id
-      );
-    } else {
-      db.prepare(`
-        INSERT INTO events
-          (id, title, category, category_label, date_label, datetime_iso, venue,
-           neighborhood, lat, lng, organizer, image_url, description, source_url,
-           source_label, verification_status, submitted_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
-      `).run(
-        id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
-        date_label.slice(0, 100), datetime_iso,
-        venue.slice(0, 300), neighborhood.slice(0, 200),
-        coords.lat, coords.lng,
-        organizer.slice(0, 200), image_url, description.slice(0, 2000),
-        source_url, req.user.id
-      );
+      return res.status(409).json({ error: 'An event with this title and venue already exists' });
     }
+
+    const id = `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
+    db.prepare(`
+      INSERT INTO events
+        (id, title, category, category_label, date_label, datetime_iso, venue,
+         neighborhood, lat, lng, organizer, image_url, description, source_url,
+         source_label, verification_status, submitted_by)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
+    `).run(
+      id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
+      date_label.slice(0, 100), datetime_iso,
+      venue.slice(0, 300), neighborhood.slice(0, 200),
+      coords.lat, coords.lng,
+      organizer.slice(0, 200), image_url, description.slice(0, 2000),
+      source_url, req.user.id
+    );
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
     res.status(201).json(formatEvent(event));
+  }
+);
+
+// ── PATCH /api/events/:id — edit event (owner only) ───────────────────────────
+router.patch('/:id',
+  requireAuth,
+  (req, res) => {
+    const { id } = req.params;
+    const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Event not found' });
+
+    if (existing.submitted_by !== req.user.id) {
+      return res.status(403).json({ error: 'Only the event creator can edit this event' });
+    }
+
+    const allowed = ['title', 'category', 'date_label', 'datetime_iso', 'venue', 'neighborhood', 'organizer', 'image_url', 'description', 'source_url', 'lat', 'lng'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (updates.title && updates.title.length > 200)
+      return res.status(400).json({ error: 'Title too long (max 200 chars)' });
+    if (updates.category && !isValidCategory(updates.category))
+      return res.status(400).json({ error: 'Invalid category' });
+    if (updates.source_url && !isValidUrl(updates.source_url))
+      return res.status(400).json({ error: 'source_url must be http or https' });
+    if (updates.image_url && !isValidUrl(updates.image_url, 'image'))
+      return res.status(400).json({ error: 'image_url must be valid image URL' });
+    if (updates.description && updates.description.length > 2000)
+      return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
+
+    const coords = (updates.lat !== undefined && updates.lng !== undefined)
+      ? resolveCoords(updates.venue || existing.venue, updates.lat, updates.lng)
+      : (updates.venue ? resolveCoords(updates.venue, existing.lat, existing.lng) : null);
+
+    if (coords) {
+      updates.lat = coords.lat;
+      updates.lng = coords.lng;
+    }
+
+    const categoryLabels = {
+      culture: 'Culture & Heritage', festivals: 'Festivals & Celebrations',
+      technology: 'Technology & Hackathons', music: 'Folk & Classical Music',
+      art: 'Art & Traditional Crafts', film: 'Film & Theatre',
+      literature: 'Books & Literature', science: 'Science & Discovery',
+      workshops: 'Hands-on Workshops', community: 'Dialect & Community Circles',
+    };
+    if (updates.category) {
+      updates.category_label = categoryLabels[updates.category] || 'Culture & Heritage';
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+      db.prepare(`UPDATE events SET ${sets} WHERE id = @id`).run({ ...updates, id });
+    }
+
+    const updated = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    res.json(formatEvent(updated));
   }
 );
 

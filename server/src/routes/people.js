@@ -43,6 +43,20 @@ router.get('/connections', requireAuth, (req, res) => {
   res.json(enriched);
 });
 
+// ── GET /api/people/requests/incoming — MUST be before /:id ───────────────────
+router.get('/requests/incoming', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      c.id as connection_id, c.requester_id, c.receiver_id, c.created_at,
+      u.id, u.handle, u.name, u.avatar_url, u.city, u.state, u.bio
+    FROM connections c
+    JOIN users u ON u.id = c.requester_id
+    WHERE c.receiver_id = ? AND c.status = 'PENDING'
+    ORDER BY c.created_at DESC
+  `).all(req.user.id);
+  res.json(rows);
+});
+
 // ── GET /api/people ───────────────────────────────────────────────────────────
 router.get('/', requireAuth, (req, res) => {
   const { q = '', filter = 'ALL' } = req.query;
@@ -158,22 +172,54 @@ router.post('/:id/connect', requireAuth, (req, res) => {
     if (existing.status === 'CONNECTED')
       return res.json({ status: 'CONNECTED', message: 'Already connected' });
 
-    if (existing.status === 'PENDING' && existing.receiver_id === req.user.id) {
-      // The other person sent a request — accept it
-      db.prepare('UPDATE connections SET status = ? WHERE id = ?').run('CONNECTED', existing.id);
-      return res.json({ status: 'CONNECTED', message: 'Connection accepted' });
-    }
+    if (existing.status === 'PENDING')
+      return res.json({ status: 'PENDING', message: 'Connection request already exists' });
+
+    if (existing.status === 'DECLINED')
+      return res.json({ status: 'DECLINED', message: 'Connection previously declined' });
 
     return res.json({ status: existing.status, message: 'Request already exists' });
   }
 
-  // New connection request
+  // New connection request — created as PENDING (requires receiver acceptance)
   const id = uuid();
   db.prepare('INSERT INTO connections (id, requester_id, receiver_id, status) VALUES (?, ?, ?, ?)').run(
-    id, req.user.id, targetId, 'CONNECTED' // Direct connect for demo; change to PENDING for full flow
+    id, req.user.id, targetId, 'PENDING'
   );
 
-  res.status(201).json({ status: 'CONNECTED', connectionId: id });
+  res.status(201).json({ status: 'PENDING', connectionId: id, message: 'Connection request sent' });
+});
+
+// ── POST /api/people/:id/accept — accept incoming request ─────────────────────
+router.post('/:id/accept', requireAuth, (req, res) => {
+  const targetId = req.params.id;
+  const existing = db.prepare(`
+    SELECT * FROM connections
+    WHERE requester_id = ? AND receiver_id = ? AND status = 'PENDING'
+  `).get(targetId, req.user.id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'No pending connection request from this user' });
+  }
+
+  db.prepare('UPDATE connections SET status = ? WHERE id = ?').run('CONNECTED', existing.id);
+  res.json({ status: 'CONNECTED', message: 'Connection accepted' });
+});
+
+// ── POST /api/people/:id/decline — decline incoming request ───────────────────
+router.post('/:id/decline', requireAuth, (req, res) => {
+  const targetId = req.params.id;
+  const existing = db.prepare(`
+    SELECT * FROM connections
+    WHERE requester_id = ? AND receiver_id = ? AND status = 'PENDING'
+  `).get(targetId, req.user.id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'No pending connection request from this user' });
+  }
+
+  db.prepare('UPDATE connections SET status = ? WHERE id = ?').run('DECLINED', existing.id);
+  res.json({ status: 'DECLINED', message: 'Connection declined' });
 });
 
 export default router;

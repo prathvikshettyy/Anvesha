@@ -22,14 +22,49 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CLIENT_DIST = path.resolve(__dirname, '..', '..', 'client', 'dist');
 
+import rateLimit from 'express-rate-limit';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const corsOrigin = process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN : true;
+
+const rawOrigin = process.env.CLIENT_ORIGIN;
+let corsOrigin;
+if (process.env.NODE_ENV === 'production') {
+  if (!rawOrigin || rawOrigin.trim() === '*') {
+    // Wildcard origin cannot be used with credentials: true
+    corsOrigin = false;
+  } else {
+    corsOrigin = rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim();
+  }
+} else {
+  corsOrigin = rawOrigin ? (rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim()) : true;
+}
 
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
 }));
+
+// Rate limiters for abuse prevention
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 40, // 40 attempts per 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again later.' },
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500, // 500 requests per 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+app.use('/api', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 app.use(express.json({ limit: '2mb' })); // 2MB cap — covers base64 audio clips
 app.use(express.urlencoded({ extended: false }));
@@ -46,6 +81,7 @@ app.use((req, res, next) => {
 // ── Static file serving — real uploaded Culture Locket recordings & avatars ────
 app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders: (res, filePath) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     const lower = filePath.toLowerCase();
     if (lower.endsWith('.webm')) {
       res.setHeader('Content-Type', 'audio/webm');
@@ -61,7 +97,11 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
     res.setHeader('Accept-Ranges', 'bytes');
   },
 }));
-app.use('/avatars', express.static(path.join(UPLOADS_DIR, 'avatars')));
+app.use('/avatars', express.static(path.join(UPLOADS_DIR, 'avatars'), {
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+}));
 
 // ── Request logging (dev only) ────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
@@ -71,8 +111,10 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ── API Documentation (Swagger UI) ───────────────────────────────────────────
-setupSwagger(app, '/api/docs');
+// ── API Documentation (Swagger UI) — dev/opt-in only ─────────────────────────
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DOCS === 'true') {
+  setupSwagger(app, '/api/docs');
+}
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);

@@ -26,7 +26,7 @@ export function initRealtime(httpServer, corsOrigin) {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('Authentication required'));
     try {
-      const payload = jwt.verify(token, JWT_SECRET);
+      const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
       socket.data.userId = payload.id;
       next();
     } catch {
@@ -43,10 +43,17 @@ export function initRealtime(httpServer, corsOrigin) {
     onlineUsers.get(userId).add(socket.id);
     if (wasOffline) broadcastPresence(userId, true);
 
-    // Typing indicator relay — ephemeral, never persisted.
+    // Typing indicator relay — ephemeral, never persisted. Only relay to connected friends.
     socket.on('typing', ({ to }) => {
       if (typeof to === 'string' && to) {
-        ioInstance.to(`user:${to}`).emit('typing', { from: userId });
+        try {
+          const friendIds = getConnectedFriendIds(db, userId);
+          if (friendIds.includes(to)) {
+            ioInstance.to(`user:${to}`).emit('typing', { from: userId });
+          }
+        } catch (err) {
+          console.error('[Socket] Typing error:', err);
+        }
       }
     });
 

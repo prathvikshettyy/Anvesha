@@ -16,7 +16,7 @@ Protected endpoints require a JSON Web Token (JWT) passed in the HTTP Authorizat
 \`\`\`http
 Authorization: Bearer <your_jwt_token>
 \`\`\`
-Obtain a token via **POST /api/auth/login** (e.g. \`username: rohan\`, \`password: demo1234\`) or **POST /api/auth/register**.
+Obtain a token via **POST /api/auth/login** or **POST /api/auth/register**.
 Click the **Authorize** button on the top right to authenticate your Swagger UI session.
     `.trim(),
         contact: {

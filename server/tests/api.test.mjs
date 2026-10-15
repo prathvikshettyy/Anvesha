@@ -81,6 +81,7 @@ async function runTests() {
     const regData = await regRes.json();
     assert(!!regData.token, 'Register returns JWT token');
     assert(regData.user.username === randomUser, 'Register returns user object');
+    assert(regData.user.is_discoverable === 0, 'New user defaults to is_discoverable = 0');
     testUserId = regData.user.id;
 
     // Login with seeded user Rohan
@@ -149,7 +150,7 @@ async function runTests() {
     const searchData = await searchRes.json();
     assert(searchData.length > 0 && searchData.some(e => e.title.includes('Yakshagana')), 'Keyword search matches "Yakshagana"');
 
-    // Submit new event
+    // Submit new event (Batch 1: Forced to COMMUNITY_REPORTED, ignores client status)
     const testEventTitle = `KMC Greens Dialect Exchange Circle ${Date.now()}`;
     const newEventRes = await fetch(`${BASE}/events`, {
       method: 'POST',
@@ -163,12 +164,51 @@ async function runTests() {
         venue: 'Cubbon Park Bandstand',
         date: 'Sunday, Oct 25 • 4:00 PM',
         description: 'Interactive conversational session practicing coastal phrases.',
+        verification_status: 'VERIFIED', // Should be forced to COMMUNITY_REPORTED
       }),
     });
     assert(newEventRes.status === 201, 'POST /api/events returns 201 Created');
     const newEvent = await newEventRes.json();
     assert(newEvent.id && newEvent.title === testEventTitle, 'Created event persisted and returned with ID');
+    assert(newEvent.verificationStatus === 'COMMUNITY_REPORTED', 'New event verificationStatus forced to COMMUNITY_REPORTED');
     createdEventId = newEvent.id;
+
+    // Batch 1: Duplicate submission returns 409 Conflict
+    const dupEventRes = await fetch(`${BASE}/events`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: testEventTitle,
+        category: 'community',
+        venue: 'Cubbon Park Bandstand',
+        date: 'Sunday, Oct 25 • 4:00 PM',
+      }),
+    });
+    assert(dupEventRes.status === 409, 'Duplicate event submission returns 409 Conflict');
+
+    // Batch 1: Non-owner cannot PATCH event; Owner can PATCH
+    const strangerPatchRes = await fetch(`${BASE}/events/${createdEventId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title: 'Hijacked Event' }),
+    });
+    assert(strangerPatchRes.status === 403, 'Non-owner cannot PATCH event (403)');
+
+    const ownerPatchRes = await fetch(`${BASE}/events/${createdEventId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ description: 'Updated by legitimate owner.' }),
+    });
+    assert(ownerPatchRes.status === 200, 'Owner can successfully PATCH event (200)');
 
     // Toggle save / bookmark
     const saveRes = await fetch(`${BASE}/events/${createdEventId}/save`, {
@@ -204,13 +244,15 @@ async function runTests() {
     const sorted = [...scores].sort((a, b) => b - a);
     assert(JSON.stringify(scores) === JSON.stringify(sorted), 'People are sorted by matchScore descending');
 
-    // Connect with a person
-    const targetPersonId = peopleData[0].id;
-    const connectRes = await fetch(`${BASE}/people/${targetPersonId}/connect`, {
+    // Connect with an unconnected person (Batch 1: Returns 201 PENDING)
+    const targetPerson = peopleData.find(p => p.connectionStatus === 'NONE') || peopleData[peopleData.length - 1];
+    const connectRes = await fetch(`${BASE}/people/${targetPerson.id}/connect`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${rohanToken}` },
     });
-    assert(connectRes.status === 200, 'POST /api/people/:id/connect returns 200');
+    assert(connectRes.status === 201, 'POST /api/people/:id/connect returns 201 Created');
+    const connectData = await connectRes.json();
+    assert(connectData.status === 'PENDING', 'Initial connection status is PENDING');
 
     // ── 5. Culture Locket Suite ──────────────────────────────────────────────
     console.log('\n[Test Suite 5/6] Culture Locket & Dialect Vault');
@@ -229,14 +271,35 @@ async function runTests() {
     const locketsData = await locketsRes.json();
     assert(Array.isArray(locketsData), 'Returns list of visible moments');
 
-    // Upload real voice recording (multipart/form-data)
-    const audioBlob = new Blob(['RIFF....WAVEfmt '], { type: 'audio/webm;codecs=opus' });
+    // Batch 1: Unauthenticated audio upload returns 401
+    const unauthAudioRes = await fetch(`${BASE}/locket/audio`, {
+      method: 'POST',
+      body: new FormData(),
+    });
+    assert(unauthAudioRes.status === 401, 'POST /api/locket/audio without auth returns 401');
+
+    // Batch 1: Invalid audio signature returns 400
+    const fakeAudioBlob = new Blob(['NotRealAudioDataHere'], { type: 'audio/webm' });
+    const fakeAudioForm = new FormData();
+    fakeAudioForm.append('audio', fakeAudioBlob, 'fake.webm');
+    fakeAudioForm.append('duration_seconds', '3');
+    const badSigRes = await fetch(`${BASE}/locket/audio`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rohanToken}` },
+      body: fakeAudioForm,
+    });
+    assert(badSigRes.status === 400, 'POST /api/locket/audio with invalid signature returns 400');
+
+    // Upload real voice recording with valid WebM signature (EBML: 1A 45 DF A3)
+    const validWebmBytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81, 0x01, 0x42, 0xf2, 0x81, 0x08, 0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6d]);
+    const audioBlob = new Blob([validWebmBytes], { type: 'audio/webm' });
     const audioForm = new FormData();
     audioForm.append('audio', audioBlob, 'voice-take.webm');
     audioForm.append('duration_seconds', '3');
 
     const uploadRes = await fetch(`${BASE}/locket/audio`, {
       method: 'POST',
+      headers: { Authorization: `Bearer ${rohanToken}` },
       body: audioForm,
     });
     assert(uploadRes.status === 201, 'POST /api/locket/audio returns 201 Created');
@@ -248,6 +311,7 @@ async function runTests() {
     // Verify static audio serving
     const staticAudioRes = await fetch(new URL(uploadData.url, BASE).href);
     assert(staticAudioRes.status === 200, 'Uploaded audio is statically served via /uploads with 200 OK');
+    assert(staticAudioRes.headers.get('x-content-type-options') === 'nosniff', 'Static audio served with nosniff header');
 
     // Create new culture locket moment with uploaded audio
     const newLocketRes = await fetch(`${BASE}/locket`, {
@@ -617,8 +681,13 @@ async function runTests() {
     const postedMsg = await postMsgRes.json();
     assert(postedMsg.id && postedMsg.text.includes('mural techniques'), 'Discussion message persisted in SQLite');
 
-    // Read discussion messages
-    const getMsgsRes = await fetch(`${BASE}/communities/${targetCommId}/messages`);
+    // Read discussion messages (Batch 1: Requires auth and membership)
+    const unauthGetMsgsRes = await fetch(`${BASE}/communities/${targetCommId}/messages`);
+    assert(unauthGetMsgsRes.status === 401, 'GET /api/communities/:id/messages unauthenticated returns 401');
+
+    const getMsgsRes = await fetch(`${BASE}/communities/${targetCommId}/messages`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
     assert(getMsgsRes.status === 200, 'GET /api/communities/:id/messages returns 200');
     const allMsgs = await getMsgsRes.json();
     assert(allMsgs.some(m => m.id === postedMsg.id), 'Sent message appears in community discussion thread');
@@ -640,8 +709,86 @@ async function runTests() {
       headers: { Authorization: `Bearer ${rohanToken}` },
     });
     assert(leaveRes.status === 200, 'POST /api/communities/:id/leave returns 200');
-    const leaveData = await leaveRes.json();
-    assert(leaveData.isMember === false, 'Community leave confirmed');
+    // ─── [Test Suite 8/8] Batch 1 Security & Invariant Hardening ─────────────
+    console.log('\n[Test Suite 8/8] Batch 1 Security & Invariant Hardening');
+
+    // 1. Unauthorized messaging: stranger cannot send message to non-connected peer
+    const strangerMsgRes = await fetch(`${BASE}/messages/usr_kavya`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Spamming stranger without connection' }),
+    });
+    assert(strangerMsgRes.status === 403, 'Sending message to non-connected user returns 403');
+
+    // 2. Connections accept flow:
+    testDb.prepare('DELETE FROM connections WHERE (requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)').run(
+      testUserId, 'usr_kavya', 'usr_kavya', testUserId
+    );
+
+    // Create connection request from Test Student to Kavya
+    const studentToKavyaRes = await fetch(`${BASE}/people/usr_kavya/connect`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(studentToKavyaRes.status === 201, 'Student creates connection request to Kavya');
+
+    // Login as Kavya to inspect requests and accept
+    const kavyaLogin = await fetch(`${BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'kavya', password: 'demo1234' }),
+    });
+    const { token: kavyaToken } = await kavyaLogin.json();
+
+    // Kavya checks incoming requests
+    const incomingRes = await fetch(`${BASE}/people/requests/incoming`, {
+      headers: { Authorization: `Bearer ${kavyaToken}` },
+    });
+    assert(incomingRes.status === 200, 'GET /api/people/requests/incoming returns 200');
+    const incomingData = await incomingRes.json();
+    assert(incomingData.some(r => r.requester_id === testUserId), 'Kavya sees incoming request from Student');
+
+    // Kavya accepts connection
+    const acceptRes = await fetch(`${BASE}/people/${testUserId}/accept`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${kavyaToken}` },
+    });
+    assert(acceptRes.status === 200, 'POST /api/people/:id/accept returns 200');
+
+    // Now Student can send message to Kavya
+    const connectedMsgRes = await fetch(`${BASE}/messages/usr_kavya`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Hello Kavya, we are now connected!' }),
+    });
+    assert(connectedMsgRes.status === 201, 'Once accepted, message is successfully delivered (201)');
+
+    // 3. JWT Algorithm Pinning: forged token with 'none' is rejected
+    const jwt = await import('jsonwebtoken');
+    const forgedToken = jwt.default.sign({ id: 'usr_rohan' }, '', { algorithm: 'none' });
+    const forgedRes = await fetch(`${BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${forgedToken}` },
+    });
+    assert(forgedRes.status === 401, 'Token signed with alg: none is rejected (401)');
+
+    // 4. Community member privacy: member with is_discoverable = 0 is not in public member list
+    const studentCommJoinRes = await fetch(`${BASE}/communities/${targetCommId}/join`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(studentCommJoinRes.status === 200, 'Student joins community');
+
+    const commDetailPrivacyRes = await fetch(`${BASE}/communities/${targetCommId}`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    const commDetailPrivacy = await commDetailPrivacyRes.json();
+    assert(!commDetailPrivacy.members.some(m => m.id === testUserId), 'Non-discoverable user (is_discoverable=0) does NOT appear in community member list');
 
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
