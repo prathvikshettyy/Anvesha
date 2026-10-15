@@ -55,12 +55,19 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://images.unsplash.com",
+        "https://*.tile.openstreetmap.fr",
+        "https://*.tile.openstreetmap.org",
+      ],
       mediaSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "ws:", "wss:", "https:", "http:"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.tailwindcss.com"],
       workerSrc: ["'self'", "blob:"],
     },
   },
