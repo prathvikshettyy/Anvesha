@@ -158,13 +158,17 @@ For a production deployment, build the client (`npm run build`) and serve `clien
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
+| Variable | Required (Production) | Default | Description |
 |---|---|---|---|
-| `PORT` | No | `3001` | Express server port |
-| `JWT_SECRET` | **Yes** | dev fallback | Secret used to sign JWTs. Must be changed in production. Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
-| `CLIENT_ORIGIN` | No | `http://localhost:5173` | Allowed CORS origin |
-| `NODE_ENV` | No | `development` | Set to `production` to hide stack traces in error responses |
-| `VITE_API_URL` | No | `/api` | API base URL used by the React client |
+| `NODE_ENV` | **Yes** | `development` | Set to `production` in production. Enables `trust proxy` (1), enforces strict CORS, enables production error masking, disables Swagger UI by default, and blocks demo database seeding. |
+| `JWT_SECRET` | **Yes** | None in prod | Cryptographically secure secret used to sign and verify HS256 JWT tokens (minimum 32 characters). In production, the server fails fast if missing, empty, or using a known fallback. Generate with: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+| `CLIENT_ORIGIN` | **Yes** | `http://localhost:5173` | Allowed CORS origin(s) for the frontend (e.g. `https://your-service.onrender.com` or comma-separated list). Wildcards (`*`) are rejected in production when `credentials: true`. |
+| `PORT` | Auto (Render) | `3001` | Express server port. Automatically injected by Render and cloud hosting providers. |
+| `ALLOW_DEMO_SEED` | No | `false` | Security guard for database seeding. In production (`NODE_ENV=production`), `seed.js` exits immediately without creating demo users or the shared demo password unless explicitly set to `true`. |
+| `ENABLE_DOCS` | No | `false` (prod) / `true` (dev) | Set to `true` to enable Swagger UI documentation (`/api/docs`) in production. |
+| `DB_PATH` | No | `server/data/sharespot.db` | Filesystem path for the SQLite database. For persistent Render deployments, set this to a mounted persistent disk path (e.g. `/var/data/sharespot.db`). |
+| `VITE_API_URL` | No | `/api` | Base URL used by the React client to contact backend API routes. |
+| `VITE_SOCKET_URL` | No | `window.location.origin` | Optional WebSocket URL override for the Socket.IO client. |
 
 ---
 
