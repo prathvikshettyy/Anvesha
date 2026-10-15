@@ -1,47 +1,70 @@
-# अnvesha: The Lost Connection
+# अnvesha — The Lost Connection
 
 > **Manipal Hackathon 2026 (M# 2026) · Round 2 · Culture & Community Track**  
 > Team: **TEAMAPPEX**
 
 ---
 
-## Project Overview
+## The Problem
 
-When individuals relocate away from their native regions—whether students moving to university campuses like Manipal, working professionals, researchers, migrants, or families—their living cultural identities—indigenous dialects, traditional art forms, folk practices, and regional culinary heritages—often go dormant due to a lack of visible, dedicated spaces to connect with peers of similar roots.
+When people relocate away from their native regions—whether students moving to university campuses, working professionals transferring to new cities, researchers, migrants, or entire families—their living cultural identities risk going dormant. Indigenous dialects, traditional art forms, folk practices, and regional culinary heritages lose their daily footing when there is no visible, dedicated space to find peers of similar roots.
 
-**अnvesha** (Anvesha) is a cultural discovery, community engagement, and living heritage platform built to bridge this cultural disconnect. It provides an intuitive, living ecosystem where anyone living away from home can discover regional gatherings, find language conversation partners, share daily heritage micro-pulses, and participate in cultural circles.
+This is not a student-only problem. It is a shared human experience for **anyone** who has moved far from home and finds themselves culturally adrift.
 
 ---
 
-## Key Pillars & Features
+## What अnvesha Does
 
-1. **Living Cultural Atlas & Map**
-   - Interactive regional and campus map powered by Leaflet and D3.
-   - Pinned cultural gatherings (Yakshagana performances, Tulu conversational circles, clay pottery workshops, coastal food heritage trails).
-   - Filter by categories with zero-latency cultural artwork and vector SVG fallbacks.
-   - User gathering submissions with verified source attribution and bookmarking.
+**अnvesha** (Sanskrit: *to seek, to discover*) is a cultural discovery, community engagement, and living heritage platform that bridges this disconnect. It gives anyone living away from home a dedicated space to:
 
-2. **Explainable People Discovery & Skill Exchange**
-   - Dynamic match scoring powered by Jaccard interest overlap, dialect synergy, and reciprocal skill intentions.
-   - Transparent plain-language match reasons (e.g., *"Priya can teach conversational Tulu which you want to learn"*).
-   - Strict privacy safeguards: precise geographic coordinates are never exposed over the wire; only broad neighborhood proximity is shared.
-   - Direct peer communication without restrictive request bottlenecks.
+- **Discover** regional cultural gatherings and events on a living map.
+- **Find** peers who share their dialect, art form, or culinary tradition—and understand *why* they match.
+- **Share** daily cultural micro-pulses: dialect words, craft journal entries, and oral pronunciation guides.
+- **Participate** in themed cultural circles and group discussions.
+- **Message** any peer directly, with full real-time chat backed by persistent database storage.
 
-3. **Culture Locket & Oral Dialect Archive**
-   - Ambient daily cultural pulses styled as an authentic lined parchment diary with brass coil bindings.
-   - Native audio pronunciation guides with interactive syllable-by-syllable breakdown (e.g., `EN · CHA · UL · LER`).
-   - Preservation vault for regional idioms, field provenance, and quick peer sticker reactions.
+---
 
-4. **Cultural Community Circles**
-   - Thematic and location-based hubs (Folk & Classical Arts, Dialect Preservation, Coastal Culinary).
-   - Real-time experience sharing and group discussions within safe, moderated cultural spaces.
+## Key Features
 
-5. **Direct Real-Time Messaging**
-   - Direct 1-on-1 private messaging backed by **Node.js native SQLite database persistence**.
-   - Real-time updates, typing indicators, and presence check powered by **Socket.IO**.
+### 1. Living Cultural Atlas & Map
+- Interactive map powered by **Leaflet** + **D3-Geo** showing pinned cultural gatherings across India.
+- Category filters (Yakshagana, Tulu, Coastal Culinary, Folk Arts, Pottery, etc.) with SVG artwork fallbacks.
+- User event submission with source attribution and bookmarking.
+- Venue coordinates resolved from a curated lookup table; unresolvable venues fall back to a Karnataka geographic centroid.
 
-6. **Interactive OpenAPI 3.0 / Swagger Documentation**
-   - Self-documenting API explorer served directly at `/api/docs`.
+### 2. Explainable People Discovery & Skill Exchange
+- Match scoring is a **weighted blend** of seven signals:
+  1. Interest overlap (Jaccard similarity — up to 42 pts)
+  2. Skill exchange: what you want to learn vs. what they can teach, and vice versa (up to 20 pts)
+  3. Shared languages (up to 10 pts)
+  4. Location proximity — same city > same state (up to 14 pts)
+  5. Mutual connections — 1-hop social graph traversal (up to 15 pts)
+  6. Engagement mode compatibility: in-person / online / both (up to 4 pts)
+  7. Recent platform activity (up to 3 pts)
+- Every match includes plain-language **match reasons** (e.g., *"They can teach you Tulu. You share 3 interests."*).
+- **Privacy guard**: exact GPS coordinates are never exposed over the API — only city/state/neighborhood labels.
+
+### 3. Culture Locket & Oral Dialect Archive
+- Ambient cultural diary styled as a lined parchment notebook with brass coil bindings.
+- Supports two moment types: **Word of the Day** (dialect term + phonetic guide + meaning) and **Craft Journal** (step-by-step traditional craft documentation).
+- Real audio recording via the browser `MediaRecorder` API, uploaded to the server as webm/ogg/mp4.
+- A **curated static dialect vault** of four preserved coastal Karnataka dialect entries (Tulu, Konkani, Kodava Takk, Havigannada) — these are hardcoded reference records, not user-generated (see [Known Limitations](#known-limitations--architectural-assumptions)).
+- Sticker reactions sent to locket moment authors via Socket.IO.
+
+### 4. Cultural Community Circles
+- Thematic hubs (Folk & Classical Arts, Dialect Preservation, Coastal Culinary, etc.).
+- Real-time group discussion notes, requiring membership before posting.
+- Community moderation reporting stored in the database; review is a manual administrative action.
+
+### 5. Direct Real-Time Messaging
+- 1-on-1 private messaging backed by **SQLite persistence** (all messages survive server restarts).
+- Real-time delivery via **Socket.IO**: new messages pushed to both sender and receiver instantly.
+- Typing indicators (ephemeral — never persisted), online presence tracking, and unread counts.
+- Message thread history capped at **200 messages** per conversation pair per fetch.
+
+### 6. Interactive API Documentation
+- Full OpenAPI 3.0 specification served at `/api/docs` via Swagger UI.
 
 ---
 
@@ -68,24 +91,25 @@ TEAMAPPEX/
 └── package.json                # npm workspaces root
 ```
 
-### Technology Breakdown
+### Technology Stack
 
-| Layer | Technology | Key Highlights |
+| Layer | Technology | Notes |
 |---|---|---|
-| **Frontend** | React 19, Vite 8 | Fast ESM hot-reloading, component architecture |
-| **Styling** | Tailwind CSS (Warm Terracotta Design System) | Custom Indian heritage palette: terracotta, ochre, cream parchment |
-| **Maps & Geo** | Leaflet, React-Leaflet, D3-Geo | Interactive geospatial mapping and choropleth rendering |
-| **Backend API** | Express 4, Node.js v22 | Clean REST architecture with modular routers |
-| **Database** | Node.js Built-in `node:sqlite` (`DatabaseSync`) | Zero native C++ build toolchains; robust synchronous SQLite engine |
-| **Realtime** | Socket.IO v4 | Live message broadcasting, typing state, and presence detection |
-| **Authentication** | JWT (`jsonwebtoken`) + `bcryptjs` | Secure stateless auth with salt-hashed credentials |
-| **API Docs** | Swagger UI Express (`swagger-ui-express`) | Interactive OpenAPI 3.0 documentation at `/api/docs` |
+| **Frontend** | React 19, Vite 8 | Fast ESM hot-reloading, component SPA architecture |
+| **Styling** | Tailwind CSS (Warm Terracotta Design System) | Indian heritage palette: terracotta, ochre, cream parchment |
+| **Maps & Geo** | Leaflet 1.x, React-Leaflet 5, D3-Geo 3 | Interactive map + choropleth state rendering |
+| **Backend API** | Express 4, Node.js v22 | Modular routers, security headers, CORS |
+| **Database** | Node.js 22 built-in `node:sqlite` (`DatabaseSync`) | Zero native C++ toolchains; WAL mode + foreign keys |
+| **Realtime** | Socket.IO v4 (server + client) | Live messaging, typing indicators, presence tracking |
+| **File Uploads** | Multer v2 | Dialect voice recordings stored to local disk |
+| **Authentication** | `jsonwebtoken` + `bcryptjs` | HMAC-SHA256 JWT (7-day expiry), bcrypt cost 10 |
+| **API Docs** | `swagger-ui-express` v5 | Interactive OpenAPI 3.0 explorer at `/api/docs` |
 
 ---
 
 ## System Requirements
 
-- **Operating System:** Windows 10/11 (or macOS / Linux)
+- **Operating System:** Windows 10/11
 - **Node.js:** **v22.x or later** *(Required for native `node:sqlite` support)*
 - **Package Manager:** npm v10.x or later
 - **Browser:** Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari (modern versions)
@@ -208,46 +232,118 @@ All API endpoints are mounted under the `/api` prefix:
 
 ## Known Limitations & Architectural Assumptions
 
-To ensure clear technical evaluation boundaries, the following explicit architectural decisions and known constraints are documented:
+The following constraints are **explicit, intentional design boundaries** of this hackathon build. They are documented here so evaluators can distinguish architectural decisions from implementation defects.
 
-1. **Embedded SQLite Single-Process Boundary**:
-   - The database engine uses Node.js 22 built-in `node:sqlite` (`DatabaseSync`) writing directly to a local disk file (`server/data/sharespot.db`).
-   - *Design Boundary*: Built for high-performance single-instance and edge deployment with WAL mode and foreign key constraints enabled. Distributed multi-region clustering, multi-master replication, and cross-datacenter database sharding are out of scope (architectural migration path to PostgreSQL is standard for multi-datacenter horizontal scale).
+### 1. SQLite Is Single-Process and File-Backed
 
-2. **Real-Time WebSocket In-Process Memory Adapter**:
-   - Socket.IO maintains WebSocket connection states and room broadcasts in-memory on the active server node.
-   - *Design Boundary*: Operating multiple server nodes behind a stateless round-robin load balancer without sticky sessions or an external Redis Pub/Sub backplane is not supported in this single-node configuration.
+The database engine is Node.js 22 built-in `node:sqlite` (`DatabaseSync`), writing synchronously to a local file. WAL mode and foreign-key constraints are enabled.
 
-3. **Local Storage & Persistent Volumes**:
-   - Audio pulse recordings (`/uploads/locket/`) and the SQLite database file reside on the local host filesystem.
-   - *Design Boundary*: Integration with external cloud blob stores (e.g. AWS S3, Cloudflare R2, Google Cloud Storage) is deliberately omitted to keep the application 100% self-contained and offline-friendly. Containerized deployments must attach a persistent volume to preserve media across container restarts.
+**Boundary:** Running multiple parallel Node.js server processes against the same `.db` file is not supported and will cause write contention. Horizontal scaling requires migrating to a network-accessible database (e.g., PostgreSQL). This is a deliberate choice for zero-dependency, self-contained local operation.
 
-4. **Client Audio Recording & Browser Hardware Permissions**:
-   - Dialect voice recording utilizes the browser's native `MediaRecorder` API.
-   - *Design Boundary*: Hardware microphone capture requires explicit browser permission and HTTPS or `localhost` context. If audio hardware is denied or unavailable, the client utilizes simulated native voice guide generation and Web Speech TTS synthesis.
+### 2. Socket.IO Uses In-Process Memory Only — No Redis Backplane
 
-5. **Location Privacy & Geospatial Precision**:
-   - To prevent stalking and protect user safety, the platform **strictly forbids** real-time GPS tracking, background geolocation breadcrumbs, or publishing exact residential coordinates.
-   - *Design Boundary*: All community gathering locations and peer proximity indicators resolve to broad neighborhood centroids and district bounding boxes rather than high-precision real-time coordinates.
+All WebSocket connection state (the `onlineUsers` Map, Socket.IO room memberships) lives in the Node.js process heap. No external Redis Pub/Sub adapter is used.
 
-6. **Authentication & Identity Boundaries**:
-   - Authentication relies on stateless, cryptographically signed HMAC-SHA256 JWT tokens with bcrypt password hashing (cost factor 10).
-   - *Design Boundary*: Third-party social OAuth 2.0 (Google/GitHub SSO), hardware security keys (WebAuthn), and SMS/email OTP verification flows require external cloud providers and are outside the self-contained hackathon evaluation scope.
+**Boundary:** Deploying two or more backend instances behind a round-robin load balancer without sticky sessions would break real-time delivery. Single-node deployment works correctly.
 
-7. **Content Moderation & Asynchronous Pipelines**:
-   - Community notes and audio locket moments provide integrated user reporting mechanisms (`/api/communities/:id/report`).
-   - *Design Boundary*: Automated real-time NLP toxicity filtering and AI audio biometric screening are asynchronous administrative processes not run synchronously on the request loop.
+### 3. Uploaded Media Is Stored on Local Filesystem
 
-8. **Device & Viewport Support**:
-   - Responsive layouts are specifically targeted for standard mobile screens (360px–430px width) and desktop viewports (1024px+). Non-standard foldables or sub-320px micro-screens fall back to standard horizontal scroll containers.
+Audio recordings (`POST /api/locket/audio`) are saved to `server/uploads/locket/` on the host disk via Multer. Profile avatar URLs in seed data point to the local `/avatars/` static path.
 
-9. **In-Memory Rate Limiting**:
-   - Rate limiters use an in-memory sliding window algorithm per Node.js process. In a distributed multi-node architecture, centralized rate limiting would require an external Redis cluster.
+**Boundary:** In containerized or ephemeral deployments, uploaded files are lost on restart unless a persistent volume is mounted at `server/uploads/`. Cloud blob storage is out of scope.
+
+### 4. Audio File Size Is Capped at 5 MB
+
+The Multer configuration enforces a **5 MB** per-file size cap. The `express.json()` middleware enforces a **2 MB** body cap for JSON payloads. Clients that send larger payloads receive `413 Payload Too Large`.
+
+**Boundary:** Long-form audio is not supported — this is a short dialect word/phrase sharing feature by design.
+
+### 5. Browser Microphone Availability Is Not Guaranteed
+
+The Locket recording feature uses the browser-native `MediaRecorder` API, which requires an HTTPS or `localhost` origin, explicit user microphone permission, and available hardware.
+
+**Boundary:** When the microphone is unavailable or denied, the client falls back to Web Speech Synthesis (TTS) for pronunciation display. No audio is captured in this path. This is intentional and user-visible.
+
+### 6. Location Precision Is Intentionally Coarse
+
+User coordinates are **never sent to clients** — `lat` and `lng` fields are explicitly stripped from all API responses. Matching uses only city and state string labels.
+
+**Boundary:** Same-city / same-state is the finest proximity granularity available. Precise meter-level geo-filtering is absent as a privacy safeguard.
+
+### 7. Authentication Is JWT-Only — No OAuth, No Email Verification, No Server-Side Revocation
+
+Sessions are stateless HMAC-SHA256 JWTs with 7-day expiry stored in browser `sessionStorage`. No server-side revocation list exists.
+
+**Boundary:**
+- Logout clears the client-side token only; the JWT remains valid until expiry.
+- No Google/GitHub OAuth 2.0, WebAuthn, SMS OTP, or email verification.
+- Registration is open with no email verification step (acceptable for a demo build).
+
+### 8. The Dialect Vault Is a Hardcoded Static List
+
+The four dialect entries at `GET /api/locket/vault` (Tulu, Konkani, Kodava Takk, Havigannada) are hardcoded constants in source code — not database rows. They cannot be added to, edited, or deleted via the API.
+
+**Boundary:** User-submitted dialect entries go into the locket moments feed, not the vault.
+
+### 9. Content Moderation Is Manual Only
+
+Community reports stored via `POST /api/communities/:id/report` require manual administrator review. No automated NLP toxicity classifier or AI pipeline is implemented.
+
+**Boundary:** No automatic content removal, user suspension, or real-time flagging occurs.
+
+### 10. Message and Community History Is Hard-Capped
+
+- Direct messages: `GET /api/messages/:partnerId` returns at most **200 messages** per request (no pagination cursor).
+- Community messages: `GET /api/communities/:id/messages` returns at most **150 messages** per request (no pagination cursor).
+
+**Boundary:** Histories exceeding these caps will drop the oldest messages from view.
+
+### 11. Rate Limiting Is In-Process Only
+
+Rate limiting runs within the Node.js process as Express middleware. Counters reset on server restart and are not shared across instances.
+
+**Boundary:** Distributed rate limiting requires an external Redis-backed adapter in a multi-node setup.
+
+### 12. Event Venue Coordinates Use a Limited Lookup Table
+
+Venue-to-coordinate resolution uses a hardcoded table of approximately 30 known Karnataka cities and major Indian hubs. Unmatched venues fall back to Karnataka's geographic centroid (15.3173°N, 75.7139°E).
+
+**Boundary:** Events with unfamiliar venue names appear clustered at Karnataka's center on the map.
+
+### 13. People Connection Is Instant — No Pending Request Step
+
+`POST /api/people/:id/connect` immediately sets the connection to `CONNECTED`. There is no two-step send/accept flow.
+
+**Boundary:** Any authenticated user can connect with any discoverable user without approval. This is a deliberate UX simplification for the demo.
+
+### 14. JWT Is Stored in sessionStorage
+
+The JWT is stored in `sessionStorage` under key `ss_token` and sent as `Authorization: Bearer` on each request.
+
+**Boundary:** Tokens are accessible to JavaScript in the same origin (XSS risk). Production hardening would use `httpOnly` cookies with `SameSite=Strict`.
+
+### 15. Seed Audio and Image URLs Reference External CDNs
+
+Locket moments and events created by the seed script include `audio_url` and `image_url` values that reference external URLs (e.g., Unsplash). These require internet connectivity and may break if third-party CDNs impose rate limits or change URLs.
+
+**Boundary:** User-uploaded recordings served from `/uploads/locket/` are not subject to this limitation.
 
 ---
 
-## Git & Deployment Branch Guidelines
+## Seeded Demo Data Notes
 
-- **`main`**: Active primary development branch.
-- **`bugbounty`**: Deployment branch configured for evaluations and review.
-- Both branches are maintained in parity for seamless verification.
+The seed script (`server/src/db/seed.js`) populates:
+- **5 user accounts** with cultural profiles, interests, skills, and languages.
+- **Pre-established connections** between seed users (so messaging and locket feeds work immediately on first run).
+- **Cultural events** across Karnataka (Yakshagana performances, Tulu circles, pottery workshops, food trails, etc.).
+- **Community circles** with initial members and roles.
+- **Locket moments** as sample dialect entries and craft journal posts.
+
+The seed is **idempotent** — it uses `INSERT OR IGNORE` and is safe to run multiple times without creating duplicates.
+
+---
+
+## Git & Branch Information
+
+- **`main`** — Active primary development branch.
+- **`bugbounty`** — Evaluation and review branch, maintained in parity with `main`.
