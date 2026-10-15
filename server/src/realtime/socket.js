@@ -78,6 +78,20 @@ export function emitToUser(userId, event, payload) {
   ioInstance.to(`user:${userId}`).emit(event, payload);
 }
 
+/** Push an event to a user and all their accepted connections. */
+export function emitToConnections(userId, event, payload) {
+  if (!ioInstance) return;
+  ioInstance.to(`user:${userId}`).emit(event, payload);
+  try {
+    const friendIds = getConnectedFriendIds(db, userId);
+    for (const friendId of friendIds) {
+      ioInstance.to(`user:${friendId}`).emit(event, payload);
+    }
+  } catch (err) {
+    console.error('[Socket] emitToConnections error:', err);
+  }
+}
+
 /** Broadcast an event to all connected clients across the entire app. */
 export function broadcastRealtime(event, payload) {
   if (!ioInstance) return;

@@ -235,25 +235,6 @@ export default function App() {
     };
   }, [loadLocket]);
 
-  // Realtime Socket.IO sync: when another user records & posts, update feed immediately
-  useEffect(() => {
-    let socket;
-    try {
-      socket = io({ path: '/socket.io' });
-      socket.on('locket:new', (newMoment) => {
-        if (!newMoment) return;
-        const norm = normaliseMoment(newMoment);
-        setLocketMoments(prev => {
-          if (prev.some(m => m.id === norm.id)) return prev;
-          return [norm, ...prev];
-        });
-      });
-    } catch (_) {}
-    return () => {
-      try { socket?.disconnect(); } catch (_) {}
-    };
-  }, []);
-
   // Reload community and social data when user logs in
   useEffect(() => {
     loadCommunities();
@@ -263,11 +244,26 @@ export default function App() {
     }
   }, [authUser, loadPeople, loadLocket, loadCommunities]);
 
-  // ── Socket.IO connection lifecycle ─────────────────────────────────────────
+  // ── Authenticated Socket.IO connection & connection-scoped realtime sync ──────
   useEffect(() => {
     const t = api.token.get();
     if (authUser && t) {
-      connectSocket(t);
+      const socket = connectSocket(t);
+      if (socket) {
+        const handleNewMoment = (newMoment) => {
+          if (!newMoment) return;
+          const norm = normaliseMoment(newMoment);
+          setLocketMoments(prev => {
+            if (prev.some(m => m.id === norm.id)) return prev;
+            return [norm, ...prev];
+          });
+        };
+        socket.off('locket:new', handleNewMoment);
+        socket.on('locket:new', handleNewMoment);
+        return () => {
+          socket.off('locket:new', handleNewMoment);
+        };
+      }
     } else {
       disconnectSocket();
     }

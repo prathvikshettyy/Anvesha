@@ -11,7 +11,8 @@ import { db } from '../db/index.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { requireFields, isValidUrl } from '../middleware/validate.js';
 import { uploadLocketAudio } from '../lib/uploads.js';
-import { broadcastRealtime } from '../realtime/socket.js';
+import { emitToUser, emitToConnections } from '../realtime/socket.js';
+import { getConnectedFriendIds } from '../lib/matching.js';
 
 const router = Router();
 
@@ -60,6 +61,7 @@ const DIALECT_VAULT = [
  */
 function formatMoment(row) {
   const sender = db.prepare('SELECT name, handle, avatar_url FROM users WHERE id = ?').get(row.sender_id);
+  const recipient = row.recipient_id ? db.prepare('SELECT name, handle FROM users WHERE id = ?').get(row.recipient_id) : null;
   const reactions = db.prepare(`
     SELECT r.id, r.text, r.reacted_at, u.name as user_name
     FROM locket_reactions r JOIN users u ON u.id = r.user_id
@@ -72,6 +74,8 @@ function formatMoment(row) {
     senderId: row.sender_id,
     senderName: sender?.name || 'Unknown',
     senderAvatar: sender?.avatar_url || '',
+    recipientId: row.recipient_id || null,
+    recipientName: recipient?.name || null,
     momentType: row.moment_type,
     title: row.title,
     vernacularText: row.vernacular_text,
@@ -92,22 +96,28 @@ router.get('/vault', (req, res) => {
   res.json(DIALECT_VAULT);
 });
 
-// ── GET /api/locket — moments sent to, by, or broadcast to current user ───────
+// ── GET /api/locket — moments sent to, by, or shared with current user's connections ───────
 router.get('/', optionalAuth, (req, res) => {
   const currentUserId = req.user?.id;
-  const rows = currentUserId
-    ? db.prepare(`
-        SELECT * FROM locket_moments
-        WHERE recipient_id = ? OR sender_id = ? OR recipient_id IS NULL
-        ORDER BY timestamp_iso DESC
-        LIMIT 50
-      `).all(currentUserId, currentUserId)
-    : db.prepare(`
-        SELECT * FROM locket_moments
-        WHERE recipient_id IS NULL
-        ORDER BY timestamp_iso DESC
-        LIMIT 50
-      `).all();
+  if (!currentUserId) {
+    // Unauthenticated guests have no connections
+    return res.json([]);
+  }
+
+  const rows = db.prepare(`
+    SELECT * FROM locket_moments
+    WHERE sender_id = ?
+       OR recipient_id = ?
+       OR (
+         recipient_id IS NULL AND sender_id IN (
+           SELECT CASE WHEN requester_id = ? THEN receiver_id ELSE requester_id END
+           FROM connections
+           WHERE status = 'CONNECTED' AND (requester_id = ? OR receiver_id = ?)
+         )
+       )
+    ORDER BY timestamp_iso DESC
+    LIMIT 50
+  `).all(currentUserId, currentUserId, currentUserId, currentUserId, currentUserId);
 
   res.json(rows.map(formatMoment));
 });
@@ -199,8 +209,13 @@ router.post('/',
     const row = db.prepare('SELECT * FROM locket_moments WHERE id = ?').get(id);
     const formatted = formatMoment(row);
 
-    // Push realtime event so all active devices immediately see the new recording
-    broadcastRealtime('locket:new', formatted);
+    // Push realtime event ONLY to targeted recipient or confirmed connections (not global broadcast!)
+    if (validRecipientId) {
+      emitToUser(resolvedSenderId, 'locket:new', formatted);
+      emitToUser(validRecipientId, 'locket:new', formatted);
+    } else {
+      emitToConnections(resolvedSenderId, 'locket:new', formatted);
+    }
 
     res.status(201).json(formatted);
   }
@@ -211,9 +226,18 @@ router.post('/:id/react', requireAuth, requireFields('text'), (req, res) => {
   const moment = db.prepare('SELECT id, recipient_id, sender_id FROM locket_moments WHERE id = ?').get(req.params.id);
   if (!moment) return res.status(404).json({ error: 'Locket moment not found' });
 
-  // Only the recipient or sender can react
-  if (moment.recipient_id !== req.user.id && moment.sender_id !== req.user.id)
+  // Only the recipient, sender, or connected friends can react
+  const isSender = moment.sender_id === req.user.id;
+  const isDirectRecipient = moment.recipient_id === req.user.id;
+  let isConnectedFriend = false;
+  if (moment.recipient_id === null) {
+    const friendIds = getConnectedFriendIds(db, moment.sender_id);
+    isConnectedFriend = friendIds.has(req.user.id);
+  }
+
+  if (!isSender && !isDirectRecipient && !isConnectedFriend) {
     return res.status(403).json({ error: 'Not authorized to react to this moment' });
+  }
 
   const { text } = req.body;
   if (text.length > 200) return res.status(400).json({ error: 'Reaction text too long (max 200)' });
@@ -222,6 +246,9 @@ router.post('/:id/react', requireAuth, requireFields('text'), (req, res) => {
   db.prepare('INSERT INTO locket_reactions (id, moment_id, user_id, text) VALUES (?,?,?,?)').run(
     id, moment.id, req.user.id, text.slice(0, 200)
   );
+
+  // Notify sender of reaction
+  emitToUser(moment.sender_id, 'locket:reaction', { momentId: moment.id, reaction: { id, text, userId: req.user.id } });
 
   res.status(201).json({ id, text, userId: req.user.id });
 });
