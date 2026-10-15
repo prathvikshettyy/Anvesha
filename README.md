@@ -9,7 +9,7 @@
 
 | Field | Value |
 |---|---|
-| **App name** | ShareSpot: The Lost Connection |
+| **App name** | अnvesha: The Lost Connection |
 | **Track** | Culture & Community |
 | **Team** | TEAMAPPEX |
 | **Event** | Manipal Hackathon 2026 (M# 2026) — Round 2 |
@@ -20,7 +20,7 @@
 
 Students who move to Manipal carry living cultural identities — native dialects, folk art traditions, and family recipes — that go dormant within weeks of campus life because there is no visible way to find others who share them.
 
-**ShareSpot** is a cultural community and event-discovery platform with three pillars:
+**अnvesha** is a cultural community and event-discovery platform with three pillars:
 
 1. **Living Cultural Map** — Browse, search, and save upcoming cultural gatherings (Yakshagana shows, Tulu conversational circles, pottery workshops) across Manipal, pinned on a campus map with verified source attribution.
 2. **Transparent People Matching** — Discover opted-in peers based on shared dialects, interest overlap, and skill-exchange intentions. Every match score is explained in plain language ("Priya teaches Conversational Tulu which you want to learn").
@@ -134,7 +134,7 @@ npm run dev:client   # Vite on :5173
 ```bash
 # Health check
 curl http://localhost:3001/api/health
-# → {"status":"ok","service":"ShareSpot API",...}
+# → {"status":"ok","service":"अnvesha API",...}
 
 # Frontend
 open http://localhost:5173
@@ -170,7 +170,7 @@ For a production deployment, build the client (`npm run build`) and serve `clien
 
 ## Database Setup
 
-The app uses **SQLite** via `better-sqlite3`. The database file is created at `server/data/sharespot.db` automatically on first server start (schema is applied via `IF NOT EXISTS` statements).
+The app uses **SQLite** via `better-sqlite3`. The database file is created at `server/data/अnvesha.db` automatically on first server start (schema is applied via `IF NOT EXISTS` statements).
 
 ```bash
 # Seed demo data (users, events, locket moments, messages)
