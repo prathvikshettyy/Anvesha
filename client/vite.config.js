@@ -14,16 +14,16 @@ export default defineConfig({
     https: true,    // HTTPS required for getUserMedia on non-localhost origins
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
       },
       // Socket.IO — forward both HTTP handshake polling and WebSocket upgrade
       '/socket.io': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         ws: true,
       },
