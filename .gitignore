@@ -76,6 +76,24 @@ docs/IMPLEMENTATION_CHECKLIST.md
 server/uploads/
 !server/uploads/locket/.gitkeep
 
+# Tests & test directories (untracked for bug bounty submission)
+server/tests/
+*.test.*
+*.spec.*
+__tests__/
+coverage/
+
+# Databases
+*.sqlite
+*.sqlite3
+
+# Environment
+.env.*
+!.env.example
+
+# Internal specs & scratch files
+spec.md
+spec*.md
 
 .dockerignore
 Dockerfile
