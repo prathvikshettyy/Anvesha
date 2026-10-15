@@ -9,6 +9,11 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { db } from './index.js';
 
+if (process.env.NODE_ENV && process.env.NODE_ENV.toLowerCase() === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.log('[Seed] Demo seeding disabled in production. Set ALLOW_DEMO_SEED=true to override.');
+  process.exit(0);
+}
+
 console.log('[Seed] Starting database seed...');
 
 const HASH_ROUNDS = 10;
@@ -286,7 +291,7 @@ const events = [
     organizer: 'Udupi Yakshagana Kendra',
     image_url: '/images/yakshagana-art-bg.png',
     description: 'A full night of traditional Yakshagana performance — live Maddale drumming, elaborate makeup, and stories from the Puranas.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 64, submitted_by: 'usr_arjun',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 64, submitted_by: 'usr_arjun',
   },
   {
     id: 'evt_2', title: 'Mysuru Dasara Cultural Procession Prep Circle', category: 'festivals', category_label: 'Festivals & Celebrations',
@@ -295,7 +300,7 @@ const events = [
     organizer: 'Mysuru Dasara Committee',
     image_url: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
     description: 'Volunteers and performers rehearse float decorations and folk-dance formations ahead of the famous Mysuru Dasara procession.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 41, submitted_by: 'usr_ananya',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 41, submitted_by: 'usr_ananya',
   },
   {
     id: 'evt_3', title: 'Bengaluru Tech & Culture Hackathon', category: 'technology', category_label: 'Technology & Hackathons',
@@ -304,7 +309,7 @@ const events = [
     organizer: 'Bengaluru Builders Collective',
     image_url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80',
     description: 'A 24-hour hackathon with a twist: every team must build something that helps preserve or share a regional Indian language or tradition.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 120, submitted_by: 'usr_vikram',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 120, submitted_by: 'usr_vikram',
   },
   {
     id: 'evt_4', title: 'Hubballi Hindustani Classical Evening', category: 'music', category_label: 'Folk & Classical Music',
@@ -322,7 +327,7 @@ const events = [
     organizer: 'Kodagu Heritage Trust',
     image_url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=800&auto=format&fit=crop&q=80',
     description: 'Hands-on Kodava embroidery (Kodagu thoni) session, taught by local artisans using techniques passed down for generations.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 19, submitted_by: 'usr_kavya',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 19, submitted_by: 'usr_kavya',
   },
   {
     id: 'evt_6', title: 'Mangaluru Konkani & Tulu Literature Meet', category: 'literature', category_label: 'Books & Literature',
@@ -331,7 +336,7 @@ const events = [
     organizer: 'Mangaluru Dialect Collective',
     image_url: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=800&auto=format&fit=crop&q=80',
     description: 'Readings and open discussion of contemporary Konkani and Tulu short stories, followed by a casual dialect-practice circle.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 22, submitted_by: 'usr_priya',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 22, submitted_by: 'usr_priya',
   },
   {
     id: 'evt_7', title: 'Gokarna Coastal Folklore Film Night', category: 'film', category_label: 'Film & Theatre',
@@ -349,7 +354,7 @@ const events = [
     organizer: 'Science Gallery Bengaluru',
     image_url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
     description: 'Free open day with hands-on exhibits exploring the science behind traditional Indian crafts, textiles, and instruments.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 88, submitted_by: 'usr_aditya',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 88, submitted_by: 'usr_aditya',
   },
   {
     id: 'evt_9', title: 'Jaipur Desert Folk Ballads Night', category: 'music', category_label: 'Folk & Classical Music',
@@ -358,7 +363,7 @@ const events = [
     organizer: 'Rajasthan Folk Arts Society',
     image_url: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&auto=format&fit=crop&q=80',
     description: 'Manganiyar and Langa folk musicians perform Rajasthani desert ballads on sarangi and dholak.',
-    source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 73, submitted_by: 'usr_meera',
+    source_url: '', source_label: 'Community Submitted', verification_status: 'COMMUNITY_REPORTED', attendee_count: 73, submitted_by: 'usr_meera',
   },
   {
     id: 'evt_10', title: 'Kolkata Baul Poetry & Community Circle', category: 'community', category_label: 'Dialect & Community Circles',

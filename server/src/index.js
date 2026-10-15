@@ -22,30 +22,92 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CLIENT_DIST = path.resolve(__dirname, '..', '..', 'client', 'dist');
 
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const corsOrigin = process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN : true;
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+const rawOrigin = process.env.CLIENT_ORIGIN;
+let corsOrigin;
+if (process.env.NODE_ENV === 'production') {
+  if (!rawOrigin || rawOrigin.trim() === '*' || rawOrigin.trim() === '') {
+    console.error('[FATAL] CLIENT_ORIGIN must be configured in production and cannot be a wildcard');
+    process.exit(1);
+  } else {
+    corsOrigin = rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim();
+  }
+} else {
+  corsOrigin = rawOrigin ? (rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim()) : true;
+}
 
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
 }));
 
+// ── Security Headers via Helmet ───────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://images.unsplash.com",
+        "https://*.tile.openstreetmap.fr",
+        "https://*.tile.openstreetmap.org",
+      ],
+      mediaSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.tailwindcss.com"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+}));
+
+// Rate limiters for abuse prevention
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Strict limit: 20 failed attempts per 15 mins
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again later.' },
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 300, // 300 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+app.use('/api', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 app.use(express.json({ limit: '2mb' })); // 2MB cap — covers base64 audio clips
 app.use(express.urlencoded({ extended: false }));
-
-// ── Security Headers ──────────────────────────────────────────────────────────
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  next();
-});
 
 // ── Static file serving — real uploaded Culture Locket recordings & avatars ────
 app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders: (res, filePath) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     const lower = filePath.toLowerCase();
     if (lower.endsWith('.webm')) {
       res.setHeader('Content-Type', 'audio/webm');
@@ -61,7 +123,11 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
     res.setHeader('Accept-Ranges', 'bytes');
   },
 }));
-app.use('/avatars', express.static(path.join(UPLOADS_DIR, 'avatars')));
+app.use('/avatars', express.static(path.join(UPLOADS_DIR, 'avatars'), {
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+}));
 
 // ── Request logging (dev only) ────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
@@ -71,8 +137,10 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ── API Documentation (Swagger UI) ───────────────────────────────────────────
-setupSwagger(app, '/api/docs');
+// ── API Documentation (Swagger UI) — dev/opt-in only ─────────────────────────
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DOCS === 'true') {
+  setupSwagger(app, '/api/docs');
+}
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);
@@ -191,6 +259,34 @@ if (isMain) {
     console.log(`[Server] Realtime: Socket.IO attached`);
   });
 }
+
+// ── Process Safety & Graceful Shutdown ────────────────────────────────────────
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception:', err);
+});
+
+function gracefulShutdown(signal) {
+  console.log(`[Server] Received ${signal}. Shutting down gracefully...`);
+  if (server) {
+    server.close(() => {
+      console.log('[Server] HTTP and Socket server closed.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error('[Server] Forcefully terminating after timeout.');
+      process.exit(1);
+    }, 5000).unref();
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app, server };
 export default app;

@@ -65,6 +65,17 @@ router.get('/:partnerId', requireAuth, (req, res) => {
   res.json({ partner, messages });
 });
 
+function isConnected(userId1, userId2) {
+  const row = db.prepare(`
+    SELECT 1 FROM connections
+    WHERE status = 'CONNECTED' AND (
+      (requester_id = ? AND receiver_id = ?) OR
+      (requester_id = ? AND receiver_id = ?)
+    )
+  `).get(userId1, userId2, userId2, userId1);
+  return Boolean(row);
+}
+
 // ── POST /api/messages/:partnerId — send a message ───────────────────────────
 router.post('/:partnerId',
   requireAuth,
@@ -77,6 +88,10 @@ router.post('/:partnerId',
 
     const partner = db.prepare('SELECT id FROM users WHERE id = ?').get(partnerId);
     if (!partner) return res.status(404).json({ error: 'User not found' });
+
+    if (!isConnected(req.user.id, partnerId)) {
+      return res.status(403).json({ error: 'Messaging is only permitted between connected peers' });
+    }
 
     const { text } = req.body;
     if (text.length > 2000) return res.status(400).json({ error: 'Message too long (max 2000 chars)' });
@@ -111,6 +126,9 @@ router.post('/:partnerId',
 
 // ── GET /api/messages/:partnerId/online — lightweight presence check ───────
 router.get('/:partnerId/online', requireAuth, (req, res) => {
+  if (!isConnected(req.user.id, req.params.partnerId)) {
+    return res.status(403).json({ error: 'Presence check is only permitted between connected peers' });
+  }
   res.json({ online: isOnline(req.params.partnerId) });
 });
 

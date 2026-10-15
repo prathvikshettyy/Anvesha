@@ -16,6 +16,7 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
   const [selectedInterests, setSelectedInterests] = useState(initialUserInterests);
   const [intentions, setIntentions] = useState({}); // { [interestId]: intentionId }
   const [preferredMode, setPreferredMode] = useState('BOTH');
+  const [isDiscoverable, setIsDiscoverable] = useState(false);
 
   const citySuggestions = useMemo(() => citiesForState(state), [state]);
 
@@ -55,6 +56,7 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
         intention: intentions[id] || 'CASUAL_ENTHUSIAST',
       })),
       preferredMode,
+      is_discoverable: isDiscoverable ? 1 : 0,
     });
   };
 
@@ -211,6 +213,26 @@ export default function OnboardingView({ onComplete, initialUserInterests = ['cu
               </label>
             ))}
           </div>
+        </div>
+
+        {/* Discoverability Opt-in */}
+        <div className="p-4 rounded-2xl bg-cream-canvas border border-blush-surface space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDiscoverable}
+              onChange={(e) => setIsDiscoverable(e.target.checked)}
+              className="mt-1 w-4 h-4 rounded border-blush-surface text-terra-primary focus:ring-terra-primary/30 accent-terra-primary"
+            />
+            <div>
+              <span className="font-bold text-xs sm:text-sm text-cocoa-text block">
+                Make my profile discoverable to other cultural explorers
+              </span>
+              <span className="text-xs text-cocoa-text/75 block mt-0.5">
+                When enabled, other community members in your area can discover your profile, invite you to circles, and exchange skills. You can change this at any time in your profile settings.
+              </span>
+            </div>
+          </label>
         </div>
 
         {/* Location / Privacy Note */}

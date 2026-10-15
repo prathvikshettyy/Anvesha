@@ -216,11 +216,11 @@ export default function EventDetailModal({
               <span className="font-bold text-cocoa-text">Source Lead:</span>
               <p className="text-cocoa-text/70 mt-0.5">{event.sourceLabel}</p>
             </div>
-            {event.sourceUrl && (
+            {event.sourceUrl && (/^https?:\/\//i.test(event.sourceUrl) || event.sourceUrl.startsWith('/')) && (
               <a
                 href={event.sourceUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blush-surface/50 hover:bg-blush-surface text-cocoa-text font-bold transition-all"
               >
                 <span>View Source</span>
