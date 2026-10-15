@@ -579,6 +579,11 @@ export default function App() {
         onOpenCommunity={handleOpenCommunity}
         onJoinCommunity={handleJoinCommunity}
         communities={communities}
+        currentUser={user}
+        isAuthenticated={!!authUser}
+        onEventUpdated={(stats) => {
+          setEvents(prev => prev.map(e => e.id === stats.id ? { ...e, averageRating: stats.averageRating, reviewCount: stats.reviewCount } : e));
+        }}
       />
 
       <LocketModal

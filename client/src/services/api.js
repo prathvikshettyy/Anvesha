@@ -114,6 +114,26 @@ export const events = {
    * @returns {{ saved: boolean }}
    */
   toggleSave: (id) => post(`/events/${id}/save`),
+
+  /**
+   * Get reviews and rating stats for an event.
+   * @param {string} id
+   * @returns {{ reviews: Array, stats: { averageRating, reviewCount, distribution }, userReview: Object|null }}
+   */
+  reviews: (id) => get(`/events/${id}/reviews`),
+
+  /**
+   * Submit or update an attendee review (rating 1-5 and optional feedback).
+   * @param {string} id
+   * @param {{ rating: number, feedback?: string }} data
+   */
+  submitReview: (id, data) => post(`/events/${id}/reviews`, data),
+
+  /**
+   * Delete logged-in user's review for an event.
+   * @param {string} id
+   */
+  deleteReview: (id) => del(`/events/${id}/reviews`),
 };
 
 // ── People ────────────────────────────────────────────────────────────────────

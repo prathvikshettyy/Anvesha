@@ -643,6 +643,123 @@ async function runTests() {
     const leaveData = await leaveRes.json();
     assert(leaveData.isMember === false, 'Community leave confirmed');
 
+    // ─── [Test Suite 8/8] Event Feedback & Rating System ───────────────────────
+    console.log('\n[Test Suite 8/8] Event Feedback & Rating System');
+
+    const testEventId = 'evt_1';
+
+    // 1. Fetch reviews for event
+    const getReviewsRes = await fetch(`${BASE}/events/${testEventId}/reviews`);
+    assert(getReviewsRes.status === 200, 'GET /api/events/:id/reviews returns 200');
+    const reviewData = await getReviewsRes.json();
+    assert(Array.isArray(reviewData.reviews), 'Reviews response contains reviews array');
+    assert(reviewData.stats && typeof reviewData.stats === 'object', 'Reviews response contains stats object');
+    assert(reviewData.stats.averageRating !== undefined, 'Stats contain averageRating');
+    assert(reviewData.stats.reviewCount >= 1, 'Stats contain reviewCount matching seeded reviews');
+    assert(reviewData.stats.distribution && reviewData.stats.distribution['5'] >= 1, 'Stats contain star rating distribution');
+    assert(reviewData.reviews[0].user && reviewData.reviews[0].user.name, 'Reviews include reviewer profile details');
+
+    // 2. Unauthenticated POST /api/events/:id/reviews returns 401
+    const unauthReviewRes = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: 5, feedback: 'Should fail' }),
+    });
+    assert(unauthReviewRes.status === 401, 'Unauthenticated review submission returns 401');
+
+    // 3. Validation: Rating must be 1 to 5 integer
+    const invalidRatingRes1 = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rating: 0, feedback: 'Too low' }),
+    });
+    assert(invalidRatingRes1.status === 400, 'Rating < 1 returns 400 Bad Request');
+
+    const invalidRatingRes2 = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rating: 6, feedback: 'Too high' }),
+    });
+    assert(invalidRatingRes2.status === 400, 'Rating > 5 returns 400 Bad Request');
+
+    const invalidRatingRes3 = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rating: 4.5, feedback: 'Non-integer rating' }),
+    });
+    assert(invalidRatingRes3.status === 400, 'Non-integer rating returns 400 Bad Request');
+
+    // 4. Submit valid review as Rohan
+    const submitReviewRes = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rating: 5,
+        feedback: 'Incredible Yakshagana makeup demonstration! Learned so much about natural pigments.',
+      }),
+    });
+    assert(
+      submitReviewRes.status === 201 || submitReviewRes.status === 200,
+      'POST /api/events/:id/reviews returns 201 or 200'
+    );
+    const submittedReviewData = await submitReviewRes.json();
+    assert(submittedReviewData.review && submittedReviewData.review.rating === 5, 'Review persisted with 5 star rating');
+    assert(submittedReviewData.review.user.username === 'rohan', 'Review associated with authenticated user profile');
+
+    // 5. Verify event details includes updated average rating and review count
+    const getEventWithRating = await fetch(`${BASE}/events/${testEventId}`);
+    assert(getEventWithRating.status === 200, 'GET /api/events/:id returns 200 with rating');
+    const eventWithRating = await getEventWithRating.json();
+    assert(typeof eventWithRating.averageRating === 'number', 'Event details includes computed averageRating');
+    assert(eventWithRating.reviewCount >= 1, 'Event details includes computed reviewCount');
+
+    // 6. Edit/Update existing review (duplicate submission updates review instead of creating duplicate)
+    const updateReviewRes = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rating: 4,
+        feedback: 'Updated review: The Tala Maddale discussion was brilliant, though venue was packed!',
+      }),
+    });
+    assert(updateReviewRes.status === 200, 'Re-submitting review returns 200 and updates existing review');
+    const updatedReviewData = await updateReviewRes.json();
+    assert(updatedReviewData.review.rating === 4, 'Rating updated to 4 stars');
+    assert(updatedReviewData.review.feedback.includes('Updated review'), 'Feedback text updated');
+
+    // 7. Verify single review per user (no duplicate rows in database)
+    const verifySingleReviewRes = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    const verifySingleData = await verifySingleReviewRes.json();
+    const rohanReviews = verifySingleData.reviews.filter(r => r.userId === 'usr_rohan');
+    assert(rohanReviews.length === 1, 'User has strictly one review per event (no duplicates)');
+    assert(verifySingleData.userReview && verifySingleData.userReview.userId === 'usr_rohan', 'Authenticated userReview returned');
+
+    // 8. Delete review
+    const deleteReviewRes = await fetch(`${BASE}/events/${testEventId}/reviews`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(deleteReviewRes.status === 200, 'DELETE /api/events/:id/reviews returns 200');
+    const deleteData = await deleteReviewRes.json();
+    assert(deleteData.message.includes('deleted'), 'Review deletion confirmed');
+
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
     console.log('='.repeat(55) + '\n');

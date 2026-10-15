@@ -267,6 +267,70 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     attendeeCount: { type: 'integer', example: 240 },
                     isOnline: { type: 'boolean', example: false },
                     save_count: { type: 'integer', example: 14 },
+                    averageRating: { type: 'number', nullable: true, example: 4.8 },
+                    reviewCount: { type: 'integer', example: 12 },
+                },
+            },
+            EventReview: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', example: 'rev_manipal_priya' },
+                    eventId: { type: 'string', example: 'evt_1' },
+                    userId: { type: 'string', example: 'usr_priya' },
+                    rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+                    feedback: { type: 'string', example: 'The Yakshagana performance was breathtaking.' },
+                    createdAt: { type: 'string', format: 'date-time', example: '2026-10-12T10:00:00.000Z' },
+                    updatedAt: { type: 'string', format: 'date-time', example: '2026-10-12T10:00:00.000Z' },
+                    user: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', example: 'usr_priya' },
+                            name: { type: 'string', example: 'Priya Rao' },
+                            username: { type: 'string', example: 'priya' },
+                            avatar: { type: 'string', example: '/avatars/priya.jpg' },
+                            city: { type: 'string', example: 'Udupi' },
+                            state: { type: 'string', example: 'Karnataka' },
+                        },
+                    },
+                },
+            },
+            EventReviewStats: {
+                type: 'object',
+                properties: {
+                    averageRating: { type: 'number', nullable: true, example: 4.7 },
+                    reviewCount: { type: 'integer', example: 3 },
+                    distribution: {
+                        type: 'object',
+                        properties: {
+                            1: { type: 'integer', example: 0 },
+                            2: { type: 'integer', example: 0 },
+                            3: { type: 'integer', example: 0 },
+                            4: { type: 'integer', example: 1 },
+                            5: { type: 'integer', example: 2 },
+                        },
+                    },
+                },
+            },
+            EventReviewsResponse: {
+                type: 'object',
+                properties: {
+                    reviews: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/EventReview' },
+                    },
+                    stats: { $ref: '#/components/schemas/EventReviewStats' },
+                    userReview: {
+                        nullable: true,
+                        allOf: [{ $ref: '#/components/schemas/EventReview' }],
+                    },
+                },
+            },
+            CreateEventReviewRequest: {
+                type: 'object',
+                required: ['rating'],
+                properties: {
+                    rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+                    feedback: { type: 'string', maxLength: 2000, example: 'Magnificent performance and authentic costume detailing.' },
                 },
             },
             CreateEventRequest: {
@@ -847,6 +911,166 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     },
                     404: {
                         description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/events/{id}/reviews': {
+            get: {
+                tags: ['Events'],
+                summary: 'Get attendee reviews and rating statistics for an event',
+                description: 'Returns all submitted reviews for the event with reviewer profile data, average rating, count, and star distribution. If authenticated, includes current user review.',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Reviews and statistics retrieved',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/EventReviewsResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+            post: {
+                tags: ['Events'],
+                summary: 'Submit or edit an attendee review for an event',
+                description: 'Allows an authenticated attendee to submit a 1 to 5 star rating and optional written feedback. If the user already reviewed this event, updates the existing review.',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/CreateEventReviewRequest' },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Review updated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review updated successfully' },
+                                        review: { $ref: '#/components/schemas/EventReview' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    201: {
+                        description: 'Review submitted successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review submitted successfully' },
+                                        review: { $ref: '#/components/schemas/EventReview' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    400: {
+                        description: 'Validation error (rating not integer 1-5 or feedback too long)',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+            delete: {
+                tags: ['Events'],
+                summary: 'Delete user review for an event',
+                description: 'Deletes the authenticated user review for the specified event.',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Review deleted successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review deleted successfully' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Review or event not found',
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' },

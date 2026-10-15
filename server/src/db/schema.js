@@ -199,6 +199,21 @@ export function applySchema(db) {
     CREATE INDEX IF NOT EXISTS idx_comm_event ON communities(event_id);
     CREATE INDEX IF NOT EXISTS idx_comm_members ON community_members(user_id, community_id);
     CREATE INDEX IF NOT EXISTS idx_comm_messages ON community_messages(community_id, sent_at);
+
+    -- ─── Event Reviews & Ratings ────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS event_reviews (
+      id         TEXT PRIMARY KEY,
+      event_id   TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating     INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      feedback   TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(event_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_event_reviews_event ON event_reviews(event_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_event_reviews_user ON event_reviews(user_id);
   `);
 
   migrateLegacyColumns(db);

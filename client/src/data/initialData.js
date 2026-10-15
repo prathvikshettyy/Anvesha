@@ -65,6 +65,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Instagram (@yakshagana_kendra)',
     verificationStatus: 'VERIFIED',
     attendeeCount: 142,
+    averageRating: 4.7,
+    reviewCount: 3,
     isSaved: true
   },
   {
@@ -90,6 +92,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Meetup Community Circle',
     verificationStatus: 'COMMUNITY_REPORTED',
     attendeeCount: 38,
+    averageRating: 5.0,
+    reviewCount: 1,
     isSaved: false
   },
   {
@@ -115,6 +119,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Verified on Luma',
     verificationStatus: 'VERIFIED',
     attendeeCount: 180,
+    averageRating: 5.0,
+    reviewCount: 1,
     isSaved: false
   },
   {

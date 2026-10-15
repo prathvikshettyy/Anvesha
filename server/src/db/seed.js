@@ -715,5 +715,70 @@ const insertCommMsg = db.prepare(`
 for (const cm of commMessages) insertCommMsg.run(cm);
 console.log(`[Seed] Inserted ${commMessages.length} community messages`);
 
+// ─── Seed Event Reviews & Ratings ───────────────────────────────────────────
+const eventReviews = [
+  {
+    id: 'rev_manipal_priya',
+    event_id: 'evt_1',
+    user_id: 'usr_priya',
+    rating: 5,
+    feedback: 'The Yakshagana troupe performance at KMC Greens was breathtaking. The elaborate headgear and live Chenda percussion gave everyone goosebumps!',
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+  {
+    id: 'rev_manipal_vikram',
+    event_id: 'evt_1',
+    user_id: 'usr_vikram',
+    rating: 5,
+    feedback: 'Very well-organized cultural gathering. Loved the interactive artisan kiosks demonstrating traditional Udupi saree weaving techniques.',
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'rev_manipal_kavya',
+    event_id: 'evt_1',
+    user_id: 'usr_kavya',
+    rating: 4,
+    feedback: 'Inspiring atmosphere and great turn out of students. The sound system for the folk dance demo could have been slightly louder towards the back, but otherwise outstanding!',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'rev_dasara_arjun',
+    event_id: 'evt_2',
+    user_id: 'usr_arjun',
+    rating: 5,
+    feedback: 'Experiencing the Mysore Dasara heritage circle in person is truly unforgettable. The classical Carnatic concerts and palace lighting left us mesmerized.',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+  {
+    id: 'rev_hackathon_ananya',
+    event_id: 'evt_3',
+    user_id: 'usr_ananya',
+    rating: 5,
+    feedback: 'Phenomenal hackathon combining AI with indigenous dialect preservation and living heritage. Mentors provided insightful guidance on vernacular NLP.',
+    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+  },
+  {
+    id: 'rev_cooking_meera',
+    event_id: 'evt_4',
+    user_id: 'usr_meera',
+    rating: 5,
+    feedback: 'Learned the genuine secret to Udupi rasam and tempering spices directly from temple culinary masters. Delightful hands-on workshop!',
+    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+];
+
+const insertReview = db.prepare(`
+  INSERT OR IGNORE INTO event_reviews (id, event_id, user_id, rating, feedback, created_at, updated_at)
+  VALUES (@id, @event_id, @user_id, @rating, @feedback, @created_at, @updated_at)
+`);
+for (const r of eventReviews) insertReview.run(r);
+console.log(`[Seed] Inserted ${eventReviews.length} event reviews`);
+
 console.log('[Seed] Done! Demo accounts (password: demo1234): rohan, priya, arjun, ananya, kavya, vikram, aditya, meera');
 
