@@ -1,4 +1,4 @@
-# ShareSpot: The Lost Connection
+# अnvesha: The Lost Connection
 
 > **M# Manipal Hackathon 2026 · Round 2 · Culture & Community Track**  
 > Team: **TEAMAPPEX**
