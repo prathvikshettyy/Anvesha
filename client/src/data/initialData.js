@@ -727,12 +727,30 @@ export const INITIAL_LOCKET_MOMENTS = [
     momentType: 'CRAFT_STEP',
     title: 'Yakshagana Kireeta Crown Gold-Leafing',
     vernacularText: 'ಕಿರೀಟ ಕಸೂತಿ (Kireeta Kasooti)',
+    recipeQuestion: 'Which natural tree gum adhesive is traditionally boiled to make beaten gold leaf bind to teak wood?',
     meaning: 'Applying natural gum and beaten metal foil to hand-carved teak wood for the Yakshagana headdress.',
     provenance: 'Demonstrated at the artisan shed in Saligrama',
     image: '/images/heritage-tapestry-bg.png',
     timestamp: 'Yesterday',
     reactions: [
       { id: 'r2', user: 'Rohan', text: 'Stunning craftsmanship!' }
+    ]
+  },
+  {
+    id: 'lok_3',
+    senderId: 'usr_ananya',
+    senderName: 'Ananya Rao',
+    senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    momentType: 'CRAFT_STEP',
+    title: 'Mangalore Buns Recipe Step',
+    vernacularText: 'ಮಂಗಳೂರು ಬನ್ಸ್ (Mangalore Buns)',
+    recipeQuestion: 'Why must we ferment the dough with overripe bananas and sour curd for 8 hours instead of commercial yeast?',
+    meaning: 'The natural fruit enzymes in overripe Cavendish bananas slowly ferment the wheat starches while sour curd lactobacillus provides the gentle rise without commercial yeast, yielding the signature golden puff.',
+    provenance: 'Family recipe preserved from grandmother in Udupi',
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80',
+    timestamp: '3 hours ago',
+    reactions: [
+      { id: 'r3', user: 'Rohan', text: '💡 Natural banana enzymes give it that fragrant sweetness!' }
     ]
   }
 ];

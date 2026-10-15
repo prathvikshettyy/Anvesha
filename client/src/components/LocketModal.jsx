@@ -6,6 +6,13 @@ import * as api from '../services/api';
 const BAR_COUNT = 40;
 const MAX_REC_SECONDS = 30;
 
+const RECIPE_QUESTION_PROMPTS = [
+  'Why is this ingredient essential to the fermentation or taste?',
+  'What secret technique prevents this dish from itching or spoiling?',
+  'Which traditional vessel gives this its authentic aroma?',
+  'What happens if you alter the cooking temperature or timing?',
+];
+
 // ─── MIME probe — pick best format this browser supports ──────────────────────
 function getBestMime() {
   if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
@@ -34,6 +41,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const [phoneticText, setPhoneticText]      = useState('');
   const [meaning, setMeaning]               = useState('');
   const [provenance, setProvenance]          = useState('');
+  const [recipeQuestion, setRecipeQuestion]  = useState('');
   const [submitting, setSubmitting]          = useState(false);
   const [submitError, setSubmitError]        = useState('');
 
@@ -125,6 +133,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
       setPhoneticText('');
       setMeaning('');
       setProvenance('');
+      setRecipeQuestion('');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -348,10 +357,16 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
     }
   };
 
+  const isRecipe = momentType === 'CRAFT_STEP';
+
   // ── Form submit ──────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!vernacularText.trim() || !meaning.trim()) return;
+    if (isRecipe && !recipeQuestion.trim()) {
+      setSubmitError('Please add a question based on your recipe for your circle to answer.');
+      return;
+    }
     setSubmitError('');
 
     if (!api.token.get()) {
@@ -372,10 +387,13 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
 
     const payload = {
       moment_type:     momentType,
+      title:           isRecipe ? `${vernacularText.trim()} Recipe Step` : 'Dialect Word of the Day',
       vernacular_text: vernacularText.trim(),
       meaning:         meaning.trim(),
+      recipe_question: isRecipe ? recipeQuestion.trim() : '',
+      recipeQuestion:  isRecipe ? recipeQuestion.trim() : '',
       phonetic_text:   phoneticText.trim() || `/${vernacularText.trim().toLowerCase().replace(/\s+/g, '-')}/`,
-      provenance:      provenance.trim() || 'Preserved from coastal family traditions',
+      provenance:      provenance.trim() || (isRecipe ? 'Heirloom family kitchen tradition' : 'Preserved from coastal family traditions'),
       audio_url:       finalAudioUrl || '',
       audio_duration:  finalDuration || (recSeconds > 0 ? `0:${String(recSeconds).padStart(2, '0')}` : ''),
       recipient_id:    targetRecipientId,
@@ -489,7 +507,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
           <div className="rounded-2xl bg-surface-container/60 border border-blush-surface overflow-hidden">
             <div className="px-4 pt-4 pb-2 flex items-center justify-between">
               <span className="font-bold text-xs uppercase tracking-wider text-terra-primary">
-                🎙️ Voice Pronunciation Clip
+                {isRecipe ? '🎙️ Recipe Voice Note / Cooking Secret' : '🎙️ Voice Pronunciation Clip'}
               </span>
               <span className="text-[11px] text-cocoa-text/50">
                 {recState === 'recording'   ? `${fmtTime(recSeconds)} / ${fmtTime(MAX_REC_SECONDS)}`
@@ -551,7 +569,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
                 <button type="button" onClick={startRecording}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:brightness-110 shadow-sm transition-all active:scale-95">
                   <Mic className="w-3.5 h-3.5" />
-                  {recState === 'denied' ? 'Try Again' : 'Record Native Pronunciation'}
+                  {recState === 'denied' ? 'Try Again' : isRecipe ? 'Record Cooking Secret or Voice Note' : 'Record Native Pronunciation'}
                 </button>
               )}
 
@@ -579,7 +597,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
 
                   <button type="button" onClick={discardRecording}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-blush-surface hover:bg-blush-surface/50 text-cocoa-text/70 font-semibold text-xs transition-all active:scale-95">
-                    <RotateCcw className="w-3 h-3" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     Re-record
                   </button>
 
@@ -592,7 +610,7 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
 
                   {uploading && (
                     <span className="flex items-center gap-1.5 text-xs text-cocoa-text/50">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Uploading…
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…
                     </span>
                   )}
 
@@ -610,40 +628,91 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
             )}
           </div>
 
-          {/* Vernacular */}
+          {/* Dish / Vernacular Name */}
           <div>
             <label className="block font-bold text-cocoa-text text-xs mb-1">
-              Vernacular Text / Word <span className="text-terra-primary">*</span>
+              {isRecipe ? 'Traditional Dish or Recipe Name' : 'Vernacular Text / Word'} <span className="text-terra-primary">*</span>
             </label>
             <input type="text" required
-              placeholder="e.g., ಸೊಲ್ಮೆಲು (Solmelu) or Encha Uller"
+              placeholder={isRecipe ? "e.g., Mangalore Buns, Patrode, Neer Dosa, Udupi Saaru" : "e.g., ಸೊಲ್ಮೆಲು (Solmelu) or Encha Uller"}
               value={vernacularText} onChange={e => setVernacularText(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>
 
-          {/* Phonetic */}
+          {/* ── QUESTION BASED ON RECIPE (Specifically for Craft/Recipe steps) ── */}
+          {isRecipe && (
+            <div className="p-3.5 rounded-2xl bg-terra-primary/5 border border-terra-primary/25 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block font-bold text-terra-primary text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <span>❓ Question based on Recipe</span>
+                  <span className="text-terra-primary">*</span>
+                </label>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cream-canvas text-cocoa-text/80 border border-blush-surface font-semibold">
+                  For Circle to Guess
+                </span>
+              </div>
+              <p className="text-[11px] text-cocoa-text/70 leading-relaxed">
+                Pose a cultural riddle, fermentation puzzle, or culinary question to your connections about this dish or technique:
+              </p>
+              <textarea
+                rows={2}
+                required={isRecipe}
+                placeholder="e.g., Why do we ferment the dough with overripe bananas and sour curd for 8 hours instead of commercial yeast?"
+                value={recipeQuestion}
+                onChange={e => setRecipeQuestion(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-terra-primary/30 bg-cream-canvas text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/40 text-xs sm:text-sm font-medium"
+              />
+
+              {/* Clickable quick recipe question prompt starters */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cocoa-text/60">
+                  Quick question ideas (click to use):
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {RECIPE_QUESTION_PROMPTS.map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setRecipeQuestion(prompt)}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-cream-canvas hover:bg-terra-primary/10 hover:text-terra-primary border border-blush-surface text-cocoa-text/80 transition-all text-left shadow-2xs hover:border-terra-primary/40 cursor-pointer"
+                    >
+                      💡 {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Regional / Phonetic Term */}
           <div>
-            <label className="block font-bold text-cocoa-text text-xs mb-1">Phonetic Reading (Optional)</label>
-            <input type="text" placeholder="e.g., /sol-me-lu/"
+            <label className="block font-bold text-cocoa-text text-xs mb-1">
+              {isRecipe ? 'Regional Dish Name / Dialect Reading (Optional)' : 'Phonetic Reading (Optional)'}
+            </label>
+            <input type="text"
+              placeholder={isRecipe ? "e.g., ಮಂಗಳೂರು ಬನ್ಸ್ or /man-ga-loor buns/" : "e.g., /sol-me-lu/"}
               value={phoneticText} onChange={e => setPhoneticText(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30 font-mono text-xs" />
           </div>
 
-          {/* Meaning */}
+          {/* Technique / Meaning */}
           <div>
             <label className="block font-bold text-cocoa-text text-xs mb-1">
-              Meaning &amp; Cultural Context <span className="text-terra-primary">*</span>
+              {isRecipe ? 'Secret Technique & Recipe Step' : 'Meaning & Cultural Context'} <span className="text-terra-primary">*</span>
             </label>
             <textarea required rows={2}
-              placeholder="Explain what it means and how it is customarily spoken…"
+              placeholder={isRecipe ? "Describe the exact preparation step, family cooking secret, or grandmother's technique..." : "Explain what it means and how it is customarily spoken…"}
               value={meaning} onChange={e => setMeaning(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>
 
           {/* Provenance */}
           <div>
-            <label className="block font-bold text-cocoa-text text-xs mb-1">Cultural Provenance / Attribution</label>
-            <input type="text" placeholder="e.g., Learned from grandmother in Kundapura"
+            <label className="block font-bold text-cocoa-text text-xs mb-1">
+              {isRecipe ? 'Family Recipe Provenance / Attribution' : 'Cultural Provenance / Attribution'}
+            </label>
+            <input type="text"
+              placeholder={isRecipe ? "e.g., Learned from grandmother in Kundapura, heirloom kitchen secret" : "e.g., Learned from grandmother in Kundapura"}
               value={provenance} onChange={e => setProvenance(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>

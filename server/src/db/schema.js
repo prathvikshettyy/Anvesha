@@ -111,6 +111,7 @@ export function applySchema(db) {
       audio_url     TEXT DEFAULT '',
       image_url     TEXT DEFAULT '',
       audio_duration TEXT DEFAULT '',
+      recipe_question TEXT DEFAULT '',
       timestamp_iso TEXT DEFAULT (datetime('now'))
     );
 
@@ -264,6 +265,11 @@ function migrateLegacyColumns(db) {
     // add the column first, then backfill existing rows.
     db.exec(`ALTER TABLE users ADD COLUMN last_active_at TEXT`);
     db.exec(`UPDATE users SET last_active_at = datetime('now') WHERE last_active_at IS NULL`);
+  }
+
+  const locketColumns = db.prepare(`PRAGMA table_info(locket_moments)`).all().map(c => c.name);
+  if (!locketColumns.includes('recipe_question')) {
+    db.exec(`ALTER TABLE locket_moments ADD COLUMN recipe_question TEXT DEFAULT ''`);
   }
 }
 

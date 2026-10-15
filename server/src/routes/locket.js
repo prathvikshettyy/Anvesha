@@ -82,6 +82,8 @@ function formatMoment(row) {
     phoneticText: row.phonetic_text,
     meaning: row.meaning,
     provenance: row.provenance,
+    recipeQuestion: row.recipe_question || '',
+    recipe_question: row.recipe_question || '',
     audioUrl: row.audio_url,
     imageUrl: row.image_url,
     image: row.image_url,
@@ -208,6 +210,8 @@ router.get('/mine', requireAuth, (req, res) => {
       phonetic_text: row.phonetic_text,
       meaning: row.meaning,
       provenance: row.provenance,
+      recipeQuestion: row.recipe_question || '',
+      recipe_question: row.recipe_question || '',
       audioUrl: row.audio_url,
       audio_url: row.audio_url,
       imageUrl: row.image_url,
@@ -290,6 +294,7 @@ router.post('/',
     const recipient_id = req.body.recipient_id || req.body.recipientId || null;
     const phonetic_text = req.body.phonetic_text || req.body.phoneticText || '';
     const provenance = req.body.provenance || '';
+    const recipe_question = req.body.recipe_question || req.body.recipeQuestion || '';
     let audio_url = req.body.audio_url || req.body.audioUrl || '';
     const image_url = req.body.image_url || req.body.imageUrl || req.body.image || '';
     const audio_duration = req.body.audio_duration || req.body.audioDuration || '';
@@ -339,13 +344,14 @@ router.post('/',
     db.prepare(`
       INSERT INTO locket_moments
         (id, sender_id, recipient_id, moment_type, title, vernacular_text, phonetic_text,
-         meaning, provenance, audio_url, image_url, audio_duration, timestamp_iso)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+         meaning, provenance, audio_url, image_url, audio_duration, recipe_question, timestamp_iso)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       id, senderId, validRecipientId, moment_type, resolvedTitle,
       vernacular_text.slice(0, 500), phonetic_text.slice(0, 200),
       meaning.slice(0, 2000), provenance.slice(0, 500),
       audio_url, image_url, audio_duration.slice(0, 20),
+      recipe_question.slice(0, 1000),
       timestamp_iso
     );
 

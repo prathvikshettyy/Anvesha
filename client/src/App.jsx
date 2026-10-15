@@ -101,6 +101,7 @@ function normaliseMoment(m) {
     phoneticText: m.phonetic_text ?? m.phoneticText ?? '',
     meaning: m.meaning ?? '',
     provenance: m.provenance ?? '',
+    recipeQuestion: m.recipe_question ?? m.recipeQuestion ?? '',
     audioUrl: m.audio_url ?? m.audioUrl ?? '',
     imageUrl: m.image_url ?? m.imageUrl ?? m.image ?? '',
     image: m.image_url ?? m.imageUrl ?? m.image ?? '',
