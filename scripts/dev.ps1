@@ -59,8 +59,8 @@ Write-Host "====================================================" -ForegroundCol
 Write-Host "  ShareSpot Dev Server Starting..." -ForegroundColor Magenta
 Write-Host "  API  -> http://localhost:3001/api/health" -ForegroundColor Cyan
 Write-Host "  Docs -> http://localhost:3001/api/docs" -ForegroundColor Cyan
-Write-Host "  App  -> https://localhost:5173  (HTTPS - accept cert warning)" -ForegroundColor Green
-Write-Host "  LAN  -> https://${LanIp}:5173  (open this on mobile)" -ForegroundColor Yellow
+Write-Host "  App  -> http://localhost:5173" -ForegroundColor Green
+Write-Host "  LAN  -> http://${LanIp}:5173" -ForegroundColor Yellow
 Write-Host "====================================================" -ForegroundColor Magenta
 Write-Host ""
 

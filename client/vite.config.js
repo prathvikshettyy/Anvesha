@@ -2,16 +2,18 @@ import react from '@vitejs/plugin-react'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import { defineConfig } from 'vite'
 
+const useHttps = process.env.HTTPS === 'true'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    basicSsl(), // self-signed cert → enables getUserMedia on LAN (mobile)
+    ...(useHttps ? [basicSsl()] : []),
   ],
   server: {
     host: true,     // bind to 0.0.0.0 → accessible on the LAN
     port: 5173,
-    https: true,    // HTTPS required for getUserMedia on non-localhost origins
+    https: useHttps ? true : false,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3001',
