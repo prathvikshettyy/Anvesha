@@ -86,7 +86,14 @@ export default function WelcomeView({
         onGetStarted();
       }
     } catch (err) {
-      setAuthError(err.message || 'Authentication failed. Please try again.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('already taken')) {
+        setAuthError(`The username "${username}" is already registered. Please switch to "Sign In" above to log in!`);
+      } else if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')) {
+        setAuthError('Connection failed: Please check that the server is running on port 3001.');
+      } else {
+        setAuthError(msg || 'Authentication failed. Please try again.');
+      }
     } finally {
       setAuthLoading(false);
     }
