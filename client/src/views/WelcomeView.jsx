@@ -182,7 +182,7 @@ export default function WelcomeView({
           {/* Call to Actions */}
           <div className="pt-1 flex flex-wrap items-center gap-2.5 sm:gap-4 animate-hero-cta">
             <button
-              onClick={() => { setAuthMode('register'); setAuthError(''); setIsSignInOpen(true); }}
+              onClick={() => { setAuthMode('login'); setAuthError(''); setIsSignInOpen(true); }}
               className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas font-bold text-xs sm:text-sm shadow-warm transition-all flex items-center justify-center gap-2 hover:scale-105 cursor-pointer"
             >
               <span>Start exploring</span>
