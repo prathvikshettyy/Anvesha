@@ -356,10 +356,6 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!vernacularText.trim() || !meaning.trim()) return;
-    if (isRecipe && !phoneticText.trim()) {
-      setSubmitError('Please provide the Regional Dish Name / Dialect Reading.');
-      return;
-    }
     setSubmitError('');
 
     if (!api.token.get()) {
@@ -621,51 +617,48 @@ export default function LocketModal({ isOpen, onClose, onSendMoment, defaultReci
             )}
           </div>
 
-          {/* Dish / Vernacular Name */}
+          {/* Field 1: Local Name / Vernacular Word */}
           <div>
             <label className="block font-bold text-cocoa-text text-xs mb-1">
-              {isRecipe ? 'Traditional Dish or Recipe Name' : 'Vernacular Text / Word'} <span className="text-terra-primary">*</span>
+              {isRecipe ? 'Local Name / Pronunciation' : 'Vernacular Text / Word'} <span className="text-terra-primary">*</span>
             </label>
             <input type="text" required
-              placeholder={isRecipe ? "e.g., Mangalore Buns, Patrode, Neer Dosa, Udupi Saaru" : "e.g., ಸೊಲ್ಮೆಲು (Solmelu) or Encha Uller"}
+              placeholder={isRecipe ? "e.g., ಮಂಗಳೂರು ಬನ್ಸ್ (Mangalore Buns) or Patrode" : "e.g., ಸೊಲ್ಮೆಲು (Solmelu) or Encha Uller"}
               value={vernacularText} onChange={e => setVernacularText(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>
 
-          {/* Regional / Phonetic Term */}
-          <div>
-            <label className="block font-bold text-cocoa-text text-xs mb-1">
-              {isRecipe ? (
-                <>Regional Dish Name / Dialect Reading <span className="text-terra-primary">*</span></>
-              ) : (
-                'Phonetic Reading (Optional)'
-              )}
-            </label>
-            <input type="text"
-              required={isRecipe}
-              placeholder={isRecipe ? "e.g., ಮಂಗಳೂರು ಬನ್ಸ್ or /man-ga-loor buns/" : "e.g., /sol-me-lu/"}
-              value={phoneticText} onChange={e => setPhoneticText(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30 font-mono text-xs" />
-          </div>
+          {/* Phonetic Reading (for Dialect Word only) */}
+          {!isRecipe && (
+            <div>
+              <label className="block font-bold text-cocoa-text text-xs mb-1">
+                Phonetic Reading (Optional)
+              </label>
+              <input type="text"
+                placeholder="e.g., /sol-me-lu/"
+                value={phoneticText} onChange={e => setPhoneticText(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30 font-mono text-xs" />
+            </div>
+          )}
 
-          {/* Technique / Meaning */}
+          {/* Field 2: Description (for Recipe) / Meaning & Cultural Context (for Dialect) */}
           <div>
             <label className="block font-bold text-cocoa-text text-xs mb-1">
-              {isRecipe ? 'Secret Technique & Recipe Step' : 'Meaning & Cultural Context'} <span className="text-terra-primary">*</span>
+              {isRecipe ? 'Description' : 'Meaning & Cultural Context'} <span className="text-terra-primary">*</span>
             </label>
-            <textarea required rows={2}
-              placeholder={isRecipe ? "Describe the exact preparation step, family cooking secret, or grandmother's technique..." : "Explain what it means and how it is customarily spoken…"}
+            <textarea required rows={isRecipe ? 3 : 2}
+              placeholder={isRecipe ? "Describe the recipe, preparation technique, or heirloom craft step…" : "Explain what it means and how it is customarily spoken…"}
               value={meaning} onChange={e => setMeaning(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>
 
-          {/* Provenance */}
+          {/* Field 3: Source / Background (Optional) (for Recipe) / Cultural Provenance (for Dialect) */}
           <div>
             <label className="block font-bold text-cocoa-text text-xs mb-1">
-              {isRecipe ? 'Family Recipe Provenance / Attribution (Optional)' : 'Cultural Provenance / Attribution (Optional)'}
+              {isRecipe ? 'Source / Background (Optional)' : 'Cultural Provenance / Attribution'}
             </label>
             <input type="text"
-              placeholder={isRecipe ? "e.g., Learned from grandmother in Kundapura, heirloom kitchen secret" : "e.g., Learned from grandmother in Kundapura"}
+              placeholder={isRecipe ? "e.g., Preserved from grandmother in Udupi, heirloom family recipe" : "e.g., Learned from grandmother in Kundapura"}
               value={provenance} onChange={e => setProvenance(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text placeholder-cocoa-text/40 focus:outline-none focus:ring-2 focus:ring-terra-primary/30" />
           </div>
