@@ -80,3 +80,5 @@ server/uploads/
 .dockerignore
 Dockerfile
 render.yaml
+
+server/tests
