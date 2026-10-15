@@ -5,6 +5,7 @@ import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords, matchesEventState } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { getEventImage, getCategorySvgPlaceholder } from '../utils/eventPlaceholder';
 
 export default function InteractiveIndiaMap({
   events = [],
