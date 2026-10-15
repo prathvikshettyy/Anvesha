@@ -4,7 +4,7 @@ import indiaData from '../data/indiaStatesData.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
-import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Map, Compass, Sparkles, X } from 'lucide-react';
 
 export default function InteractiveIndiaMap({
   events = [],
@@ -24,16 +24,33 @@ export default function InteractiveIndiaMap({
   const leafletContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
+  const stateBeaconsLayerRef = useRef(null);
+  const selectedStateHighlightLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
 
   // Filter events based on active category and state
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       const matchCat = selectedCategory === 'ALL' || e.category === selectedCategory;
-      const matchState = !selectedStateId || e.stateId === selectedStateId || e.state?.toLowerCase().replace(/\s+/g, '-') === selectedStateId;
+      const matchState = !selectedStateId || e.stateId === selectedStateId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId;
       return matchCat && matchState;
     });
   }, [events, selectedCategory, selectedStateId]);
+
+  // Separate states into unselected and selected for proper SVG layer stacking (elevates selected state above others)
+  const { unselectedStates, activeSelectedState } = useMemo(() => {
+    let active = null;
+    const unselected = [];
+    indiaData.states.forEach(st => {
+      const normId = st.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (selectedStateId && (st.id === selectedStateId || normId === selectedStateId)) {
+        active = { ...st, normId };
+      } else {
+        unselected.push({ ...st, normId });
+      }
+    });
+    return { unselectedStates: unselected, activeSelectedState: active };
+  }, [selectedStateId]);
 
   // ── Leaflet Initialization & Tile Management ───────────────────────────────
   useEffect(() => {
@@ -85,6 +102,9 @@ export default function InteractiveIndiaMap({
       maxZoom: 19
     }).addTo(map);
 
+    // Dedicated layers: State beacons -> Elevated highlight halo -> Gathering event markers
+    stateBeaconsLayerRef.current = L.layerGroup().addTo(map);
+    selectedStateHighlightLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
@@ -116,6 +136,89 @@ export default function InteractiveIndiaMap({
     }
   }, [selectedStateId]);
 
+  // ── Render Leaflet State Beacons & Elevated Highlight Halo ──────────────────
+  useEffect(() => {
+    if (!mapInstanceRef.current || !stateBeaconsLayerRef.current || !selectedStateHighlightLayerRef.current) return;
+    const beaconsGroup = stateBeaconsLayerRef.current;
+    const highlightGroup = selectedStateHighlightLayerRef.current;
+    beaconsGroup.clearLayers();
+    highlightGroup.clearLayers();
+
+    // 1. If NO state selected: Render interactive clickable state beacons across India
+    if (!selectedStateId) {
+      Object.entries(STATE_CENTROIDS).forEach(([key, s]) => {
+        const reg = CULTURAL_ART_REGISTRY[key];
+        const stateEventsCount = events.filter(e => e.stateId === key || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === key).length;
+
+        const badgeHtml = `
+          <div class="state-atlas-beacon cursor-pointer select-none" style="transform: translate(-50%, -50%);">
+            <div class="px-2.5 py-1 rounded-full bg-cream-canvas/95 hover:bg-terra-primary text-cocoa-text hover:text-cream-canvas border border-blush-surface shadow-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all">
+              <span class="text-xs">${reg?.artIllustration?.symbol || '📍'}</span>
+              <span class="whitespace-nowrap">${s.name}</span>
+              ${stateEventsCount > 0 ? `<span class="px-1.5 py-0.2 rounded-full bg-terra-primary/15 text-terra-primary text-[9px] font-bold">${stateEventsCount}</span>` : ''}
+            </div>
+          </div>
+        `;
+
+        const badgeIcon = L.divIcon({
+          html: badgeHtml,
+          className: 'leaflet-state-beacon',
+          iconSize: [110, 30],
+          iconAnchor: [55, 15]
+        });
+
+        const badgeMarker = L.marker([s.lat, s.lng], { icon: badgeIcon, zIndexOffset: 100 });
+        badgeMarker.on('click', () => {
+          onSelectState(key, s.name);
+        });
+        beaconsGroup.addLayer(badgeMarker);
+      });
+    } else {
+      // 2. If a state IS selected: Render elevated highlight halo and title crown on Leaflet
+      const s = STATE_CENTROIDS[selectedStateId];
+      if (s) {
+        const reg = CULTURAL_ART_REGISTRY[selectedStateId];
+        const stateColor = reg?.accentColor || '#C56E50';
+        const stateEventsCount = events.filter(e => e.stateId === selectedStateId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId).length;
+
+        // Elevated circular halo
+        const radiusMeters = s.zoom >= 8 ? 70000 : s.zoom === 7 ? 130000 : 190000;
+        const aura = L.circle([s.lat, s.lng], {
+          radius: radiusMeters,
+          color: stateColor,
+          weight: 3.5,
+          dashArray: '8, 8',
+          fillColor: stateColor,
+          fillOpacity: 0.12
+        });
+        highlightGroup.addLayer(aura);
+
+        // Elevated crown marker
+        const crownHtml = `
+          <div class="pointer-events-none" style="transform: translate(-50%, -100%);">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-cream-canvas/95 backdrop-blur-md border-2 shadow-xl animate-bounce" style="border-color: ${stateColor};">
+              <span class="text-base">${reg?.artIllustration?.symbol || '🌟'}</span>
+              <div>
+                <div class="font-serif text-xs font-bold text-cocoa-text">${s.name}</div>
+                <div class="text-[9px] font-bold" style="color: ${stateColor};">
+                  ${stateEventsCount} Living Gathering Pin${stateEventsCount !== 1 ? 's' : ''} Mapped
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        const crownIcon = L.divIcon({
+          html: crownHtml,
+          className: 'leaflet-state-crown',
+          iconSize: [160, 42],
+          iconAnchor: [80, 42]
+        });
+        const crownMarker = L.marker([s.lat, s.lng], { icon: crownIcon, zIndexOffset: 800 });
+        highlightGroup.addLayer(crownMarker);
+      }
+    }
+  }, [selectedStateId, events, onSelectState]);
+
   // ── Render Leaflet Event Markers & Popups ───────────────────────────────────
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
@@ -130,19 +233,22 @@ export default function InteractiveIndiaMap({
       locationGroups[baseKey].push(evt);
     });
 
+    let firstMarker = null;
+
     Object.values(locationGroups).forEach(group => {
       group.forEach((evt, idx) => {
         const [lat, lng] = resolveEventCoords(evt, idx, group.length);
         const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
+        const isSelectedState = selectedStateId && (evt.stateId === selectedStateId || evt.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId);
 
         const pinHtml = `
-          <div class="relative group cursor-pointer" style="transform: translate(-50%, -50%);">
-            <div class="absolute -inset-1 rounded-full animate-ping opacity-35" style="background-color: ${cat.color};"></div>
-            <div class="relative w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
+          <div class="relative group cursor-pointer ${isSelectedState ? 'pin-drop-bounce' : ''}" style="transform: translate(-50%, -50%);">
+            <div class="absolute -inset-1.5 rounded-full animate-ping opacity-40" style="background-color: ${cat.color};"></div>
+            <div class="relative ${isSelectedState ? 'w-9 h-9' : 'w-8 h-8'} rounded-full flex items-center justify-center shadow-xl border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
               <span>${cat.symbol}</span>
             </div>
-            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
-              ${evt.title.slice(0, 20)}...
+            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 ${isSelectedState ? 'opacity-90' : 'opacity-0 group-hover:opacity-100'} transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
+              ${evt.title.length > 20 ? `${evt.title.slice(0, 19)}…` : evt.title}
             </div>
           </div>
         `;
@@ -150,18 +256,21 @@ export default function InteractiveIndiaMap({
         const icon = L.divIcon({
           html: pinHtml,
           className: 'leaflet-event-pin',
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
+          iconSize: isSelectedState ? [36, 36] : [32, 32],
+          iconAnchor: isSelectedState ? [18, 18] : [16, 16]
         });
 
-        const marker = L.marker([lat, lng], { icon, zIndexOffset: 200 });
+        const marker = L.marker([lat, lng], {
+          icon,
+          zIndexOffset: isSelectedState ? 1500 : 200
+        });
 
         // Build popup content
         const popupHtml = `
-          <div style="min-width: 210px; max-width: 260px; font-family: system-ui, sans-serif;">
-            ${evt.image ? `<div style="height: 100px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
+          <div style="min-width: 220px; max-width: 270px; font-family: system-ui, sans-serif;">
+            ${evt.image ? `<div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
             <div style="padding: 0.85rem;">
-              <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}15; color: ${cat.color}; font-size: 10px; font-weight: bold;">
+              <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}18; color: ${cat.color}; font-size: 10px; font-weight: bold;">
                 <span>${cat.symbol}</span>
                 <span>${cat.label}</span>
               </div>
@@ -192,9 +301,21 @@ export default function InteractiveIndiaMap({
         });
 
         markersGroup.addLayer(marker);
+
+        if (!firstMarker && isSelectedState) {
+          firstMarker = marker;
+        }
       });
     });
-  }, [filteredEvents, onSelectEvent]);
+
+    // When state is selected, automatically open popup of primary pin after flyTo settles
+    if (firstMarker && selectedStateId) {
+      const timer = setTimeout(() => {
+        firstMarker.openPopup();
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredEvents, selectedStateId, onSelectEvent]);
 
   // ── SVG Mode Helpers (Folk Canvas) ──────────────────────────────────────────
   const handleSvgStateClick = (state) => {
@@ -389,8 +510,16 @@ export default function InteractiveIndiaMap({
               <pattern id="oceanWaves" width="40" height="20" patternUnits="userSpaceOnUse">
                 <path d="M 0 10 Q 10 5, 20 10 T 40 10" fill="none" stroke="#D8C8B5" strokeWidth="0.75" opacity="0.6" />
               </pattern>
+              
+              {/* Standard Elevation Shadow */}
               <filter id="stateElevation" x="-10%" y="-10%" width="120%" height="120%">
                 <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#5B332C" floodOpacity="0.12" />
+              </filter>
+
+              {/* Elevated Selected State Dual Glow and Deep Shadow Filter */}
+              <filter id="stateElevationGlow" x="-25%" y="-25%" width="150%" height="150%">
+                <feDropShadow dx="0" dy="16" stdDeviation="12" floodColor="#3B231D" floodOpacity="0.45" />
+                <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#C56E50" floodOpacity="0.38" />
               </filter>
             </defs>
 
@@ -407,27 +536,22 @@ export default function InteractiveIndiaMap({
               INDIAN OCEAN
             </text>
 
-            {/* States Geo Paths */}
-            <g id="india-states-group" filter="url(#stateElevation)">
-              {indiaData.states.map(state => {
-                const normId = state.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                const isSelected = selectedStateId === normId;
-                const hasEvents = events.some(e => e.stateId === normId || e.state?.toLowerCase().replace(/\s+/g, '-') === normId);
+            {/* Base Group: Unselected States (Softened when a state is active) */}
+            <g id="india-states-group" filter="url(#stateElevation)" opacity={selectedStateId ? 0.72 : 1} className="transition-opacity duration-500">
+              {unselectedStates.map(state => {
+                const normId = state.normId;
+                const hasEvents = events.some(e => e.stateId === normId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === normId);
                 const reg = CULTURAL_ART_REGISTRY[normId];
 
                 return (
                   <path
                     key={state.id || normId}
                     d={state.path}
-                    className={`india-state-path ${isSelected ? 'selected' : ''}`}
+                    className="india-state-path"
                     style={{
-                      fill: isSelected
-                        ? (reg?.accentColor ? `${reg.accentColor}33` : '#E5C2A8')
-                        : hasEvents
-                          ? '#F9F1E6'
-                          : '#F3E9DD',
-                      stroke: isSelected ? (reg?.accentColor || '#C56E50') : '#D1B9A2',
-                      strokeWidth: isSelected ? 2.5 : 1.2
+                      fill: hasEvents ? '#F9F1E6' : '#F3E9DD',
+                      stroke: '#D1B9A2',
+                      strokeWidth: 1.2
                     }}
                     onClick={() => handleSvgStateClick(state)}
                     onMouseEnter={() => {
@@ -435,7 +559,7 @@ export default function InteractiveIndiaMap({
                         id: normId,
                         name: state.name,
                         registry: reg,
-                        eventCount: events.filter(ev => ev.stateId === normId || ev.state?.toLowerCase().replace(/\s+/g, '-') === normId).length
+                        eventCount: events.filter(ev => ev.stateId === normId || ev.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === normId).length
                       });
                     }}
                     onMouseLeave={() => setHoveredState(null)}
@@ -444,8 +568,45 @@ export default function InteractiveIndiaMap({
               })}
             </g>
 
+            {/* Elevated Layer: Active Selected State rendered strictly ON TOP of all others */}
+            {activeSelectedState && (
+              <g id="elevated-selected-state" className="transition-all duration-500">
+                {/* Glow Shadow Underlay */}
+                <path
+                  d={activeSelectedState.path}
+                  fill="none"
+                  stroke={CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor || '#C56E50'}
+                  strokeWidth="7"
+                  opacity="0.35"
+                  filter="url(#stateElevationGlow)"
+                />
+                {/* Elevated State Path */}
+                <path
+                  d={activeSelectedState.path}
+                  className="india-state-path selected elevated-state-path"
+                  style={{
+                    fill: CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor
+                      ? `${CULTURAL_ART_REGISTRY[activeSelectedState.normId].accentColor}38`
+                      : '#FBD4BE',
+                    stroke: CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor || '#C56E50',
+                    strokeWidth: 3.5
+                  }}
+                  onClick={() => handleSvgStateClick(activeSelectedState)}
+                  onMouseEnter={() => {
+                    setHoveredState({
+                      id: activeSelectedState.normId,
+                      name: activeSelectedState.name,
+                      registry: CULTURAL_ART_REGISTRY[activeSelectedState.normId],
+                      eventCount: events.filter(ev => ev.stateId === activeSelectedState.normId || ev.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === activeSelectedState.normId).length
+                    });
+                  }}
+                  onMouseLeave={() => setHoveredState(null)}
+                />
+              </g>
+            )}
+
             {/* Cultural Vignettes on SVG */}
-            <g id="cultural-art-vignettes" pointerEvents="none">
+            <g id="cultural-art-vignettes" pointerEvents="none" opacity={selectedStateId ? 0.45 : 1} className="transition-opacity duration-300">
               <g transform="translate(210, 630) scale(0.85)">
                 <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#C56E50" strokeWidth="1.5" opacity="0.9" />
                 <text x="20" y="25" textAnchor="middle" fontSize="17">🎭</text>
@@ -478,23 +639,43 @@ export default function InteractiveIndiaMap({
               {filteredEvents.map(evt => {
                 if (evt.mapX === undefined || evt.mapY === undefined) return null;
                 const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
+                const isSelectedState = selectedStateId && (evt.stateId === selectedStateId || evt.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId);
+
                 return (
                   <g
                     key={evt.id}
                     transform={`translate(${evt.mapX}, ${evt.mapY})`}
-                    className="cursor-pointer group"
+                    className={`cursor-pointer group ${isSelectedState ? 'pin-drop-bounce' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectEvent(evt);
                     }}
                   >
-                    <circle cx="0" cy="-14" r="12" fill={cat.color} opacity="0.25" className="animate-ping" />
-                    <circle cx="0" cy="-14" r="10" fill={cat.color} stroke="#FCF7F0" strokeWidth="2" className="group-hover:scale-125 transition-transform origin-center" />
-                    <text x="0" y="-10" textAnchor="middle" fontSize="10" fill="#FFFFFF" fontWeight="bold" pointerEvents="none">
+                    <circle cx="0" cy="-15" r="14" fill={cat.color} opacity="0.3" className="animate-ping" />
+                    <circle
+                      cx="0"
+                      cy="-15"
+                      r={isSelectedState ? 12 : 10}
+                      fill={cat.color}
+                      stroke="#FCF7F0"
+                      strokeWidth="2.5"
+                      className="group-hover:scale-125 transition-transform origin-center shadow-lg"
+                    />
+                    <text x="0" y="-11" textAnchor="middle" fontSize={isSelectedState ? 11 : 10} fill="#FFFFFF" fontWeight="bold" pointerEvents="none">
                       {cat.symbol}
                     </text>
-                    <line x1="0" y1="-4" x2="0" y2="2" stroke={cat.color} strokeWidth="2" strokeLinecap="round" />
-                    <circle cx="0" cy="3" r="2" fill="#5B332C" opacity="0.6" />
+                    <line x1="0" y1="-3" x2="0" y2="3" stroke={cat.color} strokeWidth="2.5" strokeLinecap="round" />
+                    <circle cx="0" cy="4" r="2.5" fill="#5B332C" opacity="0.7" />
+
+                    {/* Pin Label Chip */}
+                    {isSelectedState && (
+                      <g transform="translate(0, 16)" className="pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                        <rect x="-45" y="-6" width="90" height="15" rx="4" fill="#3B2D26" />
+                        <text x="0" y="4" textAnchor="middle" fontSize="8" fill="#FAF4EA" fontWeight="bold">
+                          {evt.title.length > 15 ? `${evt.title.slice(0, 14)}…` : evt.title}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
@@ -502,8 +683,66 @@ export default function InteractiveIndiaMap({
           </svg>
         )}
 
-        {/* Hovered State Tooltip (SVG mode) */}
-        {mapEngine === 'SVG' && hoveredState && (
+        {/* Floating State Gathering Results Ribbon (Both Modes) */}
+        {selectedStateId && (
+          <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-30 bg-cream-canvas/95 backdrop-blur-md p-3 rounded-2xl border-2 border-terra-primary/30 shadow-warm flex flex-wrap items-center justify-between gap-3 animate-hero-fade">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">{CULTURAL_ART_REGISTRY[selectedStateId]?.artIllustration?.symbol || '📍'}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-serif text-xs sm:text-sm font-bold text-cocoa-text">
+                    {STATE_CENTROIDS[selectedStateId]?.name || selectedStateId}
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-terra-primary/10 text-terra-primary">
+                    {filteredEvents.length} Gathering Pin{filteredEvents.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-cocoa-text/75 line-clamp-1">
+                  {CULTURAL_ART_REGISTRY[selectedStateId]?.culturalTitle || 'Living Regional Cultural Heritage'}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Event Pills for this State */}
+            {filteredEvents.length > 0 ? (
+              <div className="flex items-center gap-1.5 overflow-x-auto max-w-full sm:max-w-md py-0.5 scrollbar-none no-scrollbar">
+                {filteredEvents.map(evt => {
+                  const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
+                  return (
+                    <button
+                      key={evt.id}
+                      onClick={() => {
+                        onSelectEvent(evt);
+                        if (mapEngine === 'OSM' && mapInstanceRef.current) {
+                          const [lat, lng] = resolveEventCoords(evt);
+                          mapInstanceRef.current.flyTo([lat, lng], 10, { duration: 0.8 });
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-full bg-surface-container-lowest hover:bg-terra-primary/15 border border-blush-surface text-cocoa-text text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+                    >
+                      <span>{cat.symbol}</span>
+                      <span className="max-w-[110px] truncate">{evt.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-xs text-cocoa-text/70 italic">
+                No gatherings scheduled yet in this state · Be the first to host one!
+              </div>
+            )}
+
+            <button
+              onClick={resetView}
+              className="px-3 py-1 rounded-full bg-blush-surface/60 hover:bg-terra-primary hover:text-cream-canvas text-cocoa-text text-xs font-bold transition-all ml-auto cursor-pointer"
+            >
+              Show All India
+            </button>
+          </div>
+        )}
+
+        {/* Hovered State Tooltip (SVG mode when no state selected) */}
+        {mapEngine === 'SVG' && hoveredState && !selectedStateId && (
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 bg-cream-canvas/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border-2 border-terra-primary/40 shadow-warm pointer-events-none flex items-center gap-3 animate-fadeIn">
             <span className="text-2xl">{hoveredState.registry?.artIllustration?.symbol || '📍'}</span>
             <div>

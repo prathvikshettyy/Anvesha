@@ -59,6 +59,46 @@
   filter: drop-shadow(0 6px 16px rgba(197, 110, 80, 0.35));
 }
 
+/* Visually elevated state styling when clicked/selected */
+.elevated-state-path {
+  filter: drop-shadow(0 14px 26px rgba(91, 51, 44, 0.45)) drop-shadow(0 2px 6px rgba(197, 110, 80, 0.4)) !important;
+  stroke-width: 3.5 !important;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animated Pin Drop Bounce */
+@keyframes pinDropBounce {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -140%) scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -42%) scale(1.18);
+  }
+  80% {
+    transform: translate(-50%, -54%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.pin-drop-bounce {
+  animation: pinDropBounce 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* State interactive beacon pill in Leaflet */
+.state-atlas-beacon {
+  transition: transform 0.2s ease;
+}
+.state-atlas-beacon:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 1000 !important;
+}
+
 /* State outline shadow simulation */
 .india-state-shadow {
   fill: none;
