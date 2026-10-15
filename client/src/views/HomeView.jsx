@@ -3,6 +3,7 @@ import { Search, Sparkles, Calendar, Users, MapPin, ArrowRight, Mic, Heart, Book
 import CultureLocketCard from '../components/CultureLocketCard';
 import EventCard from '../components/EventCard';
 import PersonCard from '../components/PersonCard';
+import { AdSlot } from '../components/SponsoredCard';
 import { INITIAL_INTERESTS } from '../data/initialData';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
@@ -484,12 +485,36 @@ export default function HomeView({
                   <span>Host or Suggest an Event</span>
                 </button>
               )}
+              {/* Sponsored cultural recommendation */}
+              <div className="pt-4 max-w-md mx-auto">
+                <AdSlot
+                  placement="HOMEPAGE"
+                  state={user.state || user.stateId || 'karnataka'}
+                  format="card"
+                  onSelectEvent={onSelectEvent}
+                />
+              </div>
             </div>
           </div>
         ) : (
-          /* Event Cards Grid */
+          /* Event Cards Grid with Sponsored Cultural Spotlights */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pickedEvents.slice(0, 3).map(evt => (
+            {pickedEvents.slice(0, 2).map(evt => (
+              <EventCard
+                key={evt.id}
+                event={evt}
+                isSaved={savedEvents.includes(evt.id)}
+                onToggleSave={onToggleSave}
+                onSelect={onSelectEvent}
+              />
+            ))}
+            <AdSlot
+              placement="HOMEPAGE"
+              state={user.state || user.stateId || 'karnataka'}
+              format="card"
+              onSelectEvent={onSelectEvent}
+            />
+            {pickedEvents.slice(2, 4).map(evt => (
               <EventCard
                 key={evt.id}
                 event={evt}

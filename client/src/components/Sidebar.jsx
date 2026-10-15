@@ -8,7 +8,8 @@ import {
   Mic,
   LogOut,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  TrendingUp
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -19,6 +20,8 @@ export default function Sidebar({
   user,
   onSignOut
 }) {
+  const isAdmin = Boolean(user?.isAdmin || user?.is_admin);
+
   const navItems = [
     { id: 'home', label: 'Home', icon: Compass },
     { id: 'events', label: 'Atlas & Events', icon: Calendar },
@@ -26,7 +29,8 @@ export default function Sidebar({
     { id: 'locket', label: 'Culture Locket', icon: Mic, badge: 'Daily' },
     { id: 'communities', label: 'Communities', icon: Users },
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadCount },
-    { id: 'saved', label: 'Saved Gatherings', icon: Bookmark, count: savedCount }
+    { id: 'saved', label: 'Saved Gatherings', icon: Bookmark, count: savedCount },
+    ...(isAdmin ? [{ id: 'admin_ads', label: 'Ad Revenue & Ops', icon: TrendingUp, badge: 'Admin' }] : [])
   ];
 
   return (

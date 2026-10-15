@@ -283,6 +283,42 @@ export const food = {
   suggest: (dishData) => post('/food/suggest', dishData),
 };
 
+// ── Advertisements & Sponsored Campaigns ─────────────────────────────────────
+export const ads = {
+  /**
+   * List active sponsored campaigns for placement.
+   * @param {{ placement?, state?, category?, limit? }} params
+   */
+  list: ({ placement = 'ALL', state = 'ALL', category = 'ALL', limit = 10 } = {}) => {
+    const qs = new URLSearchParams({ placement, state, category, limit }).toString();
+    return get(`/ads?${qs}`);
+  },
+
+  /** Record an ad impression */
+  recordImpression: (id, { placement = 'HOMEPAGE', locationContext = '' } = {}) =>
+    post(`/ads/${id}/impression`, { placement, locationContext }),
+
+  /** Record an ad click and retrieve verified destination URL */
+  recordClick: (id, { placement = 'HOMEPAGE', locationContext = '' } = {}) =>
+    post(`/ads/${id}/click`, { placement, locationContext }),
+
+  // Admin advertising operations
+  admin: {
+    listCampaigns: ({ status = 'ALL', payment_status = 'ALL', q = '' } = {}) => {
+      const qs = new URLSearchParams({ status, payment_status, q }).toString();
+      return get(`/ads/admin/campaigns?${qs}`);
+    },
+
+    getRevenue: () => get('/ads/admin/revenue'),
+
+    createCampaign: (data) => post('/ads/admin/campaigns', data),
+
+    updateCampaign: (id, data) => patch(`/ads/admin/campaigns/${id}`, data),
+
+    deleteCampaign: (id) => del(`/ads/admin/campaigns/${id}`),
+  }
+};
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const health = () => get('/health');
 

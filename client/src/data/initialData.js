@@ -37,7 +37,9 @@ export const INITIAL_USER = {
     culture: 'NATIVE_SPEAKER'
   },
   savedEvents: ['evt_1', 'evt_6', 'evt_10'],
-  connectedUserIds: ['usr_priya', 'usr_arjun']
+  connectedUserIds: ['usr_priya', 'usr_arjun'],
+  isAdmin: true,
+  is_admin: true
 };
 
 export const EVENT_ORGANIZER_MAP = {

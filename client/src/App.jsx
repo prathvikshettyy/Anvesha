@@ -9,6 +9,7 @@ import PeopleView from './views/PeopleView';
 import LocketView from './views/LocketView';
 import MessagesView from './views/MessagesView';
 import ProfileView from './views/ProfileView';
+import AdminAdsDashboard from './views/AdminAdsDashboard';
 
 import EventDetailModal from './components/EventDetailModal';
 import LocketModal from './components/LocketModal';
@@ -56,6 +57,8 @@ function normaliseUser(backendUser) {
     savedEvents: Array.isArray(backendUser.saved_event_ids)
       ? backendUser.saved_event_ids
       : INITIAL_USER.savedEvents,
+    isAdmin: backendUser.is_admin !== undefined ? Boolean(backendUser.is_admin) : (backendUser.isAdmin !== undefined ? Boolean(backendUser.isAdmin) : Boolean(INITIAL_USER.isAdmin)),
+    is_admin: backendUser.is_admin !== undefined ? Boolean(backendUser.is_admin) : (backendUser.isAdmin !== undefined ? Boolean(backendUser.isAdmin) : Boolean(INITIAL_USER.is_admin)),
   };
 }
 
@@ -596,6 +599,15 @@ export default function App() {
                 setUser(u);
               }
             }}
+            onNavigate={(view) => setCurrentView(view)}
+          />
+        )}
+
+        {currentView === 'admin_ads' && (
+          <AdminAdsDashboard
+            currentUser={user}
+            events={events}
+            onClose={() => setCurrentView('home')}
           />
         )}
       </main>

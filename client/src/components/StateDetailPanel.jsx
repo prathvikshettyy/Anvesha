@@ -5,6 +5,7 @@ import { matchesEventState } from '../data/indiaGeoData';
 import { Calendar, MapPin, Bookmark, Users, CheckCircle2, ChevronRight, ExternalLink, Utensils } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import LocalFoodFlavours from './LocalFoodFlavours';
+import { AdSlot } from './SponsoredCard';
 
 function getPlatformBadge(evt) {
   const p = evt.sourcePlatform || (
@@ -194,6 +195,14 @@ export default function StateDetailPanel({
         <div className="flex items-center justify-between text-xs font-bold text-cocoa-text/70">
           <span>{selectedStateId ? `Gatherings in ${reg?.stateName || selectedStateName}` : 'Featured Countrywide Gatherings'} ({stateEvents.length})</span>
         </div>
+
+        {/* Location-based sponsored cultural promotion */}
+        <AdSlot
+          placement="MAP"
+          state={selectedStateId || 'all'}
+          format="compact"
+          onSelectEvent={onSelectEvent}
+        />
 
         {stateEvents.length === 0 ? (
           <div className="p-8 text-center rounded-2xl bg-surface-container/50 border border-blush-surface text-xs text-cocoa-text/70">

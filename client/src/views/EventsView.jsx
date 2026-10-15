@@ -8,6 +8,7 @@ import { dedupeEvents, CATEGORY_MAP } from './HomeView';
 import { matchesEventState } from '../data/indiaGeoData';
 import * as api from '../services/api';
 import FoodDiscoveryView from './FoodDiscoveryView';
+import { AdSlot } from '../components/SponsoredCard';
 
 export default function EventsView({
   user,
@@ -394,7 +395,23 @@ export default function EventsView({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map(evt => (
+              {filteredEvents.slice(0, 2).map(evt => (
+                <EventCard
+                  key={evt.id}
+                  event={evt}
+                  isSaved={savedEvents.includes(evt.id)}
+                  onToggleSave={onToggleSave}
+                  onSelect={onSelectEvent}
+                />
+              ))}
+              <AdSlot
+                placement="EVENTS"
+                state={selectedStateId || user?.state || 'all'}
+                category={selectedCategory}
+                format="card"
+                onSelectEvent={onSelectEvent}
+              />
+              {filteredEvents.slice(2).map(evt => (
                 <EventCard
                   key={evt.id}
                   event={evt}

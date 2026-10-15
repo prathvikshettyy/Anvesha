@@ -244,6 +244,53 @@ export function applySchema(db) {
     CREATE INDEX IF NOT EXISTS idx_dishes_event ON local_dishes(event_id);
     CREATE INDEX IF NOT EXISTS idx_dishes_city ON local_dishes(city);
     CREATE INDEX IF NOT EXISTS idx_dishes_dietary ON local_dishes(dietary_type);
+
+    -- ─── Advertisements & Sponsored Campaigns ─────────────────────────────────
+    CREATE TABLE IF NOT EXISTS advertisements (
+      id                   TEXT PRIMARY KEY,
+      advertiser_name      TEXT NOT NULL,
+      title                TEXT NOT NULL,
+      description          TEXT NOT NULL,
+      image_url            TEXT NOT NULL,
+      destination_url      TEXT NOT NULL,
+      cta_label            TEXT DEFAULT 'Explore Offer',
+      placement            TEXT NOT NULL CHECK(placement IN ('HOMEPAGE','EVENTS','MAP','EXPERIENCES','ALL')),
+      target_state         TEXT DEFAULT 'ALL',
+      target_city          TEXT DEFAULT '',
+      category             TEXT DEFAULT 'culture',
+      event_id             TEXT REFERENCES events(id) ON DELETE SET NULL,
+      status               TEXT DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE','PENDING','PAUSED','REJECTED','EXPIRED')),
+      budget_amount        REAL DEFAULT 0,
+      payment_status       TEXT DEFAULT 'UNPAID' CHECK(payment_status IN ('UNPAID','PAID','REFUNDED')),
+      payment_reference    TEXT DEFAULT '',
+      payment_verified_at  TEXT,
+      payment_notes        TEXT DEFAULT '',
+      start_date           TEXT NOT NULL,
+      end_date             TEXT NOT NULL,
+      impressions_count    INTEGER DEFAULT 0,
+      clicks_count         INTEGER DEFAULT 0,
+      created_by           TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at           TEXT DEFAULT (datetime('now')),
+      updated_at           TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ads_status ON advertisements(status, placement);
+    CREATE INDEX IF NOT EXISTS idx_ads_dates ON advertisements(start_date, end_date);
+    CREATE INDEX IF NOT EXISTS idx_ads_state ON advertisements(target_state);
+
+    -- ─── Advertisement Impressions & Clicks Log ────────────────────────────────
+    CREATE TABLE IF NOT EXISTS ad_logs (
+      id                TEXT PRIMARY KEY,
+      ad_id             TEXT NOT NULL REFERENCES advertisements(id) ON DELETE CASCADE,
+      event_type        TEXT NOT NULL CHECK(event_type IN ('IMPRESSION','CLICK')),
+      user_id           TEXT REFERENCES users(id) ON DELETE SET NULL,
+      location_context  TEXT DEFAULT '',
+      placement         TEXT NOT NULL,
+      created_at        TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ad_logs_ad ON ad_logs(ad_id, event_type);
+    CREATE INDEX IF NOT EXISTS idx_ad_logs_date ON ad_logs(created_at);
   `);
 
   migrateLegacyColumns(db);
@@ -257,6 +304,10 @@ function migrateLegacyColumns(db) {
   const userColumns = db.prepare(`PRAGMA table_info(users)`).all().map(c => c.name);
   if (!userColumns.includes('state')) {
     db.exec(`ALTER TABLE users ADD COLUMN state TEXT DEFAULT 'Karnataka'`);
+  }
+  if (!userColumns.includes('is_admin')) {
+    db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
+    db.exec(`UPDATE users SET is_admin = 1 WHERE username = 'rohan' OR id = 'usr_rohan'`);
   }
   if (!userColumns.includes('last_active_at')) {
     db.exec(`ALTER TABLE users ADD COLUMN last_active_at TEXT`);

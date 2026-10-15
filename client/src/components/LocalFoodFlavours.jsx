@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Utensils, Info, Leaf, AlertTriangle, Sparkles, Loader2, Compass, ChevronDown, ChevronUp, Bookmark, Search, Check, ChevronRight } from 'lucide-react';
 import * as api from '../services/api';
 import DishDetailModal from './DishDetailModal';
+import { AdSlot } from './SponsoredCard';
 
 const DIETARY_LABELS = {
   VEGAN: { label: 'Vegan', symbol: '🌱', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
@@ -241,9 +242,18 @@ export default function LocalFoodFlavours({
           </button>
         </div>
       ) : (
-        /* Dishes Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {filteredDishes.map((dish) => {
+        <div className="space-y-3.5">
+          {/* Local Culinary & Artisan Experience Sponsorship */}
+          <AdSlot
+            placement="EXPERIENCES"
+            state={stateId || 'all'}
+            format="compact"
+            onSelectEvent={onSelectEvent}
+          />
+
+          {/* Dishes Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {filteredDishes.map((dish) => {
             const dietary = DIETARY_LABELS[dish.dietaryType] || null;
             const hasAllergens = Array.isArray(dish.allergens) && dish.allergens.length > 0;
             const isTraditionOpen = expandedTraditionId === dish.id;
@@ -373,6 +383,7 @@ export default function LocalFoodFlavours({
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

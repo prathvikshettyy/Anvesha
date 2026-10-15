@@ -12,11 +12,13 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
+import { db } from '../db/index.js';
+
 export const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
 
 /**
  * Verifies the Authorization: Bearer <token> header.
- * On success: attaches req.user = { id, username, name } and calls next().
+ * On success: attaches req.user = { id, username, name, is_admin } and calls next().
  * On failure: returns 401.
  */
 export function requireAuth(req, res, next) {
@@ -33,6 +35,23 @@ export function requireAuth(req, res, next) {
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
+}
+
+/**
+ * Ensures the authenticated user has administrative privileges.
+ */
+export function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    try {
+      const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(req.user.id);
+      if (!user || !user.is_admin) {
+        return res.status(403).json({ error: 'Administrative privileges required' });
+      }
+      next();
+    } catch (err) {
+      return res.status(500).json({ error: 'Failed to verify administrative authorization' });
+    }
+  });
 }
 
 /**
@@ -61,7 +80,12 @@ export function optionalAuth(req, res, next) {
  */
 export function signToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, name: user.name },
+    {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      is_admin: Boolean(user.is_admin || user.isAdmin)
+    },
     JWT_SECRET,
     { algorithm: 'HS256', expiresIn: '7d' }
   );

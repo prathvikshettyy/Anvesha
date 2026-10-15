@@ -46,7 +46,7 @@ router.post('/register',
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `).run(id, username, handle, password_hash, name, bio.slice(0, 500), effectiveAvatar, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
 
-    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
+    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable, is_admin FROM users WHERE id = ?').get(id);
     user.interests = [];
     user.languages = [];
     user.skills = [];
@@ -87,7 +87,7 @@ router.post('/login',
 router.get('/me', requireAuth, (req, res) => {
   db.prepare('UPDATE users SET last_active_at = datetime(\'now\') WHERE id = ?').run(req.user.id);
 
-  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, is_admin, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   user.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
