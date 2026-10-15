@@ -149,7 +149,7 @@ export default function PeopleView({ user, people, onConnect, onStartChat, onSen
               ))}
               {user?.preferredMode && (
                 <span className="px-2 py-0.5 rounded-full bg-ochre-accent/15 border border-ochre-accent/30 text-cocoa-text text-[11px] font-semibold">
-                  {user.preferredMode === 'BOTH' ? '🤝 In-Person & Virtual' : user.preferredMode === 'IN_PERSON' ? '📍 In-Person' : '💻 Virtual'}
+                  {user.preferredMode === 'BOTH' ? 'In-Person & Virtual' : user.preferredMode === 'IN_PERSON' ? 'In-Person' : 'Virtual'}
                 </span>
               )}
             </div>

@@ -237,7 +237,7 @@ export default function HomeView({
 
           {user.preferredMode && (
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-ochre-accent/15 border border-ochre-accent/30 text-cocoa-text text-xs font-semibold">
-              <span>{user.preferredMode === 'BOTH' ? '🤝 In-Person & Virtual Exchange' : user.preferredMode === 'IN_PERSON' ? '📍 In-Person Only' : '💻 Virtual Only'}</span>
+              <span>{user.preferredMode === 'BOTH' ? 'In-Person & Virtual Exchange' : user.preferredMode === 'IN_PERSON' ? 'In-Person Only' : 'Virtual Only'}</span>
             </span>
           )}
 
