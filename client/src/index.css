@@ -315,3 +315,47 @@ path.india-state-boundary:hover {
   transform-origin: center center;
 }
 
+/* ── Aesthetic Brown Diary Notepad & Lined Page Styling ── */
+.diary-notepad-paper {
+  background-color: #FAF4E8;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 29px,
+    rgba(140, 90, 60, 0.08) 30px
+  );
+  box-shadow: 
+    0 4px 6px -1px rgba(74, 46, 29, 0.12),
+    0 10px 25px -5px rgba(74, 46, 29, 0.22),
+    inset 0 0 35px rgba(140, 90, 60, 0.06);
+}
+
+.diary-margin-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 42px;
+  width: 2px;
+  background-color: rgba(197, 110, 80, 0.25);
+  pointer-events: none;
+}
+
+.word-highlight-marker {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+.word-highlight-marker::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  bottom: 2px;
+  height: 52%;
+  background: linear-gradient(100deg, rgba(245, 194, 107, 0.78), rgba(235, 168, 76, 0.7));
+  border-radius: 4px;
+  transform: rotate(-0.8deg);
+  z-index: -1;
+  box-shadow: 0 1px 4px rgba(217, 164, 65, 0.25);
+}
+

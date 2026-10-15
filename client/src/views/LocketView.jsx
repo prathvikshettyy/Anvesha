@@ -150,49 +150,130 @@ export default function LocketView({ locketMoments, onOpenLocketModal, onReactLo
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {vaultItems.map(item => {
               const isPlaying = playingId === item.id;
+              
+              // Parse phrase into native script and romanized transliteration
+              const raw = item.phrase || '';
+              const m = raw.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+              const native = m ? (m[1]?.trim() || raw) : raw;
+              const roman = m && m[2] ? m[2].trim() : '';
+              
+              // Syllables from phonetic
+              const cleanPhone = (item.phonetic || '').replace(/[\/\[\]]/g, '').trim();
+              const syls = cleanPhone ? cleanPhone.split(/[-·\s]+/).filter(Boolean).map(s => s.toUpperCase()) : [];
+
               return (
                 <div
                   key={item.id}
-                  className="p-6 rounded-3xl bg-surface-container-lowest border border-blush-surface shadow-warm hover:border-terra-primary/40 transition-all space-y-4"
+                  className="relative rounded-[26px] bg-gradient-to-b from-[#422B1D] via-[#352014] to-[#27160D] p-3 sm:p-3.5 shadow-xl border-2 border-[#63422C] group select-none transition-all duration-300 hover:shadow-[0_16px_40px_rgba(40,20,10,0.4)]"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-terra-primary/10 text-terra-primary">
+                  {/* Top Spiral Wire Binding */}
+                  <div className="flex justify-around items-center px-6 -mt-1 mb-2 pointer-events-none">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#201007] shadow-inner" />
+                        <div className="w-1.5 h-4 -mt-1.5 rounded-full bg-gradient-to-r from-[#A5824C] via-[#F4DF9F] to-[#7B5927] shadow-xs transform -rotate-6" />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Notepad Ruled Parchment */}
+                  <div className="diary-notepad-paper rounded-2xl p-5 sm:p-6 border border-[#D5C2A5] relative overflow-hidden space-y-4">
+                    <div className="diary-margin-line" />
+
+                    {/* Header Dialect Tag */}
+                    <div className="relative z-10 flex items-center justify-between pb-2.5 border-b border-[#E2D2BC]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-[#EFE1CC] text-[#8C5229] border border-[#DECDB3]">
                         {item.dialect}
                       </span>
-                      <h3 className="font-serif text-2xl font-bold text-cocoa-text mt-1.5">
-                        {item.phrase}
-                      </h3>
-                      <p className="text-xs font-mono text-terra-primary mt-0.5">
-                        {item.phonetic}
+                      <span className="font-serif text-[11px] text-[#78543E] italic">
+                        Archival Entry
+                      </span>
+                    </div>
+
+                    {/* Highlighted Word */}
+                    <div className="relative z-10 flex items-start justify-between gap-3 pt-1">
+                      <div>
+                        <div className="word-highlight-marker">
+                          <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#2F1C12] leading-tight">
+                            {native}
+                          </h3>
+                        </div>
+                        {roman && (
+                          <span className="block font-serif text-sm sm:text-base text-[#7C4824] italic font-semibold mt-0.5">
+                            ({roman})
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Pronounce Trigger */}
+                      <button
+                        onClick={() => playVaultPronunciation(item.id, item.phrase)}
+                        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center border shadow-xs transition-all cursor-pointer ${
+                          isPlaying
+                            ? 'bg-[#B84A28] text-[#FAF4E8] scale-105 shadow-md border-[#8E2813]'
+                            : 'bg-[#F2E5D0] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#60351B] border-[#D6C2A7]'
+                        }`}
+                        title="Listen to native oral pronunciation"
+                      >
+                        {isPlaying ? (
+                          <div className="flex items-center gap-0.5 h-3.5">
+                            <span className="w-1 bg-[#FAF4E8] wave-bar-1 rounded-full" />
+                            <span className="w-1 bg-[#FAF4E8] wave-bar-2 rounded-full" />
+                            <span className="w-1 bg-[#FAF4E8] wave-bar-3 rounded-full" />
+                          </div>
+                        ) : (
+                          <Volume2 className="w-5 h-5 text-[#B84A28]" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Pronunciation & Syllables Guide Box */}
+                    <div className="relative z-10 bg-[#F3E7D3]/80 rounded-xl p-3 border border-[#DECFB7] space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#6B4226]">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm text-[#B84A28]">hearing</span>
+                          Pronunciation:
+                        </span>
+                        {item.audioDuration && (
+                          <span className="text-[10px] text-[#8C5D3A] font-mono">
+                            {item.audioDuration}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {cleanPhone && (
+                          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-[#E8D7BF] text-[#4E2B16] border border-[#DAC4A5]">
+                            /{cleanPhone}/
+                          </span>
+                        )}
+                        {syls.length > 0 && (
+                          <span className="text-[11px] font-bold text-[#7A4B29] bg-[#EFE3CF] px-2 py-0.5 rounded border border-[#DFCFB7]">
+                            {syls.join(' • ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Meaning */}
+                    <div className="relative z-10 space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#985F36]">
+                        Meaning & Context:
+                      </span>
+                      <p className="text-xs sm:text-sm font-serif text-[#311D13] leading-relaxed">
+                        {item.english}
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => playVaultPronunciation(item.id, item.phrase)}
-                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                        isPlaying
-                          ? 'bg-terra-primary text-cream-canvas scale-105 shadow-locket-glow'
-                          : 'bg-blush-surface/50 hover:bg-terra-primary hover:text-cream-canvas text-terra-primary'
-                      }`}
-                    >
-                      <Volume2 className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-cocoa-text/80 leading-relaxed">
-                    <strong className="text-cocoa-text">Meaning: </strong>
-                    {item.english}
-                  </p>
-
-                  <div className="pt-3 border-t border-blush-surface/70 flex items-center justify-between text-xs text-cocoa-text/60 italic">
-                    <span>{item.contributor}</span>
-                    <span className="font-mono text-[10px] bg-cream-canvas px-2 py-0.5 rounded border border-blush-surface">
-                      Verified Heritage
-                    </span>
+                    {/* Provenance */}
+                    <div className="relative z-10 pt-2.5 border-t border-[#E2D2BC] flex items-center justify-between text-[11px] text-[#5C3B24] italic">
+                      <span className="truncate">{item.contributor}</span>
+                      <span className="font-mono text-[10px] bg-[#EFE3CF] text-[#6E4125] font-bold px-2 py-0.5 rounded border border-[#DFCFB7] not-italic">
+                        Verified Dialect
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
