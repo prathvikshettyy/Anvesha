@@ -1040,6 +1040,64 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                 },
             },
         },
+        '/api/locket/connections': {
+            get: {
+                tags: ['Culture Locket'],
+                summary: "List connected peers' locket moments",
+                description: "Returns locket moments authored by users who have a CONNECTED connection with the authenticated user (both directions). Does not include user's own moments, and excludes location data.",
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Array of cultural locket moments from connected peers',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/LocketMoment' },
+                                },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/locket/mine': {
+            get: {
+                tags: ['Culture Locket'],
+                summary: "List authenticated user's own locket moments",
+                description: "Returns all cultural locket moments posted by the authenticated user. Excludes location data.",
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Array of personal cultural locket moments',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/LocketMoment' },
+                                },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         '/api/locket': {
             get: {
                 tags: ['Culture Locket'],

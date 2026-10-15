@@ -132,7 +132,7 @@ export default function App() {
   const [locketRecipient, setLocketRecipient]     = useState(null);
   const [chatPartner, setChatPartner]             = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [connectTab, setConnectTab]               = useState('messages'); // 'messages' | 'communities'
+  const [connectTab, setConnectTab]               = useState('communities'); // 'communities' | 'messages'
   const [targetCommunityId, setTargetCommunityId] = useState(null);
   const [communities, setCommunities]             = useState([]);
 
@@ -513,15 +513,17 @@ export default function App() {
         {currentView === 'locket' && (
           <LocketView
             locketMoments={locketMoments}
+            currentUser={user}
             onOpenLocketModal={() => {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
             onReactLocket={handleReactLocket}
+            onFindPeople={() => setCurrentView('people')}
           />
         )}
 
-        {currentView === 'messages' && (
+        {(currentView === 'messages' || currentView === 'communities') && (
           <MessagesView
             currentUser={user}
             initialPartner={chatPartner}
@@ -532,9 +534,15 @@ export default function App() {
             isAuthenticated={!!authUser}
             onUnreadCountChange={setUnreadCount}
             authToken={api.token.get()}
-            initialTab={connectTab}
+            initialTab={currentView === 'communities' ? 'communities' : (currentView === 'messages' ? 'messages' : connectTab)}
             initialCommunityId={targetCommunityId}
             onSelectEvent={setActiveDetailEvent}
+            onTabChange={(tab) => {
+              setConnectTab(tab);
+              if (currentView === 'messages' || currentView === 'communities') {
+                setCurrentView(tab);
+              }
+            }}
           />
         )}
 

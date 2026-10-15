@@ -96,6 +96,138 @@ router.get('/vault', (req, res) => {
   res.json(DIALECT_VAULT);
 });
 
+// ── GET /api/locket/connections — moments posted by CONNECTED users ───────────
+// Returns locket moments authored by users who have a CONNECTED connection
+// with the logged-in user (both directions). Does not include the user's own
+// moments. Does not return lat/lng or location data.
+router.get('/connections', requireAuth, (req, res) => {
+  const currentUserId = req.user.id;
+
+  const rows = db.prepare(`
+    SELECT m.*, u.name AS author_name, u.avatar_url AS author_avatar,
+      (SELECT COUNT(*) FROM locket_reactions r WHERE r.moment_id = m.id) AS reaction_count
+    FROM locket_moments m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.sender_id != ? AND m.sender_id IN (
+      SELECT CASE WHEN c.requester_id = ? THEN c.receiver_id ELSE c.requester_id END
+      FROM connections c
+      WHERE c.status = 'CONNECTED' AND (c.requester_id = ? OR c.receiver_id = ?)
+    )
+    ORDER BY m.timestamp_iso DESC
+    LIMIT 100
+  `).all(currentUserId, currentUserId, currentUserId, currentUserId);
+
+  const results = rows.map(row => {
+    const reactions = db.prepare(`
+      SELECT r.id, r.text, r.reacted_at, u.name as user_name
+      FROM locket_reactions r JOIN users u ON u.id = r.user_id
+      WHERE r.moment_id = ?
+      ORDER BY r.reacted_at ASC
+    `).all(row.id);
+    return {
+      id: row.id,
+      authorId: row.sender_id,
+      author_id: row.sender_id,
+      senderId: row.sender_id,
+      sender_id: row.sender_id,
+      authorName: row.author_name || 'Unknown',
+      author_name: row.author_name || 'Unknown',
+      senderName: row.author_name || 'Unknown',
+      senderAvatar: row.author_avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+      momentType: row.moment_type,
+      moment_type: row.moment_type,
+      title: row.title,
+      vernacularText: row.vernacular_text,
+      vernacular_text: row.vernacular_text,
+      phoneticText: row.phonetic_text,
+      phonetic_text: row.phonetic_text,
+      meaning: row.meaning,
+      provenance: row.provenance,
+      audioUrl: row.audio_url,
+      audio_url: row.audio_url,
+      imageUrl: row.image_url,
+      image_url: row.image_url,
+      image: row.image_url,
+      audioDuration: row.audio_duration,
+      audio_duration: row.audio_duration,
+      timestamp: row.timestamp_iso,
+      timestamp_iso: row.timestamp_iso,
+      reactionCount: row.reaction_count || 0,
+      reaction_count: row.reaction_count || 0,
+      reactions,
+    };
+  });
+
+  res.json(results);
+});
+
+// ── GET /api/locket/mine — moments posted by the current user ─────────────────
+// Returns all locket moments where the sender is the current authenticated user.
+// Does not return lat/lng or location data.
+router.get('/mine', requireAuth, (req, res) => {
+  const currentUserId = req.user.id;
+
+  const rows = db.prepare(`
+    SELECT m.*, u.name AS author_name, u.avatar_url AS author_avatar,
+      (SELECT COUNT(*) FROM locket_reactions r WHERE r.moment_id = m.id) AS reaction_count
+    FROM locket_moments m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.sender_id = ?
+    ORDER BY m.timestamp_iso DESC
+    LIMIT 100
+  `).all(currentUserId);
+
+  const results = rows.map(row => {
+    const reactions = db.prepare(`
+      SELECT r.id, r.text, r.reacted_at, u.name as user_name
+      FROM locket_reactions r JOIN users u ON u.id = r.user_id
+      WHERE r.moment_id = ?
+      ORDER BY r.reacted_at ASC
+    `).all(row.id);
+    const recipient = row.recipient_id
+      ? db.prepare('SELECT name FROM users WHERE id = ?').get(row.recipient_id)
+      : null;
+    return {
+      id: row.id,
+      authorId: row.sender_id,
+      author_id: row.sender_id,
+      senderId: row.sender_id,
+      sender_id: row.sender_id,
+      authorName: row.author_name || 'You',
+      author_name: row.author_name || 'You',
+      senderName: row.author_name || 'You',
+      senderAvatar: row.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      recipientId: row.recipient_id || null,
+      recipientName: recipient?.name || null,
+      momentType: row.moment_type,
+      moment_type: row.moment_type,
+      title: row.title,
+      vernacularText: row.vernacular_text,
+      vernacular_text: row.vernacular_text,
+      phoneticText: row.phonetic_text,
+      phonetic_text: row.phonetic_text,
+      meaning: row.meaning,
+      provenance: row.provenance,
+      audioUrl: row.audio_url,
+      audio_url: row.audio_url,
+      imageUrl: row.image_url,
+      image_url: row.image_url,
+      image: row.image_url,
+      audioDuration: row.audio_duration,
+      audio_duration: row.audio_duration,
+      timestamp: row.timestamp_iso,
+      timestamp_iso: row.timestamp_iso,
+      reactionCount: row.reaction_count || 0,
+      reaction_count: row.reaction_count || 0,
+      reactions,
+    };
+  });
+
+  res.json(results);
+});
+
+
+
 // ── GET /api/locket — moments sent to, by, or shared with current user's connections ───────
 router.get('/', optionalAuth, (req, res) => {
   const currentUserId = req.user?.id;

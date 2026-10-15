@@ -12,14 +12,12 @@ export default function EventDetailModal({
   onJoinCommunity,
   communities = []
 }) {
-  if (!isOpen || !event) return null;
-
   // Find linked community for this event if one exists
-  const matchedCommunity = communities.find(c => c.eventId === event.id || c.event_id === event.id)
-    || (event.id === 'evt_1' ? { id: 'comm_evt_manipal_fest', name: 'Manipal Cultural Fest 2026', memberCount: 38 }
-    : event.id === 'evt_2' ? { id: 'comm_evt_dasara', name: 'Mysuru Dasara Cultural Circle', memberCount: 42 }
-    : event.id === 'evt_3' || event.id === 'evt_k1' ? { id: 'comm_evt_hackathon', name: 'Bengaluru Culture Tech Hackers', memberCount: 54 }
-    : event.id === 'evt_6' ? { id: 'comm_dialects_lit', name: 'Tulu & Konkani Dialect Circle', memberCount: 22 }
+  const matchedCommunity = communities.find(c => c.eventId === event?.id || c.event_id === event?.id)
+    || (event?.id === 'evt_1' ? { id: 'comm_evt_manipal_fest', name: 'Manipal Cultural Fest 2026', memberCount: 38 }
+    : event?.id === 'evt_2' ? { id: 'comm_evt_dasara', name: 'Mysuru Dasara Cultural Circle', memberCount: 42 }
+    : event?.id === 'evt_3' || event?.id === 'evt_k1' ? { id: 'comm_evt_hackathon', name: 'Bengaluru Culture Tech Hackers', memberCount: 54 }
+    : event?.id === 'evt_6' ? { id: 'comm_dialects_lit', name: 'Tulu & Konkani Dialect Circle', memberCount: 22 }
     : null);
 
   const [isJoined, setIsJoined] = useState(false);
@@ -32,6 +30,8 @@ export default function EventDetailModal({
       setMemberCount(matchedCommunity.memberCount || 42);
     }
   }, [matchedCommunity?.id, matchedCommunity?.isMember, matchedCommunity?.memberCount]);
+
+  if (!isOpen || !event) return null;
 
   const handleJoinClick = async () => {
     if (!matchedCommunity || joining) return;

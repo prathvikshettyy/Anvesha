@@ -142,6 +142,12 @@ export const locket = {
   /** Get locket moments visible to the current user. */
   list: () => get('/locket'),
 
+  /** Get locket moments posted by CONNECTED connections (not own). Auth required. */
+  connectionsMoments: () => get('/locket/connections'),
+
+  /** Get locket moments posted by the current user. Auth required. */
+  mine: () => get('/locket/mine'),
+
   /**
    * Create a new locket moment.
    * @param {{

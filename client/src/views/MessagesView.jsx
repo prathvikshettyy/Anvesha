@@ -40,11 +40,12 @@ export default function MessagesView({
   onUnreadCountChange,
   authToken,   // passed from App so we know when the socket is ready
   initialPartner,
-  initialTab = 'messages',
+  initialTab = 'communities',
   initialCommunityId = null,
-  onSelectEvent
+  onSelectEvent,
+  onTabChange
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab || 'messages');
+  const [activeTab, setActiveTab] = useState(initialTab || 'communities');
   const [targetCommunityId, setTargetCommunityId] = useState(initialCommunityId || null);
 
   useEffect(() => {
@@ -54,6 +55,11 @@ export default function MessagesView({
       setActiveTab('communities');
     }
   }, [initialTab, initialCommunityId]);
+
+  const handleSwitchTab = (tab) => {
+    setActiveTab(tab);
+    if (onTabChange) onTabChange(tab);
+  };
 
   const [conversations, setConversations] = useState([]);
   const [activePartnerId, setActivePartnerId]   = useState(initialPartner ? (initialPartner.id || initialPartner.partnerId) : null);
@@ -458,10 +464,22 @@ export default function MessagesView({
             </span>
           )}
 
-          {/* Clear Tabs: Messages vs Communities */}
+          {/* Clear Tabs: Communities vs Messages (Communities first) */}
           <div className="flex items-center bg-surface-container p-1 rounded-2xl border border-blush-surface shadow-xs">
             <button
-              onClick={() => setActiveTab('messages')}
+              onClick={() => handleSwitchTab('communities')}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'communities'
+                  ? 'bg-cocoa-text text-cream-canvas shadow-warm'
+                  : 'text-cocoa-text/70 hover:text-cocoa-text hover:bg-blush-surface/40'
+              }`}
+            >
+              <Users className={`w-4 h-4 ${activeTab === 'communities' ? 'text-ochre-accent' : 'text-terra-primary'}`} />
+              <span>Communities</span>
+            </button>
+
+            <button
+              onClick={() => handleSwitchTab('messages')}
               className={`flex items-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'messages'
                   ? 'bg-cocoa-text text-cream-canvas shadow-warm'
@@ -475,18 +493,6 @@ export default function MessagesView({
                   {unreadTotal}
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('communities')}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'communities'
-                  ? 'bg-cocoa-text text-cream-canvas shadow-warm'
-                  : 'text-cocoa-text/70 hover:text-cocoa-text hover:bg-blush-surface/40'
-              }`}
-            >
-              <Users className={`w-4 h-4 ${activeTab === 'communities' ? 'text-ochre-accent' : 'text-terra-primary'}`} />
-              <span>Communities</span>
             </button>
           </div>
         </div>

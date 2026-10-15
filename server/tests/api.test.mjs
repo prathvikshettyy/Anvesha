@@ -302,6 +302,90 @@ async function runTests() {
     });
     assert(strangerReactRes.status === 403, 'Privacy check: unconnected user gets 403 Forbidden reacting to moment');
 
+    // ── 5b. Culture Locket Connections & Mine Endpoints ──────────────────────
+    console.log('\n[Test Suite 5b] GET /api/locket/connections & /mine Authorization & Visibility');
+
+    // 1. Unauthenticated requests get 401
+    const unauthConnRes = await fetch(`${BASE}/locket/connections`);
+    assert(unauthConnRes.status === 401, 'GET /api/locket/connections without token returns 401');
+
+    const unauthMineRes = await fetch(`${BASE}/locket/mine`);
+    assert(unauthMineRes.status === 401, 'GET /api/locket/mine without token returns 401');
+
+    // 2. /mine returns only the caller's moments
+    const rohanMineRes = await fetch(`${BASE}/locket/mine`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(rohanMineRes.status === 200, 'GET /api/locket/mine for Rohan returns 200');
+    const rohanMineData = await rohanMineRes.json();
+    assert(Array.isArray(rohanMineData), 'GET /api/locket/mine returns an array');
+    assert(rohanMineData.some(m => m.id === createdLocketId), 'Rohan sees his created moment in /mine');
+    assert(rohanMineData.every(m => m.authorId === 'usr_rohan' || m.senderId === 'usr_rohan'), 'All items in Rohan /mine belong to Rohan');
+    assert(rohanMineData.every(m => m.lat === undefined && m.lng === undefined && m.latitude === undefined && m.longitude === undefined), '/mine does not expose lat/lng location data');
+
+    const strangerMineRes = await fetch(`${BASE}/locket/mine`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(strangerMineRes.status === 200, 'GET /api/locket/mine for Test Student returns 200');
+    const strangerMineData = await strangerMineRes.json();
+    assert(!strangerMineData.some(m => m.id === createdLocketId), 'Test Student does NOT see Rohan moment in their own /mine');
+
+    // 3. User A never sees a non-connection's moments in /connections
+    const { db: testDb } = await import('../src/db/index.js');
+    const { v4: uuidv4 } = await import('uuid');
+
+    // Ensure no connection exists between testUserId and usr_rohan initially
+    testDb.prepare('DELETE FROM connections WHERE (requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)').run(
+      testUserId, 'usr_rohan', 'usr_rohan', testUserId
+    );
+
+    const nonConnRes = await fetch(`${BASE}/locket/connections`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(nonConnRes.status === 200, 'GET /api/locket/connections returns 200');
+    const nonConnData = await nonConnRes.json();
+    assert(!nonConnData.some(m => m.id === createdLocketId), 'A never sees a non-connection moment in /connections');
+
+    // 4. User A does NOT see B moments when connection is PENDING
+    const testConnId = uuidv4();
+    testDb.prepare('INSERT INTO connections (id, requester_id, receiver_id, status) VALUES (?, ?, ?, ?)').run(
+      testConnId, testUserId, 'usr_rohan', 'PENDING'
+    );
+
+    const pendingRes = await fetch(`${BASE}/locket/connections`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    const pendingData = await pendingRes.json();
+    assert(!pendingData.some(m => m.id === createdLocketId), 'User A does NOT see B moments when connection is PENDING');
+
+    // 5. User A does NOT see B moments when connection is DECLINED
+    testDb.prepare('UPDATE connections SET status = ? WHERE id = ?').run('DECLINED', testConnId);
+    const declinedRes = await fetch(`${BASE}/locket/connections`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    const declinedData = await declinedRes.json();
+    assert(!declinedData.some(m => m.id === createdLocketId), 'User A does NOT see B moments when connection is DECLINED');
+
+    // 6. User A sees B moments ONLY after connection is CONNECTED
+    testDb.prepare('UPDATE connections SET status = ? WHERE id = ?').run('CONNECTED', testConnId);
+    const connectedRes = await fetch(`${BASE}/locket/connections`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(connectedRes.status === 200, 'GET /api/locket/connections returns 200 when connected');
+    const connectedData = await connectedRes.json();
+    assert(connectedData.some(m => m.id === createdLocketId), 'User A sees B moments when connection is CONNECTED');
+    const matchedMoment = connectedData.find(m => m.id === createdLocketId);
+    assert(matchedMoment.authorName || matchedMoment.senderName, 'Locket moment includes author name');
+    assert(typeof matchedMoment.reactionCount === 'number', 'Locket moment includes reactionCount number');
+    assert(matchedMoment.lat === undefined && matchedMoment.lng === undefined && matchedMoment.latitude === undefined && matchedMoment.longitude === undefined, '/connections does not expose lat/lng location data');
+
+    // 7. A does not see own moments in /connections
+    const rohanConnRes = await fetch(`${BASE}/locket/connections`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    const rohanConnData = await rohanConnRes.json();
+    assert(!rohanConnData.some(m => m.id === createdLocketId), 'Rohan does NOT see his own moments in /connections');
+
     // ── 6. Messages Suite ────────────────────────────────────────────────────
     console.log('\n[Test Suite 6/6] Private Peer Messaging');
 
@@ -443,6 +527,7 @@ async function runTests() {
         db.prepare('DELETE FROM events WHERE id = ?').run(createdEventId);
       }
       if (testUserId) {
+        db.prepare('DELETE FROM connections WHERE requester_id = ? OR receiver_id = ?').run(testUserId, testUserId);
         db.prepare('DELETE FROM user_interests WHERE user_id = ?').run(testUserId);
         db.prepare('DELETE FROM user_skills WHERE user_id = ?').run(testUserId);
         db.prepare('DELETE FROM saved_events WHERE user_id = ?').run(testUserId);

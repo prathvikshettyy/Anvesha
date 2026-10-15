@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import indiaData from '../data/indiaStatesData.json';
 import indiaBoundariesData from '../data/indiaStateBoundaries.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords, matchesEventState } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
-import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 export default function InteractiveIndiaMap({
   events = [],
@@ -14,12 +13,8 @@ export default function InteractiveIndiaMap({
   onSelectState,
   onSelectEvent
 }) {
-  // 'OSM' (real Leaflet + OpenStreetMap) or 'SVG' (handcrafted folk canvas)
-  const [mapEngine, setMapEngine] = useState('OSM'); 
-  // 'STANDARD' (OpenStreetMap official) or 'HOT' (Humanitarian OpenStreetMap) — 100% free, NO API key required!
-  const [osmTileStyle, setOsmTileStyle] = useState('STANDARD'); 
+  // Always use OSM Vibrant (HOT humanitarian tiles)
   const [hoveredState, setHoveredState] = useState(null);
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 920 });
 
   // Leaflet refs
   const leafletContainerRef = useRef(null);
@@ -36,37 +31,23 @@ export default function InteractiveIndiaMap({
     return norm;
   };
 
-  // Events filtered by active category (keeps all states visible across the canvas!)
+  // Events filtered by active category
   const categoryEvents = useMemo(() => {
     return events.filter(e => {
       return selectedCategory === 'ALL' || e.category === selectedCategory;
     });
   }, [events, selectedCategory]);
 
-  // Specific events matching the selected state (for elevation, counts, and ribbons)
+  // Specific events matching the selected state
   const stateEvents = useMemo(() => {
     if (!selectedStateId) return categoryEvents;
     return categoryEvents.filter(e => matchesEventState(e, selectedStateId));
   }, [categoryEvents, selectedStateId]);
 
-  // Separate states into unselected and selected for proper SVG layer stacking (elevates selected state above others)
-  const { unselectedStates, activeSelectedState } = useMemo(() => {
-    let active = null;
-    const unselected = [];
-    indiaData.states.forEach(st => {
-      const normId = st.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      if (selectedStateId && (st.id === selectedStateId || normId === selectedStateId)) {
-        active = { ...st, normId };
-      } else {
-        unselected.push({ ...st, normId });
-      }
-    });
-    return { unselectedStates: unselected, activeSelectedState: active };
-  }, [selectedStateId]);
 
   // ── Leaflet Initialization & Tile Management ───────────────────────────────
   useEffect(() => {
-    if (mapEngine !== 'OSM' || !leafletContainerRef.current) return;
+    if (!leafletContainerRef.current) return;
 
     // Clean up if already exists
     if (mapInstanceRef.current) {
@@ -99,14 +80,9 @@ export default function InteractiveIndiaMap({
       maxBoundsViscosity: 0.8
     });
 
-    // Pure OpenStreetMap tiles (100% open-source, NO API KEY required!)
-    const tileUrl = osmTileStyle === 'HOT'
-      ? 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
-      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-    const attribution = osmTileStyle === 'HOT'
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>'
-      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    // OSM Vibrant (HOT humanitarian tiles) — 100% open-source, NO API KEY required!
+    const tileUrl = 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>';
 
     tileLayerRef.current = L.tileLayer(tileUrl, {
       attribution,
@@ -178,7 +154,7 @@ export default function InteractiveIndiaMap({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapEngine, osmTileStyle]);
+  }, []);
 
   // ── Sync Active State with Leaflet GeoJSON Boundaries (Protruding Border) ───
   useEffect(() => {
@@ -315,50 +291,17 @@ export default function InteractiveIndiaMap({
     }
   }, [categoryEvents, selectedStateId, onSelectEvent]);
 
-  // ── SVG Mode Helpers (Folk Canvas) ──────────────────────────────────────────
-  const handleSvgStateClick = (state) => {
-    const normId = state.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    if (selectedStateId === normId) {
-      onSelectState(null);
-      resetView();
-    } else {
-      onSelectState(normId, state.name);
-      if (state.bounds) {
-        const [p0, p1] = state.bounds;
-        const bW = Math.max(120, p1[0] - p0[0]);
-        const bH = Math.max(120, p1[1] - p0[1]);
-        const padding = 60;
-        const targetW = bW + padding * 2;
-        const targetH = bH + padding * 2;
-        const targetX = Math.max(0, Math.min(800 - targetW, p0[0] - padding));
-        const targetY = Math.max(0, Math.min(920 - targetH, p0[1] - padding));
-        setViewBox({ x: targetX, y: targetY, w: targetW, h: targetH });
-      }
-    }
-  };
-
   const resetView = () => {
     onSelectState(null);
-    if (mapEngine === 'OSM' && mapInstanceRef.current) {
+    if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo([22.5, 79.5], 5, { duration: 1.0 });
-    } else {
-      setViewBox({ x: 0, y: 0, w: 800, h: 920 });
     }
   };
 
   const handleZoom = (delta) => {
-    if (mapEngine === 'OSM' && mapInstanceRef.current) {
+    if (mapInstanceRef.current) {
       if (delta > 0) mapInstanceRef.current.zoomIn();
       else mapInstanceRef.current.zoomOut();
-    } else {
-      setViewBox(prev => {
-        const factor = delta > 0 ? 0.8 : 1.25;
-        const newW = Math.max(200, Math.min(800, prev.w * factor));
-        const newH = Math.max(230, Math.min(920, prev.h * factor));
-        const newX = Math.max(0, Math.min(800 - newW, prev.x + (prev.w - newW) / 2));
-        const newY = Math.max(0, Math.min(920 - newH, prev.y + (prev.h - newH) / 2));
-        return { x: newX, y: newY, w: newW, h: newH };
-      });
     }
   };
 
@@ -378,9 +321,6 @@ export default function InteractiveIndiaMap({
                   ? `${STATE_CENTROIDS[selectedStateId]?.name || selectedStateId}`
                   : 'Cultural Atlas of India'}
               </h3>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-terra-primary/10 text-terra-primary">
-                {mapEngine === 'OSM' ? (osmTileStyle === 'HOT' ? 'OSM Vibrant' : 'OpenStreetMap') : 'Folk Atlas'}
-              </span>
             </div>
             <p className="text-[10px] sm:text-[11px] text-cocoa-text/70">
               {selectedStateId
@@ -398,7 +338,7 @@ export default function InteractiveIndiaMap({
           )}
         </div>
 
-        {/* Engine Switcher & Map Controls */}
+        {/* Map Controls */}
         <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
           
           {/* State Quick-Fly Selector Dropdown */}
@@ -416,45 +356,6 @@ export default function InteractiveIndiaMap({
               <option key={key} value={key}>{s.name}</option>
             ))}
           </select>
-
-          {/* Map Engine Toggle: OpenStreetMap (OSM) vs Folk SVG */}
-          <div className="bg-cream-canvas/95 backdrop-blur-md p-1 rounded-2xl border border-blush-surface shadow-sm flex items-center">
-            <button
-              onClick={() => setMapEngine('OSM')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
-                mapEngine === 'OSM'
-                  ? 'bg-terra-primary text-cream-canvas shadow-xs'
-                  : 'text-cocoa-text/75 hover:bg-blush-surface/50'
-              }`}
-              title="OpenStreetMap Live Tiles"
-            >
-              <Map className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">OSM Map</span>
-            </button>
-            <button
-              onClick={() => setMapEngine('SVG')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
-                mapEngine === 'SVG'
-                  ? 'bg-terra-primary text-cream-canvas shadow-xs'
-                  : 'text-cocoa-text/75 hover:bg-blush-surface/50'
-              }`}
-              title="Illustrated Folk Art Atlas Canvas"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Folk Canvas</span>
-            </button>
-          </div>
-
-          {/* OSM Style Toggle (Standard vs HOT) */}
-          {mapEngine === 'OSM' && (
-            <button
-              onClick={() => setOsmTileStyle(prev => prev === 'HOT' ? 'STANDARD' : 'HOT')}
-              className="bg-cream-canvas/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-blush-surface shadow-sm text-xs font-bold text-cocoa-text hover:bg-blush-surface/40 transition-all flex items-center gap-1"
-              title="Toggle OSM Style"
-            >
-              <span>{osmTileStyle === 'HOT' ? 'OSM Vibrant' : 'OSM Classic'}</span>
-            </button>
-          )}
 
           {/* Zoom & Reset Controls */}
           <div className="flex items-center gap-1 bg-cream-canvas/95 backdrop-blur-md p-1 rounded-2xl border border-blush-surface shadow-sm">
@@ -484,196 +385,15 @@ export default function InteractiveIndiaMap({
         </div>
       </div>
 
-      {/* ── Main Map Canvas: Leaflet (OSM) or Handcrafted SVG ──────────────── */}
+      {/* ── Main Map Canvas: Leaflet OSM Vibrant ──────────────── */}
       <div className="relative w-full h-[620px] sm:h-[750px] lg:h-[820px] overflow-hidden">
         
-        {/* 1. Leaflet (OpenStreetMap) Canvas with Interactive State Boundaries */}
+        {/* Leaflet (OpenStreetMap Vibrant) Canvas with Interactive State Boundaries */}
         <div
           ref={leafletContainerRef}
-          className={`w-full h-full transition-opacity duration-300 ${
-            mapEngine === 'OSM' ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none -z-10 absolute inset-0'
-          }`}
+          className="w-full h-full"
         />
 
-        {/* 2. Handcrafted SVG Folk Atlas Canvas */}
-        {mapEngine === 'SVG' && (
-          <svg
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-            className="w-full h-full transition-all duration-700 ease-out"
-            style={{ transformOrigin: 'center center' }}
-          >
-            <defs>
-              <radialGradient id="parchmentGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FAF4EA" />
-                <stop offset="100%" stopColor="#F2E6D4" />
-              </radialGradient>
-              <pattern id="oceanWaves" width="40" height="20" patternUnits="userSpaceOnUse">
-                <path d="M 0 10 Q 10 5, 20 10 T 40 10" fill="none" stroke="#D8C8B5" strokeWidth="0.75" opacity="0.6" />
-              </pattern>
-              
-              {/* Standard Elevation Shadow */}
-              <filter id="stateElevation" x="-10%" y="-10%" width="120%" height="120%">
-                <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#5B332C" floodOpacity="0.12" />
-              </filter>
-
-              {/* Elevated Selected State Dual Glow and Deep Shadow Filter */}
-              <filter id="stateElevationGlow" x="-25%" y="-25%" width="150%" height="150%">
-                <feDropShadow dx="0" dy="16" stdDeviation="12" floodColor="#3B231D" floodOpacity="0.45" />
-                <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#C56E50" floodOpacity="0.38" />
-              </filter>
-            </defs>
-
-            <rect x="0" y="0" width="800" height="920" fill="url(#parchmentGrad)" />
-            <rect x="0" y="0" width="800" height="920" fill="url(#oceanWaves)" />
-
-            <text x="70" y="620" fontFamily="Fraunces, Georgia, serif" fontSize="19" fontStyle="italic" fill="#8C7563" letterSpacing="3" opacity="0.65">
-              ARABIAN SEA
-            </text>
-            <text x="590" y="640" fontFamily="Fraunces, Georgia, serif" fontSize="19" fontStyle="italic" fill="#8C7563" letterSpacing="3" opacity="0.65">
-              BAY OF BENGAL
-            </text>
-            <text x="310" y="890" fontFamily="Fraunces, Georgia, serif" fontSize="16" fontStyle="italic" fill="#8C7563" letterSpacing="4" opacity="0.65">
-              INDIAN OCEAN
-            </text>
-
-            {/* Sacred Transparent Mandala Watermarks in Ocean Areas */}
-            <g transform="translate(620, 700) scale(0.65)" opacity="0.08" stroke="#C56E50" fill="none" pointerEvents="none">
-              <circle cx="150" cy="150" r="140" strokeWidth="1" strokeDasharray="4 4" />
-              <circle cx="150" cy="150" r="100" strokeWidth="1.2" />
-              <circle cx="150" cy="150" r="60" strokeWidth="0.8" />
-              <circle cx="150" cy="150" r="20" fill="#C56E50" fillOpacity="0.2" />
-              {[0, 45, 90, 135, 180, 225, 270, 315].map(a => (
-                <path key={`bay-mandala-${a}`} transform={`rotate(${a} 150 150)`} d="M 150 50 Q 170 100, 150 150 Q 130 100, 150 50 Z" />
-              ))}
-            </g>
-            <g transform="translate(30, 460) scale(0.55)" opacity="0.07" stroke="#D9A441" fill="none" pointerEvents="none">
-              <circle cx="150" cy="150" r="140" strokeWidth="1" strokeDasharray="5 5" />
-              <circle cx="150" cy="150" r="80" strokeWidth="1" />
-              <circle cx="150" cy="150" r="30" fill="#D9A441" fillOpacity="0.2" />
-              {[0, 60, 120, 180, 240, 300].map(a => (
-                <path key={`arabian-mandala-${a}`} transform={`rotate(${a} 150 150)`} d="M 150 70 Q 180 110, 150 150 Q 120 110, 150 70 Z" />
-              ))}
-            </g>
-
-            {/* Base Group: Unselected States (Softened when a state is active) */}
-            <g id="india-states-group" filter="url(#stateElevation)" opacity={selectedStateId ? 0.72 : 1} className="transition-opacity duration-500">
-              {unselectedStates.map(state => {
-                const normId = state.normId;
-                const hasEvents = events.some(e => e.stateId === normId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === normId);
-                const reg = CULTURAL_ART_REGISTRY[normId];
-
-                return (
-                  <path
-                    key={state.id || normId}
-                    d={state.path}
-                    className="india-state-path"
-                    style={{
-                      fill: hasEvents ? '#F9F1E6' : '#F3E9DD',
-                      stroke: '#D1B9A2',
-                      strokeWidth: 1.2
-                    }}
-                    onClick={() => handleSvgStateClick(state)}
-                    onMouseEnter={() => {
-                      setHoveredState({
-                        id: normId,
-                        name: state.name,
-                        registry: reg,
-                        eventCount: events.filter(ev => ev.stateId === normId || ev.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === normId).length
-                      });
-                    }}
-                    onMouseLeave={() => setHoveredState(null)}
-                  />
-                );
-              })}
-            </g>
-
-            {/* Elevated Layer: Active Selected State rendered strictly ON TOP of all others */}
-            {activeSelectedState && (
-              <g id="elevated-selected-state" className="transition-all duration-500">
-                {/* Glow Shadow Underlay */}
-                <path
-                  d={activeSelectedState.path}
-                  fill="none"
-                  stroke={CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor || '#C56E50'}
-                  strokeWidth="7"
-                  opacity="0.35"
-                  filter="url(#stateElevationGlow)"
-                />
-                {/* Elevated State Path */}
-                <path
-                  d={activeSelectedState.path}
-                  className="india-state-path selected elevated-state-path"
-                  style={{
-                    fill: CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor
-                      ? `${CULTURAL_ART_REGISTRY[activeSelectedState.normId].accentColor}38`
-                      : '#FBD4BE',
-                    stroke: CULTURAL_ART_REGISTRY[activeSelectedState.normId]?.accentColor || '#C56E50',
-                    strokeWidth: 3.5
-                  }}
-                  onClick={() => handleSvgStateClick(activeSelectedState)}
-                  onMouseEnter={() => {
-                    setHoveredState({
-                      id: activeSelectedState.normId,
-                      name: activeSelectedState.name,
-                      registry: CULTURAL_ART_REGISTRY[activeSelectedState.normId],
-                      eventCount: events.filter(ev => ev.stateId === activeSelectedState.normId || ev.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === activeSelectedState.normId).length
-                    });
-                  }}
-                  onMouseLeave={() => setHoveredState(null)}
-                />
-              </g>
-            )}
-
-            {/* Event Pins on SVG Canvas */}
-            <g id="event-pins-overlay">
-              {categoryEvents.map(evt => {
-                if (evt.mapX === undefined || evt.mapY === undefined) return null;
-                const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
-                const isSelectedState = selectedStateId ? matchesEventState(evt, selectedStateId) : false;
-                const isDimmed = Boolean(selectedStateId && !isSelectedState);
-
-                return (
-                  <g
-                    key={evt.id}
-                    transform={`translate(${evt.mapX}, ${evt.mapY})`}
-                    className={`cursor-pointer group ${isSelectedState ? 'pin-drop-bounce' : ''}`}
-                    opacity={isDimmed ? 0.45 : 1.0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectEvent(evt);
-                    }}
-                  >
-                    <circle cx="0" cy="-15" r="14" fill={cat.color} opacity={isSelectedState ? 0.45 : 0.25} className="animate-ping" />
-                    <circle
-                      cx="0"
-                      cy="-15"
-                      r={isSelectedState ? 13 : (isDimmed ? 8 : 10)}
-                      fill={cat.color}
-                      stroke="#FCF7F0"
-                      strokeWidth={isSelectedState ? 3 : 2}
-                      className="group-hover:scale-125 transition-transform origin-center shadow-lg"
-                    />
-                    <text x="0" y="-11" textAnchor="middle" fontSize={isSelectedState ? 11 : 9} fill="#FFFFFF" fontWeight="bold" pointerEvents="none">
-                      {cat.symbol}
-                    </text>
-                    <line x1="0" y1="-3" x2="0" y2="3" stroke={cat.color} strokeWidth="2.5" strokeLinecap="round" />
-                    <circle cx="0" cy="4" r="2.5" fill="#5B332C" opacity="0.7" />
-
-                    {/* Pin Label Chip */}
-                    {isSelectedState && (
-                      <g transform="translate(0, 16)" className="pointer-events-none opacity-95 group-hover:opacity-100 transition-opacity">
-                        <rect x="-45" y="-6" width="90" height="15" rx="4" fill="#3B2D26" />
-                        <text x="0" y="4" textAnchor="middle" fontSize="8" fill="#FAF4EA" fontWeight="bold">
-                          {evt.title.length > 15 ? `${evt.title.slice(0, 14)}…` : evt.title}
-                        </text>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
-        )}
 
         {/* Floating State Gathering Results Ribbon (Both Modes) */}
         {selectedStateId && (
@@ -703,12 +423,12 @@ export default function InteractiveIndiaMap({
                     <button
                       key={evt.id}
                       onClick={() => {
-                        onSelectEvent(evt);
-                        if (mapEngine === 'OSM' && mapInstanceRef.current) {
-                          const [lat, lng] = resolveEventCoords(evt);
-                          mapInstanceRef.current.flyTo([lat, lng], 10, { duration: 0.8 });
-                        }
-                      }}
+                      onSelectEvent(evt);
+                      if (mapInstanceRef.current) {
+                        const [lat, lng] = resolveEventCoords(evt);
+                        mapInstanceRef.current.flyTo([lat, lng], 10, { duration: 0.8 });
+                      }
+                    }}
                       className="px-2.5 py-1 rounded-full bg-surface-container-lowest hover:bg-terra-primary/15 border border-blush-surface text-cocoa-text text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                     >
                       <span>{cat.symbol}</span>
