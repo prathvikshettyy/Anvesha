@@ -76,6 +76,19 @@ function isConnected(userId1, userId2) {
   return Boolean(row);
 }
 
+function isPermittedToMessage(userId1, userId2) {
+  if (isConnected(userId1, userId2)) return true;
+  // Allow attendees and event organisers to message each other regarding events
+  try {
+    const isOrganiser = db.prepare(`
+      SELECT 1 FROM events WHERE submitted_by = ? OR submitted_by = ?
+    `).get(userId1, userId2);
+    return Boolean(isOrganiser);
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── POST /api/messages/:partnerId — send a message ───────────────────────────
 router.post('/:partnerId',
   requireAuth,
@@ -89,8 +102,8 @@ router.post('/:partnerId',
     const partner = db.prepare('SELECT id FROM users WHERE id = ?').get(partnerId);
     if (!partner) return res.status(404).json({ error: 'User not found' });
 
-    if (!isConnected(req.user.id, partnerId)) {
-      return res.status(403).json({ error: 'Messaging is only permitted between connected peers' });
+    if (!isPermittedToMessage(req.user.id, partnerId)) {
+      return res.status(403).json({ error: 'Messaging is only permitted between connected peers or event organisers' });
     }
 
     const { text } = req.body;
@@ -126,8 +139,8 @@ router.post('/:partnerId',
 
 // ── GET /api/messages/:partnerId/online — lightweight presence check ───────
 router.get('/:partnerId/online', requireAuth, (req, res) => {
-  if (!isConnected(req.user.id, req.params.partnerId)) {
-    return res.status(403).json({ error: 'Presence check is only permitted between connected peers' });
+  if (!isPermittedToMessage(req.user.id, req.params.partnerId)) {
+    return res.status(403).json({ error: 'Presence check is only permitted between connected peers or event organisers' });
   }
   res.json({ online: isOnline(req.params.partnerId) });
 });

@@ -149,6 +149,29 @@ function formatEvent(row) {
   const geo = inferStateAndCity(row);
   const rawImg = row.image_url || row.image || '';
   const resolvedImg = (!isBrokenUrl(rawImg)) ? rawImg : getCategoryPlaceholder(row.category);
+
+  let organizerUser = null;
+  const organizerId = row.submitted_by || row.submittedBy;
+  if (organizerId) {
+    try {
+      const u = db.prepare('SELECT id, name, username, handle, avatar_url, bio, city, state FROM users WHERE id = ?').get(organizerId);
+      if (u) {
+        organizerUser = {
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          handle: u.handle,
+          avatar: u.avatar_url,
+          avatarUrl: u.avatar_url,
+          bio: u.bio,
+          city: u.city,
+          state: u.state,
+          role: 'Event Host & Coordinator',
+        };
+      }
+    } catch (_) {}
+  }
+
   return {
     ...row,
     state: row.state || geo.state,
@@ -166,6 +189,8 @@ function formatEvent(row) {
     isOnline: Boolean(row.is_online),
     averageRating: row.average_rating != null ? Math.round(Number(row.average_rating) * 10) / 10 : null,
     reviewCount: row.review_count != null ? Number(row.review_count) : 0,
+    organizerUser,
+    submittedBy: row.submitted_by || null,
   };
 }
 

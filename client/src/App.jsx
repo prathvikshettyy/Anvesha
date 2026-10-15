@@ -341,6 +341,27 @@ export default function App() {
     setIsLocketModalOpen(true);
   };
 
+  const handleContactOrganiser = (organizerUser, eventContext) => {
+    setActiveDetailEvent(null);
+    setChatPartner({
+      id: organizerUser.id,
+      name: organizerUser.name,
+      avatar: organizerUser.avatar || organizerUser.avatarUrl,
+      handle: organizerUser.handle,
+      bio: organizerUser.bio,
+      city: organizerUser.city,
+      eventContext: eventContext ? {
+        id: eventContext.id,
+        title: eventContext.title,
+        date: eventContext.date,
+        venue: eventContext.venue,
+      } : null,
+      initialMessage: eventContext ? `Hi ${organizerUser.name}, I am reaching out regarding "${eventContext.title}".` : '',
+    });
+    setConnectTab('messages');
+    setCurrentView('messages');
+  };
+
   const handleOnboardingComplete = async (preferences) => {
     // Optimistic local update so UI reacts immediately
     setUser(prev => ({ ...prev, ...preferences }));
@@ -581,6 +602,8 @@ export default function App() {
         communities={communities}
         currentUser={user}
         isAuthenticated={!!authUser}
+        people={people}
+        onContactOrganiser={handleContactOrganiser}
         onEventUpdated={(stats) => {
           setEvents(prev => prev.map(e => e.id === stats.id ? { ...e, averageRating: stats.averageRating, reviewCount: stats.reviewCount } : e));
         }}

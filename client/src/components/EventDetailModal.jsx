@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   X, Calendar, MapPin, CheckCircle, ExternalLink, Bookmark, Users,
   Heart, Share2, Loader2, ArrowRight, Star, MessageSquare, Edit3,
-  Trash2, AlertCircle, CheckCircle2, ThumbsUp
+  Trash2, AlertCircle, CheckCircle2, ThumbsUp, ShieldCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 import { generateIdenticon } from '../utils/identicon';
 import * as api from '../services/api';
 import LocalFoodFlavours from './LocalFoodFlavours';
+import { EVENT_ORGANIZER_MAP, INITIAL_PEOPLE } from '../data/initialData';
 
 const RATING_LABELS = {
   1: 'Disappointing',
@@ -29,7 +30,9 @@ export default function EventDetailModal({
   communities = [],
   currentUser = null,
   isAuthenticated = false,
-  onEventUpdated = null
+  onEventUpdated = null,
+  people = [],
+  onContactOrganiser = null,
 }) {
   // Find linked community for this event if one exists
   const matchedCommunity = communities.find(c => c.eventId === event?.id || c.event_id === event?.id)
@@ -250,6 +253,32 @@ export default function EventDetailModal({
 
   const reviewCountDisplay = reviewStats.reviewCount || event.reviewCount || 0;
 
+  // Resolve organizer user from event data, people list, or default directory
+  const organizerId = event?.submitted_by || event?.submittedBy || (event?.id ? EVENT_ORGANIZER_MAP[event.id] : null);
+
+  const organizerUser = event?.organizerUser
+    || (organizerId ? (people.find(p => p.id === organizerId) || INITIAL_PEOPLE.find(p => p.id === organizerId)) : null)
+    || (event?.organizer && (people.find(p => p.name?.toLowerCase() === event.organizer?.toLowerCase() || p.handle?.toLowerCase() === event.organizer?.toLowerCase()) || INITIAL_PEOPLE.find(p => p.name?.toLowerCase() === event.organizer?.toLowerCase() || p.handle?.toLowerCase() === event.organizer?.toLowerCase())))
+    || null;
+
+  const organizerName = organizerUser?.name || event?.organizer || 'Community Organiser';
+  const organizerRole = organizerUser?.role || 'Event Host & Cultural Lead';
+  const organizerHandle = organizerUser?.handle || (organizerUser?.username ? `@${organizerUser.username}` : null);
+  const organizerAvatar = organizerUser?.avatar || organizerUser?.avatarUrl || (organizerName ? generateIdenticon(organizerName) : null);
+  const isSelf = Boolean(currentUser && organizerUser && (currentUser.id === organizerUser.id));
+
+  const handleContactOrganiserClick = () => {
+    if (isSelf) return;
+    if (!organizerUser) {
+      alert('This event organiser does not have an active chat profile on Anvesha. Please consult the official source link.');
+      return;
+    }
+    onClose();
+    if (onContactOrganiser) {
+      onContactOrganiser(organizerUser, event);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center p-3 sm:p-4 bg-cocoa-text/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-cream-canvas w-full max-w-2xl rounded-3xl border-2 border-blush-surface shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
@@ -358,6 +387,105 @@ export default function EventDetailModal({
             <p className="text-sm text-cocoa-text/85 leading-relaxed">
               {event.description}
             </p>
+          </div>
+
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* EVENT ORGANISER & DIRECT CONTACT SECTION                          */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-surface-container/60 border border-blush-surface space-y-3.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-terra-primary flex items-center gap-1.5 font-mono">
+                <Users className="w-3.5 h-3.5" /> Event Host & Organiser
+              </span>
+              {organizerHandle && (
+                <span className="text-[11px] font-medium text-cocoa-text/60 bg-cream-canvas px-2.5 py-0.5 rounded-full border border-blush-surface font-mono">
+                  {organizerHandle}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative flex-shrink-0">
+                  {organizerAvatar ? (
+                    <img
+                      src={organizerAvatar}
+                      alt={organizerName}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-terra-primary/30"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-terra-primary/10 flex items-center justify-center text-terra-primary font-bold text-sm border border-terra-primary/20">
+                      {organizerName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-cream-canvas" title="Verified Host" />
+                </div>
+
+                <div className="min-w-0">
+                  <h4 className="font-serif font-bold text-cocoa-text text-base sm:text-lg leading-tight truncate">
+                    {organizerName}
+                  </h4>
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-cocoa-text/70 mt-0.5">
+                    <span className="font-semibold text-terra-primary">{organizerRole}</span>
+                    {event.organizer && event.organizer !== organizerName && (
+                      <>
+                        <span>•</span>
+                        <span className="truncate">{event.organizer}</span>
+                      </>
+                    )}
+                    {(organizerUser?.city || event.city) && (
+                      <>
+                        <span>•</span>
+                        <span>{organizerUser?.city || event.city}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action button inside organiser card */}
+              {!isSelf && (
+                <button
+                  onClick={handleContactOrganiserClick}
+                  className="px-4 py-2 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer flex-shrink-0"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Contact Organiser</span>
+                </button>
+              )}
+            </div>
+
+            {organizerUser?.bio && (
+              <p className="text-xs text-cocoa-text/80 leading-relaxed italic bg-cream-canvas/70 p-3 rounded-xl border border-blush-surface/60">
+                "{organizerUser.bio}"
+              </p>
+            )}
+
+            {/* Configured Contact Info & Privacy Notice */}
+            <div className="p-3 rounded-xl bg-cream-canvas/90 border border-blush-surface text-xs space-y-1.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-bold text-cocoa-text flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-terra-primary" />
+                  Available Contact Information:
+                </span>
+                {event.sourceUrl && (
+                  <a
+                    href={event.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-terra-primary hover:underline"
+                  >
+                    <span>{event.sourceLabel || 'Official Event Link'}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              <p className="text-[11px] text-cocoa-text/70 leading-relaxed">
+                {organizerUser
+                  ? "Direct phone number and personal email are not publicly listed by the organiser to safeguard privacy. You can reach out directly and securely via Anvesha Chat using the Contact button."
+                  : "No direct personal phone or email details have been configured by the organiser for this listing. Official platform links and updates are available above."}
+              </p>
+            </div>
           </div>
 
           {/* Event-based Community Entry Point */}
@@ -791,10 +919,10 @@ export default function EventDetailModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 bg-surface-container/60 border-t border-blush-surface flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 bg-surface-container/60 border-t border-blush-surface flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
           <button
             onClick={() => onToggleSave(event.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${isSaved
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${isSaved
                 ? 'bg-blush-surface border-terra-primary text-terra-primary'
                 : 'border-blush-surface text-cocoa-text hover:bg-blush-surface/40'
               }`}
@@ -803,9 +931,20 @@ export default function EventDetailModal({
             <span>{isSaved ? 'Saved to Calendar' : 'Save Event'}</span>
           </button>
 
+          {!isSelf && (
+            <button
+              onClick={handleContactOrganiserClick}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-terra-primary/40 bg-terra-primary/10 hover:bg-terra-primary hover:text-cream-canvas text-terra-primary text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              title={`Message ${organizerName}`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Contact Organiser</span>
+            </button>
+          )}
+
           <button
             onClick={handleRsvp}
-            className="flex-1 max-w-xs px-6 py-2.5 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 min-w-[140px] px-5 py-2.5 rounded-full bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>RSVP & Attend</span>
           </button>

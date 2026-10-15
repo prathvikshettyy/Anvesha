@@ -23,7 +23,8 @@ import {
   Music,
   Palette,
   MapPin,
-  Compass
+  Compass,
+  Calendar
 } from 'lucide-react';
 import { INITIAL_CONVERSATIONS, INITIAL_COMMUNITIES } from '../data/initialData';
 import * as api from '../services/api';
@@ -76,12 +77,24 @@ export default function MessagesView({
   const typingTimerRef   = useRef(null);
   const typingEmitTimer  = useRef(null);  // throttle our own typing events
 
+  const [eventContextByPartner, setEventContextByPartner] = useState({});
+  const activeEventContext = activePartnerId ? eventContextByPartner[activePartnerId] : null;
+
   // Pre-select thread and add conversation entry if initialPartner changed
   useEffect(() => {
     if (initialPartner) {
       const pid = initialPartner.id || initialPartner.partnerId;
       if (pid) {
         setActivePartnerId(pid);
+        if (initialPartner.eventContext) {
+          setEventContextByPartner(prev => ({
+            ...prev,
+            [pid]: initialPartner.eventContext,
+          }));
+        }
+        if (initialPartner.initialMessage) {
+          setInputText(prev => prev ? prev : initialPartner.initialMessage);
+        }
         setConversations(prev => {
           if (prev.some(c => c.partnerId === pid)) return prev;
           const newEntry = {
@@ -613,6 +626,37 @@ export default function MessagesView({
                 <Mic className="w-3.5 h-3.5" />
                 <span>Send Locket Pulse</span>
               </button>
+            </div>
+          )}
+
+          {/* Active Event Inquiry Context Banner */}
+          {activeEventContext && (
+            <div className="mx-4 mt-3 p-3 rounded-2xl bg-surface-container/70 border border-terra-primary/25 flex items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-terra-primary/10 flex items-center justify-center text-terra-primary flex-shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-terra-primary font-mono block">
+                    Event Organiser Inquiry
+                  </span>
+                  <h4 className="font-serif font-bold text-cocoa-text text-xs sm:text-sm truncate">
+                    {activeEventContext.title}
+                  </h4>
+                  <p className="text-[11px] text-cocoa-text/70 truncate">
+                    {activeEventContext.date} {activeEventContext.venue ? `• ${activeEventContext.venue}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              {onSelectEvent && (
+                <button
+                  onClick={() => onSelectEvent(activeEventContext)}
+                  className="px-3 py-1.5 rounded-full bg-terra-primary/10 hover:bg-terra-primary text-terra-primary hover:text-cream-canvas font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  View Event
+                </button>
+              )}
             </div>
           )}
 

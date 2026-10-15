@@ -40,6 +40,33 @@ export const INITIAL_USER = {
   connectedUserIds: ['usr_priya', 'usr_arjun']
 };
 
+export const EVENT_ORGANIZER_MAP = {
+  evt_1: 'usr_arjun',
+  evt_2: 'usr_priya',
+  evt_3: 'usr_vikram',
+  evt_4: 'usr_ananya',
+  evt_k1: 'usr_arjun',
+  evt_k2: 'usr_ananya',
+  evt_k3: 'usr_vikram',
+  evt_5: 'usr_kavya',
+  evt_6: 'usr_priya',
+  evt_7: 'usr_rohan',
+  evt_8: 'usr_aditya',
+  evt_9: 'usr_meera',
+  evt_10: 'usr_meera',
+  evt_11: 'usr_aditya',
+  evt_12: 'usr_meera',
+  evt_13: 'usr_meera',
+  evt_14: 'usr_meera',
+  evt_15: 'usr_meera',
+  evt_16: 'usr_aditya',
+  evt_17: 'usr_ananya',
+  evt_18: 'usr_kavya',
+  evt_19: 'usr_ananya',
+  evt_20: 'usr_aditya',
+  evt_21: 'usr_aditya',
+};
+
 export const INITIAL_EVENTS = [
   // 1. KARNATAKA (Coastal & Bengaluru Cultural Circles)
   {
