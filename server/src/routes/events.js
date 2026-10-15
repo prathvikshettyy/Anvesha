@@ -106,18 +106,38 @@ function inferStateAndCity(row) {
 }
 
 export const CATEGORY_PLACEHOLDERS = {
-  culture:    'https://images.unsplash.com/photo-1609137144822-0d1279a099f6?w=800&auto=format&fit=crop&q=80',
-  festivals:  'https://images.unsplash.com/photo-1600100397608-f70cff5a2e09?w=800&auto=format&fit=crop&q=80',
-  technology: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80',
-  music:      'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop&q=80',
-  art:        'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop&q=80',
-  film:       'https://images.unsplash.com/photo-1517602302552-471fe67acf66?w=800&auto=format&fit=crop&q=80',
-  literature: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&auto=format&fit=crop&q=80',
-  food:       'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&auto=format&fit=crop&q=80',
-  community:  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&auto=format&fit=crop&q=80',
-  workshops:  'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&auto=format&fit=crop&q=80',
-  science:    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
+  culture:    '/images/yakshagana-art-bg.png',
+  festivals:  '/images/taj_sunset.jpg',
+  technology: '/images/cinematic_india_hero.jpg',
+  music:      '/images/folk_musician.jpg',
+  art:        '/images/heritage-tapestry-bg.png',
+  film:       '/images/visite_reference.jpg',
+  literature: '/images/himalaya_buddha.jpg',
+  food:       '/images/kadak_chai.jpg',
+  community:  '/images/cultural_atlas_ref.jpg',
+  workshops:  '/images/heritage-tapestry-bg.png',
+  science:    '/images/cinematic_india_hero.jpg',
 };
+
+// Aliases
+CATEGORY_PLACEHOLDERS.heritage = CATEGORY_PLACEHOLDERS.culture;
+CATEGORY_PLACEHOLDERS.celebrations = CATEGORY_PLACEHOLDERS.festivals;
+CATEGORY_PLACEHOLDERS.crafts = CATEGORY_PLACEHOLDERS.art;
+CATEGORY_PLACEHOLDERS.theatre = CATEGORY_PLACEHOLDERS.film;
+CATEGORY_PLACEHOLDERS.books = CATEGORY_PLACEHOLDERS.literature;
+CATEGORY_PLACEHOLDERS.dialects = CATEGORY_PLACEHOLDERS.community;
+
+const BROKEN_PATTERNS = [
+  'photo-1579783902614-a3fb3927b675',
+  'photo-1600100397608-f70cff5a2e09',
+  'photo-1609137144822-0d1279a099f6',
+  'photo-1601925268312-2e6d1a3e1f5f',
+];
+
+export function isBrokenUrl(url) {
+  if (!url || typeof url !== 'string' || url.trim() === '') return true;
+  return BROKEN_PATTERNS.some((p) => url.includes(p));
+}
 
 export function getCategoryPlaceholder(category) {
   const cat = String(category || 'culture').toLowerCase().trim();
@@ -127,7 +147,8 @@ export function getCategoryPlaceholder(category) {
 function formatEvent(row) {
   if (!row) return null;
   const geo = inferStateAndCity(row);
-  const resolvedImg = row.image_url || row.image || getCategoryPlaceholder(row.category);
+  const rawImg = row.image_url || row.image || '';
+  const resolvedImg = (!isBrokenUrl(rawImg)) ? rawImg : getCategoryPlaceholder(row.category);
   return {
     ...row,
     state: row.state || geo.state,

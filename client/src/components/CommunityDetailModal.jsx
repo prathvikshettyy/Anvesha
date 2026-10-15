@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import * as api from '../services/api';
 import { getSocket } from '../services/socket';
+import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
 export default function CommunityDetailModal({
   community,
@@ -302,8 +303,9 @@ export default function CommunityDetailModal({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-surface-container flex-shrink-0">
                 <img
-                  src={community.event.image || community.image}
+                  src={getEventImage(community.event) || community.image}
                   alt={community.event.title}
+                  onError={(e) => handleEventImageError(e, community.event?.category)}
                   className="w-full h-full object-cover"
                 />
               </div>
