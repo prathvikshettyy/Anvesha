@@ -68,7 +68,6 @@ temp/
 *.tmp
 
 ruleBook.md
-server/tests
 
 scripts/security-test.ps1
 docs/IMPLEMENTATION_CHECKLIST.md
