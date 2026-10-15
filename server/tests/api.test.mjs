@@ -907,6 +907,14 @@ async function runTests() {
     });
     assert(deletedMeRes.status === 404, 'Deleted user cannot access GET /api/auth/me (returns 404)');
 
+    // 8. Item 11: Demo seeding production guard test
+    const { execSync } = await import('child_process');
+    const seedOutput = execSync('node server/src/db/seed.js', {
+      env: { ...process.env, NODE_ENV: 'production', ALLOW_DEMO_SEED: 'false' },
+      encoding: 'utf8',
+    });
+    assert(seedOutput.includes('Demo seeding disabled in production'), 'Seed script refuses to run in production without ALLOW_DEMO_SEED=true');
+
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
     console.log('='.repeat(55) + '\n');

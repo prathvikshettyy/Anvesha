@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { db } from './index.js';
 
-if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+if (process.env.NODE_ENV && process.env.NODE_ENV.toLowerCase() === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
   console.log('[Seed] Demo seeding disabled in production. Set ALLOW_DEMO_SEED=true to override.');
   process.exit(0);
 }
