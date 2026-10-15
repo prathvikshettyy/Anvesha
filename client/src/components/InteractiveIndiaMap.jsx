@@ -4,7 +4,7 @@ import indiaData from '../data/indiaStatesData.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
-import { ZoomIn, ZoomOut, RotateCcw, MapPin, Sparkles, Layers, Eye, Map, Compass } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
 
 export default function InteractiveIndiaMap({
   events = [],
@@ -15,7 +15,8 @@ export default function InteractiveIndiaMap({
 }) {
   // 'OSM' (real Leaflet + OpenStreetMap) or 'SVG' (handcrafted folk canvas)
   const [mapEngine, setMapEngine] = useState('OSM'); 
-  const [osmTileStyle, setOsmTileStyle] = useState('VOYAGER'); // 'VOYAGER' (warm heritage) or 'STANDARD' (classic OSM)
+  // 'STANDARD' (OpenStreetMap official) or 'HOT' (Humanitarian OpenStreetMap) — 100% free, NO API key required!
+  const [osmTileStyle, setOsmTileStyle] = useState('STANDARD'); 
   const [hoveredState, setHoveredState] = useState(null);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 920 });
 
@@ -69,18 +70,18 @@ export default function InteractiveIndiaMap({
       maxBoundsViscosity: 0.8
     });
 
-    // Tile URLs
-    const tileUrl = osmTileStyle === 'VOYAGER'
-      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    // Pure OpenStreetMap tiles (100% open-source, NO API KEY required!)
+    const tileUrl = osmTileStyle === 'HOT'
+      ? 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-    const attribution = osmTileStyle === 'VOYAGER'
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    const attribution = osmTileStyle === 'HOT'
+      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>'
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
     tileLayerRef.current = L.tileLayer(tileUrl, {
       attribution,
-      subdomains: 'abcd',
+      subdomains: 'abc',
       maxZoom: 19
     }).addTo(map);
 
@@ -121,104 +122,79 @@ export default function InteractiveIndiaMap({
     const markersGroup = markersLayerRef.current;
     markersGroup.clearLayers();
 
-    // 1. Cultural State Heritage Emblems
-    Object.entries(CULTURAL_ART_REGISTRY).forEach(([stateId, reg]) => {
-      const centroid = STATE_CENTROIDS[stateId];
-      if (!centroid) return;
-
-      const isSelected = selectedStateId === stateId;
-      const emblemHtml = `
-        <div class="group cursor-pointer flex flex-col items-center" style="transform: translate(-50%, -50%);">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md border-2 transition-transform duration-300 ${
-            isSelected
-              ? 'bg-terra-primary text-cream-canvas border-cream-canvas scale-125 ring-4 ring-terra-primary/30'
-              : 'bg-cream-canvas text-cocoa-text border-terra-primary/50 hover:scale-115'
-          }">
-            <span>${reg.artIllustration?.symbol || '🪷'}</span>
-          </div>
-          <span class="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-tight whitespace-nowrap shadow-xs ${
-            isSelected ? 'bg-terra-primary text-cream-canvas' : 'bg-cream-canvas/90 text-cocoa-text border border-blush-surface'
-          }">
-            ${reg.stateName}
-          </span>
-        </div>
-      `;
-
-      const icon = L.divIcon({
-        html: emblemHtml,
-        className: 'leaflet-state-emblem',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      const marker = L.marker([centroid.lat, centroid.lng], { icon, zIndexOffset: 100 });
-      marker.on('click', () => {
-        onSelectState(stateId, reg.stateName);
-      });
-      markersGroup.addLayer(marker);
-    });
-
-    // 2. Cultural Gathering / Event Pins
+    // Group events by location anchor to avoid overlapping collisions
+    const locationGroups = {};
     filteredEvents.forEach(evt => {
-      const [lat, lng] = resolveEventCoords(evt);
-      const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
-
-      const pinHtml = `
-        <div class="relative group cursor-pointer" style="transform: translate(-50%, -50%);">
-          <div class="absolute -inset-1 rounded-full animate-ping opacity-30" style="background-color: ${cat.color};"></div>
-          <div class="relative w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
-            <span>${cat.symbol}</span>
-          </div>
-        </div>
-      `;
-
-      const icon = L.divIcon({
-        html: pinHtml,
-        className: 'leaflet-event-pin',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      const marker = L.marker([lat, lng], { icon, zIndexOffset: 200 });
-
-      // Build popup content
-      const popupHtml = `
-        <div style="min-width: 210px; max-width: 260px; font-family: system-ui, sans-serif;">
-          ${evt.image ? `<div style="height: 100px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
-          <div style="padding: 0.85rem;">
-            <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}15; color: ${cat.color}; font-size: 10px; font-weight: bold;">
-              <span>${cat.symbol}</span>
-              <span>${cat.label}</span>
-            </div>
-            <h4 style="font-family: Georgia, serif; font-size: 13px; font-weight: bold; color: #3b2d26; margin: 0.35rem 0 0.25rem; line-height: 1.3;">
-              ${evt.title}
-            </h4>
-            <p style="font-size: 11px; color: #6e5548; margin: 0 0 0.5rem; line-height: 1.3;">
-              📍 ${evt.venue || evt.city || 'Karnataka'}
-              ${evt.date ? `<br />🗓️ ${evt.date}` : ''}
-            </p>
-            <button id="leaflet-btn-${evt.id}" style="width: 100%; background-color: #c56e50; color: white; border: none; padding: 0.4rem 0.75rem; border-radius: 9999px; font-size: 11px; font-weight: bold; cursor: pointer;">
-              Explore Gathering Details →
-            </button>
-          </div>
-        </div>
-      `;
-
-      marker.bindPopup(popupHtml, { offset: [0, -12], closeButton: true });
-
-      marker.on('popupopen', () => {
-        const btn = document.getElementById(`leaflet-btn-${evt.id}`);
-        if (btn) {
-          btn.onclick = (e) => {
-            e.stopPropagation();
-            onSelectEvent(evt);
-          };
-        }
-      });
-
-      markersGroup.addLayer(marker);
+      const baseKey = (evt.city || evt.neighborhood || evt.stateId || evt.state || 'default').toLowerCase().trim();
+      if (!locationGroups[baseKey]) locationGroups[baseKey] = [];
+      locationGroups[baseKey].push(evt);
     });
-  }, [filteredEvents, selectedStateId, onSelectState, onSelectEvent]);
+
+    Object.values(locationGroups).forEach(group => {
+      group.forEach((evt, idx) => {
+        const [lat, lng] = resolveEventCoords(evt, idx, group.length);
+        const cat = PIN_CATEGORIES[evt.category] || PIN_CATEGORIES.culture;
+
+        const pinHtml = `
+          <div class="relative group cursor-pointer" style="transform: translate(-50%, -50%);">
+            <div class="absolute -inset-1 rounded-full animate-ping opacity-35" style="background-color: ${cat.color};"></div>
+            <div class="relative w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
+              <span>${cat.symbol}</span>
+            </div>
+            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
+              ${evt.title.slice(0, 20)}...
+            </div>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          html: pinHtml,
+          className: 'leaflet-event-pin',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([lat, lng], { icon, zIndexOffset: 200 });
+
+        // Build popup content
+        const popupHtml = `
+          <div style="min-width: 210px; max-width: 260px; font-family: system-ui, sans-serif;">
+            ${evt.image ? `<div style="height: 100px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
+            <div style="padding: 0.85rem;">
+              <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}15; color: ${cat.color}; font-size: 10px; font-weight: bold;">
+                <span>${cat.symbol}</span>
+                <span>${cat.label}</span>
+              </div>
+              <h4 style="font-family: Georgia, serif; font-size: 13px; font-weight: bold; color: #3b2d26; margin: 0.35rem 0 0.25rem; line-height: 1.3;">
+                ${evt.title}
+              </h4>
+              <p style="font-size: 11px; color: #6e5548; margin: 0 0 0.5rem; line-height: 1.3;">
+                📍 ${evt.venue || evt.city || 'Karnataka'}
+                ${evt.date ? `<br />🗓️ ${evt.date}` : ''}
+              </p>
+              <button id="leaflet-btn-${evt.id}" style="width: 100%; background-color: #c56e50; color: white; border: none; padding: 0.45rem 0.75rem; border-radius: 9999px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(197, 110, 80, 0.3);">
+                Explore Gathering Details →
+              </button>
+            </div>
+          </div>
+        `;
+
+        marker.bindPopup(popupHtml, { offset: [0, -12], closeButton: true });
+
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(`leaflet-btn-${evt.id}`);
+          if (btn) {
+            btn.onclick = (e) => {
+              e.stopPropagation();
+              onSelectEvent(evt);
+            };
+          }
+        });
+
+        markersGroup.addLayer(marker);
+      });
+    });
+  }, [filteredEvents, onSelectEvent]);
 
   // ── SVG Mode Helpers (Folk Canvas) ──────────────────────────────────────────
   const handleSvgStateClick = (state) => {
@@ -280,11 +256,11 @@ export default function InteractiveIndiaMap({
             <div className="flex items-center gap-1.5">
               <h3 className="font-serif text-xs sm:text-sm font-bold text-cocoa-text">
                 {selectedStateId
-                  ? `${STATE_CENTROIDS[selectedStateId]?.name || selectedStateId} Atlas`
+                  ? `${STATE_CENTROIDS[selectedStateId]?.name || selectedStateId}`
                   : 'Cultural Atlas of India'}
               </h3>
               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-terra-primary/10 text-terra-primary">
-                {mapEngine === 'OSM' ? 'OSM Live' : 'Folk Atlas'}
+                {mapEngine === 'OSM' ? (osmTileStyle === 'HOT' ? 'OSM Vibrant' : 'OpenStreetMap') : 'Folk Atlas'}
               </span>
             </div>
             <p className="text-[10px] sm:text-[11px] text-cocoa-text/70">
@@ -302,7 +278,24 @@ export default function InteractiveIndiaMap({
         </div>
 
         {/* Engine Switcher & Map Controls */}
-        <div className="flex items-center gap-1.5 pointer-events-auto">
+        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+          
+          {/* State Quick-Fly Selector Dropdown */}
+          <select
+            value={selectedStateId || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) resetView();
+              else onSelectState(val, STATE_CENTROIDS[val]?.name || val);
+            }}
+            className="bg-cream-canvas/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-blush-surface text-xs font-bold text-cocoa-text focus:outline-none focus:ring-1 focus:ring-terra-primary shadow-sm"
+          >
+            <option value="">🇮🇳 Focus State (All India)</option>
+            {Object.entries(STATE_CENTROIDS).map(([key, s]) => (
+              <option key={key} value={key}>{s.name}</option>
+            ))}
+          </select>
+
           {/* Map Engine Toggle: OpenStreetMap (OSM) vs Folk SVG */}
           <div className="bg-cream-canvas/95 backdrop-blur-md p-1 rounded-2xl border border-blush-surface shadow-sm flex items-center">
             <button
@@ -312,7 +305,7 @@ export default function InteractiveIndiaMap({
                   ? 'bg-terra-primary text-cream-canvas shadow-xs'
                   : 'text-cocoa-text/75 hover:bg-blush-surface/50'
               }`}
-              title="OpenStreetMap Live Tiles with interactive navigation"
+              title="OpenStreetMap Live Tiles"
             >
               <Map className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">OSM Map</span>
@@ -327,18 +320,18 @@ export default function InteractiveIndiaMap({
               title="Illustrated Folk Art Atlas Canvas"
             >
               <Compass className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Folk Atlas</span>
+              <span className="hidden sm:inline">Folk Canvas</span>
             </button>
           </div>
 
-          {/* OSM Tile Style Switcher (only in OSM mode) */}
+          {/* OSM Style Toggle (Standard vs HOT) */}
           {mapEngine === 'OSM' && (
             <button
-              onClick={() => setOsmTileStyle(prev => prev === 'VOYAGER' ? 'STANDARD' : 'VOYAGER')}
+              onClick={() => setOsmTileStyle(prev => prev === 'HOT' ? 'STANDARD' : 'HOT')}
               className="bg-cream-canvas/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-blush-surface shadow-sm text-xs font-bold text-cocoa-text hover:bg-blush-surface/40 transition-all flex items-center gap-1"
-              title="Toggle OSM Carto Heritage vs OSM Standard"
+              title="Toggle OSM Style"
             >
-              <span>{osmTileStyle === 'VOYAGER' ? '🎨 Heritage OSM' : '🌍 Standard OSM'}</span>
+              <span>{osmTileStyle === 'HOT' ? '🎨 OSM Vibrant' : '🌍 OSM Classic'}</span>
             </button>
           )}
 
@@ -524,22 +517,6 @@ export default function InteractiveIndiaMap({
             </div>
           </div>
         )}
-
-        {/* Floating Category Legend Overlay */}
-        <div className="absolute bottom-4 left-4 z-20 bg-cream-canvas/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-blush-surface shadow-sm hidden md:block max-w-xs">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-cocoa-text mb-1.5">
-            <Layers className="w-3.5 h-3.5 text-terra-primary" />
-            <span>Map Motifs ({mapEngine === 'OSM' ? 'OpenStreetMap Data' : 'Folk Atlas'})</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-            {Object.entries(PIN_CATEGORIES).slice(0, 6).map(([key, cat]) => (
-              <div key={key} className="flex items-center gap-1.5 text-cocoa-text/80 truncate">
-                <span>{cat.symbol}</span>
-                <span className="truncate">{cat.label.split(' ')[0]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
       </div>
     </div>

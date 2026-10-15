@@ -91,31 +91,43 @@ export const CITY_COORDS = {
 };
 
 /**
- * Resolves accurate [lat, lng] for an event object.
+ * Resolves accurate [lat, lng] for an event object with collision dispersion.
  * Checks event.lat/lng, city, venue, and fallback state centroid.
  */
-export function resolveEventCoords(evt) {
-  if (evt?.lat && evt?.lng && !isNaN(evt.lat) && !isNaN(evt.lng)) {
-    return [Number(evt.lat), Number(evt.lng)];
-  }
+export function resolveEventCoords(evt, index = 0, total = 1) {
+  let baseCoords = null;
 
-  const textToSearch = `${evt?.city || ''} ${evt?.venue || ''} ${evt?.neighborhood || ''}`.toLowerCase();
-  for (const [key, coords] of Object.entries(CITY_COORDS)) {
-    if (textToSearch.includes(key)) {
-      return [coords.lat, coords.lng];
+  if (evt?.lat && evt?.lng && !isNaN(evt.lat) && !isNaN(evt.lng)) {
+    baseCoords = [Number(evt.lat), Number(evt.lng)];
+  } else {
+    const textToSearch = `${evt?.city || ''} ${evt?.venue || ''} ${evt?.neighborhood || ''}`.toLowerCase();
+    for (const [key, coords] of Object.entries(CITY_COORDS)) {
+      if (textToSearch.includes(key)) {
+        baseCoords = [coords.lat, coords.lng];
+        break;
+      }
     }
   }
 
-  const normState = (evt?.stateId || evt?.state || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  if (STATE_CENTROIDS[normState]) {
-    const c = STATE_CENTROIDS[normState];
-    // Small pseudo-deterministic offset so multiple events in same state don't exactly stack
-    const hash = (evt?.id || 'evt').split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    const jitterLat = ((hash % 10) - 5) * 0.08;
-    const jitterLng = (((hash * 3) % 10) - 5) * 0.08;
-    return [c.lat + jitterLat, c.lng + jitterLng];
+  if (!baseCoords) {
+    const normState = (evt?.stateId || evt?.state || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    if (STATE_CENTROIDS[normState]) {
+      const c = STATE_CENTROIDS[normState];
+      baseCoords = [c.lat, c.lng];
+    } else {
+      baseCoords = [13.3525, 74.7928]; // Manipal / Udupi campus default
+    }
   }
 
-  // Default fallback (Karnataka / Manipal campus area)
-  return [13.3525, 74.7928];
+  // If there are multiple events grouped or index provided, distribute them radially around the base coordinate
+  if (total > 1 && index > 0) {
+    const radius = 0.22; // ~20-25 km dispersion on map view
+    const angle = (index * (2 * Math.PI)) / total;
+    return [
+      Number((baseCoords[0] + radius * Math.sin(angle)).toFixed(4)),
+      Number((baseCoords[1] + (radius * 1.2) * Math.cos(angle)).toFixed(4))
+    ];
+  }
+
+  return baseCoords;
 }
