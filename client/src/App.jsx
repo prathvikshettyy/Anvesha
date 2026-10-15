@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { connectSocket, disconnectSocket } from './services/socket';
 import Sidebar from './components/Sidebar';
 import WelcomeView from './views/WelcomeView';
 import OnboardingView from './views/OnboardingView';
@@ -127,6 +128,7 @@ export default function App() {
   const [activeDetailEvent, setActiveDetailEvent] = useState(null);
   const [isLocketModalOpen, setIsLocketModalOpen] = useState(false);
   const [locketRecipient, setLocketRecipient]     = useState(null);
+  const [chatPartner, setChatPartner]             = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
 
   // ── Restore session on mount ────────────────────────────────────────────────
@@ -169,7 +171,7 @@ export default function App() {
   const loadLocket = useCallback(() => {
     api.locket.list()
       .then(list => {
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           setLocketMoments(list.map(normaliseMoment));
         }
       })
@@ -214,6 +216,17 @@ export default function App() {
       loadLocket();
     }
   }, [authUser, loadPeople, loadLocket]);
+
+  // ── Socket.IO connection lifecycle ─────────────────────────────────────────
+  useEffect(() => {
+    const t = api.token.get();
+    if (authUser && t) {
+      connectSocket(t);
+    } else {
+      disconnectSocket();
+    }
+    return () => {};
+  }, [authUser]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -328,6 +341,7 @@ export default function App() {
   };
 
   const handleResetDemo = () => {
+    disconnectSocket();
     api.auth.logout();
     setAuthUser(null);
     setUser(INITIAL_USER);
@@ -412,7 +426,10 @@ export default function App() {
               setIsLocketModalOpen(true);
             }}
             onReactLocket={handleReactLocket}
-            onNavigate={setCurrentView}
+            onNavigate={(view, extra) => {
+              if (view === 'messages' && extra) setChatPartner(extra);
+              setCurrentView(view);
+            }}
             onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
             onUpdateInterests={handleUpdateInterests}
           />
@@ -439,7 +456,10 @@ export default function App() {
             user={user}
             people={people}
             onConnect={handleConnectPerson}
-            onStartChat={() => setCurrentView('messages')}
+            onStartChat={(person) => {
+              setChatPartner(person);
+              setCurrentView('messages');
+            }}
             onSendLocketPulse={handleOpenLocketForPerson}
             isAuthenticated={!!authUser}
           />
@@ -459,12 +479,14 @@ export default function App() {
         {currentView === 'messages' && (
           <MessagesView
             currentUser={user}
+            initialPartner={chatPartner}
             onOpenLocketModal={() => {
               setLocketRecipient(null);
               setIsLocketModalOpen(true);
             }}
             isAuthenticated={!!authUser}
             onUnreadCountChange={setUnreadCount}
+            authToken={api.token.get()}
           />
         )}
 

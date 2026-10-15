@@ -1,11 +1,59 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Users, Search, Sparkles, ShieldCheck, Filter, LogIn, MapPin } from 'lucide-react';
 import PersonCard from '../components/PersonCard';
 import { INITIAL_INTERESTS } from '../data/initialData';
+import * as api from '../services/api';
+
+function normalisePersonRow(p) {
+  return {
+    id:               p.id,
+    name:             p.name,
+    handle:           p.handle        ?? `@${p.username}`,
+    avatar:           p.avatar       ?? p.avatar_url ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    bio:              p.bio           ?? '',
+    city:             p.city          ?? 'India',
+    broadRegion:      p.broadRegion  ?? p.city ?? p.neighborhood ?? 'India',
+    neighborhood:     p.neighborhood  ?? 'Nearby',
+    speaks:           p.speaks       ?? p.languages ?? [],
+    interests:        Array.isArray(p.interests) ? p.interests.map(i => i.interest_id ?? i) : [],
+    willingToTeach:   p.willingToTeach ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'TEACH').map(s => s.skill) : []),
+    wantsToLearn:     p.wantsToLearn  ?? (Array.isArray(p.skills) ? p.skills.filter(s => s.skill_type === 'LEARN').map(s => s.skill) : []),
+    matchScore:       p.matchScore    ?? p.match_score ?? null,
+    matchReason:      p.matchReason   ?? '',
+    matchReasons:     Array.isArray(p.matchReasons) ? p.matchReasons : [],
+    mutualConnections: p.mutualConnections ?? 0,
+    connectionStatus: p.connectionStatus ?? p.connection_status ?? 'NONE',
+    isMentor:         p.isMentor      ?? p.is_mentor ?? false,
+  };
+}
 
 export default function PeopleView({ user, people, onConnect, onStartChat, onSendLocketPulse, isAuthenticated }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [apiPeople, setApiPeople] = useState(null);
+
+  // Debounced API search on searchQuery + selectedFilter
+  useEffect(() => {
+    if (!api.token.get()) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.people.discover({
+          q: searchQuery,
+          filter: selectedFilter
+        });
+        if (Array.isArray(res)) {
+          setApiPeople(res.map(normalisePersonRow));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch people from API:', err);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedFilter]);
+
+  const activePeopleList = apiPeople ?? people;
 
   const userInterests = useMemo(() => Array.isArray(user?.interests) ? user.interests : [], [user?.interests]);
   const activeInterestObjs = useMemo(() => 
@@ -15,7 +63,7 @@ export default function PeopleView({ user, people, onConnect, onStartChat, onSen
 
   // Compute dynamic match scores and explanations for all people
   const rankedPeople = useMemo(() => {
-    return people.map(p => {
+    return activePeopleList.map(p => {
       const personInterests = Array.isArray(p.interests) ? p.interests : [];
       const shared = userInterests.filter(x => personInterests.includes(x));
       const sharedNames = INITIAL_INTERESTS.filter(i => shared.includes(i.id)).map(i => i.name);
@@ -48,7 +96,7 @@ export default function PeopleView({ user, people, onConnect, onStartChat, onSen
         hasSharedRoots: shared.length > 0
       };
     }).sort((a, b) => b.matchScore - a.matchScore);
-  }, [people, userInterests, user?.preferredMode, user?.intentions, user?.neighborhood]);
+  }, [activePeopleList, userInterests, user?.preferredMode, user?.intentions, user?.neighborhood]);
 
   const filteredPeople = useMemo(() => {
     return rankedPeople.filter(p => {

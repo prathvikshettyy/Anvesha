@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import indiaData from '../data/indiaStatesData.json';
+import indiaBoundariesData from '../data/indiaStateBoundaries.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
-import { ZoomIn, ZoomOut, RotateCcw, Map, Compass, Sparkles, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
 
 export default function InteractiveIndiaMap({
   events = [],
@@ -24,9 +25,16 @@ export default function InteractiveIndiaMap({
   const leafletContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
-  const stateBeaconsLayerRef = useRef(null);
-  const selectedStateHighlightLayerRef = useRef(null);
+  const geoJsonLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
+
+  // Helper to normalize state ids (handles aliases like nct-of-delhi -> delhi)
+  const normalizeStateId = (id) => {
+    if (!id) return '';
+    const norm = id.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+    if (norm === 'nct-of-delhi') return 'delhi';
+    return norm;
+  };
 
   // Filter events based on active category and state
   const filteredEvents = useMemo(() => {
@@ -78,7 +86,7 @@ export default function InteractiveIndiaMap({
       zoom: initialZoom,
       minZoom: 4,
       maxZoom: 18,
-      zoomControl: false, // custom zoom buttons on header
+      zoomControl: false,
       attributionControl: true,
       maxBounds: [
         [4.0, 64.0],  // South-West
@@ -102,9 +110,54 @@ export default function InteractiveIndiaMap({
       maxZoom: 19
     }).addTo(map);
 
-    // Dedicated layers: State beacons -> Elevated highlight halo -> Gathering event markers
-    stateBeaconsLayerRef.current = L.layerGroup().addTo(map);
-    selectedStateHighlightLayerRef.current = L.layerGroup().addTo(map);
+    // Interactive GeoJSON state boundary layer for real geographical borders
+    const getFeatureStyle = (feature) => {
+      const featureNormId = normalizeStateId(feature.id);
+      const isSelected = selectedStateId && (featureNormId === selectedStateId || feature.id === selectedStateId);
+
+      return {
+        weight: isSelected ? 3.5 : 1.2,
+        color: isSelected ? '#C56E50' : '#8C7563',
+        opacity: isSelected ? 1 : 0.45,
+        fillColor: isSelected ? '#C56E50' : '#D1B9A2',
+        fillOpacity: isSelected ? 0.25 : 0.03,
+        className: isSelected ? 'elevated-state-path' : 'india-state-boundary'
+      };
+    };
+
+    geoJsonLayerRef.current = L.geoJSON(indiaBoundariesData, {
+      style: getFeatureStyle,
+      onEachFeature: (feature, layer) => {
+        layer.on({
+          click: (e) => {
+            L.DomEvent.stopPropagation(e);
+            const featureNormId = normalizeStateId(feature.id);
+            if (selectedStateId === featureNormId) {
+              onSelectState(null);
+              map.flyTo([22.5, 79.5], 5, { duration: 1.0 });
+            } else {
+              onSelectState(featureNormId, feature.properties.name);
+              map.fitBounds(layer.getBounds(), { padding: [35, 35], maxZoom: 8, animate: true, duration: 1.0 });
+            }
+          },
+          mouseover: () => {
+            if (!selectedStateId) {
+              const featureNormId = normalizeStateId(feature.id);
+              setHoveredState({
+                id: featureNormId,
+                name: feature.properties.name,
+                registry: CULTURAL_ART_REGISTRY[featureNormId],
+                eventCount: events.filter(ev => ev.stateId === featureNormId || ev.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === featureNormId).length
+              });
+            }
+          },
+          mouseout: () => {
+            setHoveredState(null);
+          }
+        });
+      }
+    }).addTo(map);
+
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
@@ -123,103 +176,42 @@ export default function InteractiveIndiaMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapEngine, osmTileStyle]);
 
-  // ── Sync Active State with Leaflet Camera ───────────────────────────────────
+  // ── Sync Active State with Leaflet GeoJSON Boundaries (Protruding Border) ───
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !geoJsonLayerRef.current) return;
     const map = mapInstanceRef.current;
+    const geoLayer = geoJsonLayerRef.current;
 
-    if (selectedStateId && STATE_CENTROIDS[selectedStateId]) {
-      const s = STATE_CENTROIDS[selectedStateId];
-      map.flyTo([s.lat, s.lng], s.zoom, { duration: 1.2 });
+    let selectedLayerBounds = null;
+
+    geoLayer.eachLayer(layer => {
+      const feature = layer.feature;
+      const featureNormId = normalizeStateId(feature.id);
+      const isSelected = selectedStateId && (featureNormId === selectedStateId || feature.id === selectedStateId);
+
+      layer.setStyle({
+        weight: isSelected ? 3.5 : 1.2,
+        color: isSelected ? '#C56E50' : '#8C7563',
+        opacity: isSelected ? 1 : 0.45,
+        fillColor: isSelected ? '#C56E50' : '#D1B9A2',
+        fillOpacity: isSelected ? 0.25 : 0.03,
+        className: isSelected ? 'elevated-state-path' : 'india-state-boundary'
+      });
+
+      if (isSelected) {
+        layer.bringToFront();
+        selectedLayerBounds = layer.getBounds();
+      }
+    });
+
+    if (selectedLayerBounds) {
+      map.fitBounds(selectedLayerBounds, { padding: [35, 35], maxZoom: 8, animate: true, duration: 1.0 });
     } else if (!selectedStateId) {
       map.flyTo([22.5, 79.5], 5, { duration: 1.0 });
     }
   }, [selectedStateId]);
 
-  // ── Render Leaflet State Beacons & Elevated Highlight Halo ──────────────────
-  useEffect(() => {
-    if (!mapInstanceRef.current || !stateBeaconsLayerRef.current || !selectedStateHighlightLayerRef.current) return;
-    const beaconsGroup = stateBeaconsLayerRef.current;
-    const highlightGroup = selectedStateHighlightLayerRef.current;
-    beaconsGroup.clearLayers();
-    highlightGroup.clearLayers();
-
-    // 1. If NO state selected: Render interactive clickable state beacons across India
-    if (!selectedStateId) {
-      Object.entries(STATE_CENTROIDS).forEach(([key, s]) => {
-        const reg = CULTURAL_ART_REGISTRY[key];
-        const stateEventsCount = events.filter(e => e.stateId === key || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === key).length;
-
-        const badgeHtml = `
-          <div class="state-atlas-beacon cursor-pointer select-none" style="transform: translate(-50%, -50%);">
-            <div class="px-2.5 py-1 rounded-full bg-cream-canvas/95 hover:bg-terra-primary text-cocoa-text hover:text-cream-canvas border border-blush-surface shadow-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all">
-              <span class="text-xs">${reg?.artIllustration?.symbol || '📍'}</span>
-              <span class="whitespace-nowrap">${s.name}</span>
-              ${stateEventsCount > 0 ? `<span class="px-1.5 py-0.2 rounded-full bg-terra-primary/15 text-terra-primary text-[9px] font-bold">${stateEventsCount}</span>` : ''}
-            </div>
-          </div>
-        `;
-
-        const badgeIcon = L.divIcon({
-          html: badgeHtml,
-          className: 'leaflet-state-beacon',
-          iconSize: [110, 30],
-          iconAnchor: [55, 15]
-        });
-
-        const badgeMarker = L.marker([s.lat, s.lng], { icon: badgeIcon, zIndexOffset: 100 });
-        badgeMarker.on('click', () => {
-          onSelectState(key, s.name);
-        });
-        beaconsGroup.addLayer(badgeMarker);
-      });
-    } else {
-      // 2. If a state IS selected: Render elevated highlight halo and title crown on Leaflet
-      const s = STATE_CENTROIDS[selectedStateId];
-      if (s) {
-        const reg = CULTURAL_ART_REGISTRY[selectedStateId];
-        const stateColor = reg?.accentColor || '#C56E50';
-        const stateEventsCount = events.filter(e => e.stateId === selectedStateId || e.state?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === selectedStateId).length;
-
-        // Elevated circular halo
-        const radiusMeters = s.zoom >= 8 ? 70000 : s.zoom === 7 ? 130000 : 190000;
-        const aura = L.circle([s.lat, s.lng], {
-          radius: radiusMeters,
-          color: stateColor,
-          weight: 3.5,
-          dashArray: '8, 8',
-          fillColor: stateColor,
-          fillOpacity: 0.12
-        });
-        highlightGroup.addLayer(aura);
-
-        // Elevated crown marker
-        const crownHtml = `
-          <div class="pointer-events-none" style="transform: translate(-50%, -100%);">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-cream-canvas/95 backdrop-blur-md border-2 shadow-xl animate-bounce" style="border-color: ${stateColor};">
-              <span class="text-base">${reg?.artIllustration?.symbol || '🌟'}</span>
-              <div>
-                <div class="font-serif text-xs font-bold text-cocoa-text">${s.name}</div>
-                <div class="text-[9px] font-bold" style="color: ${stateColor};">
-                  ${stateEventsCount} Living Gathering Pin${stateEventsCount !== 1 ? 's' : ''} Mapped
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-        const crownIcon = L.divIcon({
-          html: crownHtml,
-          className: 'leaflet-state-crown',
-          iconSize: [160, 42],
-          iconAnchor: [80, 42]
-        });
-        const crownMarker = L.marker([s.lat, s.lng], { icon: crownIcon, zIndexOffset: 800 });
-        highlightGroup.addLayer(crownMarker);
-      }
-    }
-  }, [selectedStateId, events, onSelectState]);
-
-  // ── Render Leaflet Event Markers & Popups ───────────────────────────────────
+  // ── Render Leaflet Event Markers & Popups (Results in Form of Pins) ────────
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
     const markersGroup = markersLayerRef.current;
@@ -308,7 +300,7 @@ export default function InteractiveIndiaMap({
       });
     });
 
-    // When state is selected, automatically open popup of primary pin after flyTo settles
+    // When a state is selected, automatically open popup of primary pin after flyTo settles
     if (firstMarker && selectedStateId) {
       const timer = setTimeout(() => {
         firstMarker.openPopup();
@@ -411,7 +403,7 @@ export default function InteractiveIndiaMap({
             }}
             className="bg-cream-canvas/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-blush-surface text-xs font-bold text-cocoa-text focus:outline-none focus:ring-1 focus:ring-terra-primary shadow-sm"
           >
-            <option value="">🇮🇳 Focus State (All India)</option>
+            <option value="">Focus State (All India)</option>
             {Object.entries(STATE_CENTROIDS).map(([key, s]) => (
               <option key={key} value={key}>{s.name}</option>
             ))}
@@ -452,7 +444,7 @@ export default function InteractiveIndiaMap({
               className="bg-cream-canvas/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-blush-surface shadow-sm text-xs font-bold text-cocoa-text hover:bg-blush-surface/40 transition-all flex items-center gap-1"
               title="Toggle OSM Style"
             >
-              <span>{osmTileStyle === 'HOT' ? '🎨 OSM Vibrant' : '🌍 OSM Classic'}</span>
+              <span>{osmTileStyle === 'HOT' ? 'OSM Vibrant' : 'OSM Classic'}</span>
             </button>
           )}
 
@@ -487,7 +479,7 @@ export default function InteractiveIndiaMap({
       {/* ── Main Map Canvas: Leaflet (OSM) or Handcrafted SVG ──────────────── */}
       <div className="relative w-full h-[620px] sm:h-[750px] lg:h-[820px] overflow-hidden">
         
-        {/* 1. Leaflet (OpenStreetMap) Canvas */}
+        {/* 1. Leaflet (OpenStreetMap) Canvas with Interactive State Boundaries */}
         <div
           ref={leafletContainerRef}
           className={`w-full h-full transition-opacity duration-300 ${
@@ -605,35 +597,6 @@ export default function InteractiveIndiaMap({
               </g>
             )}
 
-            {/* Cultural Vignettes on SVG */}
-            <g id="cultural-art-vignettes" pointerEvents="none" opacity={selectedStateId ? 0.45 : 1} className="transition-opacity duration-300">
-              <g transform="translate(210, 630) scale(0.85)">
-                <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#C56E50" strokeWidth="1.5" opacity="0.9" />
-                <text x="20" y="25" textAnchor="middle" fontSize="17">🎭</text>
-                <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">Karnataka</text>
-              </g>
-              <g transform="translate(235, 735) scale(0.85)">
-                <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#2D5F3E" strokeWidth="1.5" opacity="0.9" />
-                <text x="20" y="25" textAnchor="middle" fontSize="17">👑</text>
-                <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#2D5F3E">Kerala</text>
-              </g>
-              <g transform="translate(325, 680) scale(0.85)">
-                <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#A9332A" strokeWidth="1.5" opacity="0.9" />
-                <text x="20" y="25" textAnchor="middle" fontSize="17">🛕</text>
-                <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">Tamil Nadu</text>
-              </g>
-              <g transform="translate(200, 510) scale(0.85)">
-                <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#E09F3E" strokeWidth="1.5" opacity="0.9" />
-                <text x="20" y="25" textAnchor="middle" fontSize="17">⭕</text>
-                <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">Maharashtra</text>
-              </g>
-              <g transform="translate(225, 335) scale(0.85)">
-                <circle cx="20" cy="20" r="16" fill="#FCF7F0" stroke="#D9A441" strokeWidth="1.5" opacity="0.9" />
-                <text x="20" y="25" textAnchor="middle" fontSize="17">🎪</text>
-                <text x="20" y="44" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="9" fontWeight="bold" fill="#5B332C">Rajasthan</text>
-              </g>
-            </g>
-
             {/* Event Pins on SVG */}
             <g id="event-pins-overlay">
               {filteredEvents.map(evt => {
@@ -687,7 +650,6 @@ export default function InteractiveIndiaMap({
         {selectedStateId && (
           <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-30 bg-cream-canvas/95 backdrop-blur-md p-3 rounded-2xl border-2 border-terra-primary/30 shadow-warm flex flex-wrap items-center justify-between gap-3 animate-hero-fade">
             <div className="flex items-center gap-2.5">
-              <span className="text-2xl">{CULTURAL_ART_REGISTRY[selectedStateId]?.artIllustration?.symbol || '📍'}</span>
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-serif text-xs sm:text-sm font-bold text-cocoa-text">
@@ -741,17 +703,15 @@ export default function InteractiveIndiaMap({
           </div>
         )}
 
-        {/* Hovered State Tooltip (SVG mode when no state selected) */}
-        {mapEngine === 'SVG' && hoveredState && !selectedStateId && (
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 bg-cream-canvas/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border-2 border-terra-primary/40 shadow-warm pointer-events-none flex items-center gap-3 animate-fadeIn">
-            <span className="text-2xl">{hoveredState.registry?.artIllustration?.symbol || '📍'}</span>
+        {/* Hovered State Tooltip (when exploring with no state selected) */}
+        {hoveredState && !selectedStateId && (
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 bg-cream-canvas/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-terra-primary/30 shadow-warm pointer-events-none flex items-center gap-2.5 animate-fadeIn">
             <div>
-              <h4 className="font-serif text-sm font-bold text-cocoa-text">
+              <h4 className="font-serif text-xs sm:text-sm font-bold text-cocoa-text">
                 {hoveredState.name}
               </h4>
-              <p className="text-[11px] text-cocoa-text/75">
-                {hoveredState.registry?.culturalTitle || 'Regional Living Heritage'} ·{' '}
-                <strong className="text-terra-primary">{hoveredState.eventCount} active gathering{hoveredState.eventCount !== 1 ? 's' : ''}</strong>
+              <p className="text-[10px] sm:text-[11px] text-cocoa-text/75">
+                {hoveredState.eventCount} living gathering{hoveredState.eventCount !== 1 ? 's' : ''} mapped
               </p>
             </div>
           </div>

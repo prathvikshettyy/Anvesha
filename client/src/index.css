@@ -60,11 +60,32 @@
 }
 
 /* Visually elevated state styling when clicked/selected */
-.elevated-state-path {
-  filter: drop-shadow(0 14px 26px rgba(91, 51, 44, 0.45)) drop-shadow(0 2px 6px rgba(197, 110, 80, 0.4)) !important;
-  stroke-width: 3.5 !important;
+.elevated-state-path,
+path.elevated-state-path {
+  filter: drop-shadow(0 14px 24px rgba(91, 51, 44, 0.5)) drop-shadow(0 2px 6px rgba(197, 110, 80, 0.45)) !important;
+  stroke: #C56E50 !important;
+  stroke-width: 3.5px !important;
+  stroke-linejoin: round !important;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Base interactive state boundary in Leaflet */
+path.india-state-boundary {
+  cursor: pointer;
+  stroke: #8C7563;
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+  fill: #D1B9A2;
+  fill-opacity: 0.05;
+  transition: all 0.2s ease;
+}
+
+path.india-state-boundary:hover {
+  stroke: #C56E50 !important;
+  stroke-width: 2.4px !important;
+  fill: #C56E50 !important;
+  fill-opacity: 0.18 !important;
 }
 
 /* Animated Pin Drop Bounce */
@@ -88,15 +109,6 @@
 
 .pin-drop-bounce {
   animation: pinDropBounce 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* State interactive beacon pill in Leaflet */
-.state-atlas-beacon {
-  transition: transform 0.2s ease;
-}
-.state-atlas-beacon:hover {
-  transform: translate(-50%, -50%) scale(1.12);
-  z-index: 1000 !important;
 }
 
 /* State outline shadow simulation */

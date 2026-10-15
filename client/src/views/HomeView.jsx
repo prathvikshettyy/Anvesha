@@ -530,7 +530,7 @@ export default function HomeView({
               key={person.id}
               person={person}
               onConnect={() => onSelectPerson && onSelectPerson(person)}
-              onStartChat={() => onNavigate('messages')}
+              onStartChat={() => onNavigate('messages', person)}
               onSendLocketPulse={() => onOpenLocketModal(person)}
             />
           ))}

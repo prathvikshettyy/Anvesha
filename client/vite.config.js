@@ -21,8 +21,10 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Socket.IO — forward both HTTP handshake polling and WebSocket upgrade
       '/socket.io': {
         target: 'http://localhost:3001',
+        changeOrigin: true,
         ws: true,
       },
     },
