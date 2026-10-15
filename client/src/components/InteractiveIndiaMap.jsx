@@ -528,6 +528,25 @@ export default function InteractiveIndiaMap({
               INDIAN OCEAN
             </text>
 
+            {/* Sacred Transparent Mandala Watermarks in Ocean Areas */}
+            <g transform="translate(620, 700) scale(0.65)" opacity="0.08" stroke="#C56E50" fill="none" pointerEvents="none">
+              <circle cx="150" cy="150" r="140" strokeWidth="1" strokeDasharray="4 4" />
+              <circle cx="150" cy="150" r="100" strokeWidth="1.2" />
+              <circle cx="150" cy="150" r="60" strokeWidth="0.8" />
+              <circle cx="150" cy="150" r="20" fill="#C56E50" fillOpacity="0.2" />
+              {[0, 45, 90, 135, 180, 225, 270, 315].map(a => (
+                <path key={`bay-mandala-${a}`} transform={`rotate(${a} 150 150)`} d="M 150 50 Q 170 100, 150 150 Q 130 100, 150 50 Z" />
+              ))}
+            </g>
+            <g transform="translate(30, 460) scale(0.55)" opacity="0.07" stroke="#D9A441" fill="none" pointerEvents="none">
+              <circle cx="150" cy="150" r="140" strokeWidth="1" strokeDasharray="5 5" />
+              <circle cx="150" cy="150" r="80" strokeWidth="1" />
+              <circle cx="150" cy="150" r="30" fill="#D9A441" fillOpacity="0.2" />
+              {[0, 60, 120, 180, 240, 300].map(a => (
+                <path key={`arabian-mandala-${a}`} transform={`rotate(${a} 150 150)`} d="M 150 70 Q 180 110, 150 150 Q 120 110, 150 70 Z" />
+              ))}
+            </g>
+
             {/* Base Group: Unselected States (Softened when a state is active) */}
             <g id="india-states-group" filter="url(#stateElevation)" opacity={selectedStateId ? 0.72 : 1} className="transition-opacity duration-500">
               {unselectedStates.map(state => {

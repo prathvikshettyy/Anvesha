@@ -286,3 +286,32 @@ path.india-state-boundary:hover {
   color: #C56E50 !important;
 }
 
+/* ── Ambient Aesthetic Mandala Slow Drift ──────────────────────────────────── */
+@keyframes mandalaSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mandalaSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-mandala-slow {
+  animation: mandalaSpin 220s linear infinite;
+  transform-origin: center center;
+}
+
+.animate-mandala-slow-reverse {
+  animation: mandalaSpinReverse 280s linear infinite;
+  transform-origin: center center;
+}
+
