@@ -1,10 +1,60 @@
-import React from 'react';
-import { X, Calendar, MapPin, CheckCircle, ExternalLink, Bookmark, Users, Heart, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, MapPin, CheckCircle, ExternalLink, Bookmark, Users, Heart, Share2, Loader2, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
-export default function EventDetailModal({ event, isOpen, onClose, isSaved, onToggleSave }) {
+export default function EventDetailModal({
+  event,
+  isOpen,
+  onClose,
+  isSaved,
+  onToggleSave,
+  onOpenCommunity,
+  onJoinCommunity,
+  communities = []
+}) {
   if (!isOpen || !event) return null;
+
+  // Find linked community for this event if one exists
+  const matchedCommunity = communities.find(c => c.eventId === event.id || c.event_id === event.id)
+    || (event.id === 'evt_1' ? { id: 'comm_evt_manipal_fest', name: 'Manipal Cultural Fest 2026', memberCount: 38 }
+    : event.id === 'evt_2' ? { id: 'comm_evt_dasara', name: 'Mysuru Dasara Cultural Circle', memberCount: 42 }
+    : event.id === 'evt_3' || event.id === 'evt_k1' ? { id: 'comm_evt_hackathon', name: 'Bengaluru Culture Tech Hackers', memberCount: 54 }
+    : event.id === 'evt_6' ? { id: 'comm_dialects_lit', name: 'Tulu & Konkani Dialect Circle', memberCount: 22 }
+    : null);
+
+  const [isJoined, setIsJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [memberCount, setMemberCount] = useState(42);
+
+  useEffect(() => {
+    if (matchedCommunity) {
+      setIsJoined(Boolean(matchedCommunity.isMember));
+      setMemberCount(matchedCommunity.memberCount || 42);
+    }
+  }, [matchedCommunity?.id, matchedCommunity?.isMember, matchedCommunity?.memberCount]);
+
+  const handleJoinClick = async () => {
+    if (!matchedCommunity || joining) return;
+    setJoining(true);
+    try {
+      if (onJoinCommunity) {
+        await onJoinCommunity(matchedCommunity);
+      }
+      setIsJoined(true);
+      setMemberCount(prev => prev + 1);
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#C56E50', '#D9A441', '#E9CDB8']
+      });
+    } catch (err) {
+      console.error('Failed to join community:', err);
+    } finally {
+      setJoining(false);
+    }
+  };
 
   const handleRsvp = () => {
     confetti({
@@ -94,6 +144,71 @@ export default function EventDetailModal({ event, isOpen, onClose, isSaved, onTo
               {event.description}
             </p>
           </div>
+
+          {/* Event-based Community Entry Point */}
+          {matchedCommunity && (
+            <div className="p-4 rounded-2xl bg-terra-primary/5 border border-terra-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-terra-primary/10 flex items-center justify-center text-terra-primary flex-shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-terra-primary">
+                      Event Community Circle
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cream-canvas text-cocoa-text/70 border border-blush-surface font-semibold">
+                      {memberCount}+ members
+                    </span>
+                    {isJoined && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3 text-emerald-600" /> Joined
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-serif font-bold text-cocoa-text text-sm sm:text-base">
+                    {matchedCommunity.name}
+                  </h4>
+                  <p className="text-xs text-cocoa-text/70">
+                    Connect with attendees, coordinate arrival, and share live discussions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {isJoined ? (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenCommunity?.(matchedCommunity);
+                    }}
+                    className="px-4 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-cream-canvas text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>Open Circle Discussion</span>
+                  </button>
+                ) : (
+                  <button
+                    disabled={joining}
+                    onClick={handleJoinClick}
+                    className="px-4 py-2 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-75"
+                  >
+                    {joining ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Joining...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Join Community</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Source Attribution Box */}
           <div className="p-3.5 rounded-2xl bg-cream-canvas border border-blush-surface flex items-center justify-between text-xs">

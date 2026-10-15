@@ -144,6 +144,61 @@ export function applySchema(db) {
       ON connections(requester_id, receiver_id);
     CREATE INDEX IF NOT EXISTS idx_events_category
       ON events(category, verification_status);
+
+    -- ─── Communities ────────────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS communities (
+      id             TEXT PRIMARY KEY,
+      name           TEXT NOT NULL,
+      slug           TEXT UNIQUE NOT NULL,
+      description    TEXT NOT NULL,
+      category       TEXT NOT NULL,
+      category_label TEXT NOT NULL,
+      type           TEXT NOT NULL CHECK(type IN ('INTEREST','EVENT','LOCATION')),
+      event_id       TEXT REFERENCES events(id) ON DELETE SET NULL,
+      location       TEXT DEFAULT '',
+      image_url      TEXT DEFAULT '',
+      icon           TEXT DEFAULT 'groups',
+      member_count   INTEGER DEFAULT 0,
+      created_by     TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at     TEXT DEFAULT (datetime('now'))
+    );
+
+    -- ─── Community Members ──────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS community_members (
+      community_id   TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+      user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role           TEXT DEFAULT 'MEMBER' CHECK(role IN ('ADMIN','MODERATOR','MEMBER')),
+      joined_at      TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (community_id, user_id)
+    );
+
+    -- ─── Community Messages ─────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS community_messages (
+      id             TEXT PRIMARY KEY,
+      community_id   TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+      sender_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      text           TEXT NOT NULL,
+      sent_at        TEXT DEFAULT (datetime('now')),
+      is_pinned      INTEGER DEFAULT 0,
+      is_reported    INTEGER DEFAULT 0
+    );
+
+    -- ─── Community Reports (Moderation) ──────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS community_reports (
+      id             TEXT PRIMARY KEY,
+      community_id   TEXT REFERENCES communities(id) ON DELETE CASCADE,
+      message_id     TEXT REFERENCES community_messages(id) ON DELETE CASCADE,
+      reporter_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason         TEXT NOT NULL,
+      status         TEXT DEFAULT 'PENDING' CHECK(status IN ('PENDING','REVIEWED','DISMISSED')),
+      created_at     TEXT DEFAULT (datetime('now'))
+    );
+
+    -- ─── Communities Indexes ────────────────────────────────────────────────────
+    CREATE INDEX IF NOT EXISTS idx_comm_category ON communities(category, type);
+    CREATE INDEX IF NOT EXISTS idx_comm_event ON communities(event_id);
+    CREATE INDEX IF NOT EXISTS idx_comm_members ON community_members(user_id, community_id);
+    CREATE INDEX IF NOT EXISTS idx_comm_messages ON community_messages(community_id, sent_at);
   `);
 
   migrateLegacyColumns(db);

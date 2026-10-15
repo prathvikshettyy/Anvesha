@@ -132,6 +132,49 @@ export default function App() {
   const [locketRecipient, setLocketRecipient]     = useState(null);
   const [chatPartner, setChatPartner]             = useState(null);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [connectTab, setConnectTab]               = useState('messages'); // 'messages' | 'communities'
+  const [targetCommunityId, setTargetCommunityId] = useState(null);
+  const [communities, setCommunities]             = useState([]);
+
+  const loadCommunities = useCallback(() => {
+    api.communities.list()
+      .then(list => {
+        if (Array.isArray(list)) setCommunities(list);
+      })
+      .catch(err => console.warn('Could not load communities in App:', err));
+  }, []);
+
+  const handleJoinCommunity = async (comm) => {
+    if (!comm) return;
+    const commId = comm.id || comm.slug;
+    if (authUser && api.token.get()) {
+      try {
+        await api.communities.join(commId);
+      } catch (err) {
+        console.warn('API error joining community:', err);
+      }
+    }
+    setCommunities(prev => {
+      const exists = prev.some(c => c.id === commId || c.slug === commId);
+      if (exists) {
+        return prev.map(c => (c.id === commId || c.slug === commId)
+          ? { ...c, isMember: true, memberCount: (c.memberCount || 0) + 1 }
+          : c
+        );
+      }
+      return [...prev, { ...comm, isMember: true, memberCount: (comm.memberCount || 0) + 1 }];
+    });
+  };
+
+  const handleOpenCommunity = (comm, autoJoin = false) => {
+    if (autoJoin) {
+      handleJoinCommunity(comm);
+    }
+    setActiveDetailEvent(null);
+    setTargetCommunityId(comm.id || comm.slug);
+    setConnectTab('communities');
+    setCurrentView('messages');
+  };
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -211,13 +254,14 @@ export default function App() {
     };
   }, []);
 
-  // Reload community data when user logs in
+  // Reload community and social data when user logs in
   useEffect(() => {
+    loadCommunities();
     if (authUser) {
       loadPeople();
       loadLocket();
     }
-  }, [authUser, loadPeople, loadLocket]);
+  }, [authUser, loadPeople, loadLocket, loadCommunities]);
 
   // ── Socket.IO connection lifecycle ─────────────────────────────────────────
   useEffect(() => {
@@ -492,6 +536,9 @@ export default function App() {
             isAuthenticated={!!authUser}
             onUnreadCountChange={setUnreadCount}
             authToken={api.token.get()}
+            initialTab={connectTab}
+            initialCommunityId={targetCommunityId}
+            onSelectEvent={setActiveDetailEvent}
           />
         )}
 
@@ -525,6 +572,9 @@ export default function App() {
         onClose={() => setActiveDetailEvent(null)}
         isSaved={activeDetailEvent ? savedEvents.includes(activeDetailEvent.id) : false}
         onToggleSave={handleToggleSave}
+        onOpenCommunity={handleOpenCommunity}
+        onJoinCommunity={handleJoinCommunity}
+        communities={communities}
       />
 
       <LocketModal

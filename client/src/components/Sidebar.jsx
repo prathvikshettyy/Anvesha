@@ -24,7 +24,7 @@ export default function Sidebar({
     { id: 'events', label: 'Atlas & Events', icon: Calendar },
     { id: 'people', label: 'Find People', icon: Users },
     { id: 'locket', label: 'Culture Locket', icon: Mic, badge: 'Daily' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadCount },
+    { id: 'messages', label: 'Connect', icon: MessageSquare, count: unreadCount },
     { id: 'saved', label: 'Saved Gatherings', icon: Bookmark, count: savedCount }
   ];
 
