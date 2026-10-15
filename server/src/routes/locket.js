@@ -404,9 +404,11 @@ router.post('/:id/react', requireAuth, requireFields('text'), (req, res) => {
   if (text.length > 200) return res.status(400).json({ error: 'Reaction text too long (max 200)' });
 
   const id = uuid();
-  db.prepare('INSERT INTO locket_reactions (id, moment_id, user_id, text) VALUES (?,?,?,?)').run(
-    id, moment.id, req.user.id, text.slice(0, 200)
-  );
+  db.prepare(`
+    INSERT INTO locket_reactions (id, moment_id, user_id, text)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(moment_id, user_id) DO UPDATE SET text = excluded.text, reacted_at = datetime('now')
+  `).run(id, moment.id, req.user.id, text.slice(0, 200));
 
   // Notify sender of reaction
   emitToUser(moment.sender_id, 'locket:reaction', { momentId: moment.id, reaction: { id, text, userId: req.user.id } });

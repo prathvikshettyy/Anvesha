@@ -136,7 +136,14 @@ router.get('/', requireAuth, (req, res) => {
 
   // Sort by match score descending
   result.sort((a, b) => b.matchScore - a.matchScore);
-  res.json(result);
+
+  // Pagination (default limit 20, max 50)
+  const limitParam = parseInt(req.query.limit, 10);
+  const offsetParam = parseInt(req.query.offset, 10);
+  const limit = (!isNaN(limitParam) && limitParam > 0) ? Math.min(limitParam, 50) : 20;
+  const offset = (!isNaN(offsetParam) && offsetParam >= 0) ? offsetParam : 0;
+
+  res.json(result.slice(offset, offset + limit));
 });
 
 // ── GET /api/people/:id ───────────────────────────────────────────────────────

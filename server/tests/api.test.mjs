@@ -245,7 +245,11 @@ async function runTests() {
     assert(JSON.stringify(scores) === JSON.stringify(sorted), 'People are sorted by matchScore descending');
 
     // Connect with an unconnected person (Batch 1: Returns 201 PENDING)
+    const { db: testDbInit } = await import('../src/db/index.js');
     const targetPerson = peopleData.find(p => p.connectionStatus === 'NONE') || peopleData[peopleData.length - 1];
+    testDbInit.prepare('DELETE FROM connections WHERE (requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)').run(
+      'usr_rohan', targetPerson.id, targetPerson.id, 'usr_rohan'
+    );
     const connectRes = await fetch(`${BASE}/people/${targetPerson.id}/connect`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${rohanToken}` },
@@ -789,6 +793,119 @@ async function runTests() {
     });
     const commDetailPrivacy = await commDetailPrivacyRes.json();
     assert(!commDetailPrivacy.members.some(m => m.id === testUserId), 'Non-discoverable user (is_discoverable=0) does NOT appear in community member list');
+
+    // ─── [Test Suite 9/9] Batch 2 Security Hardening & Data Portability ────────
+    console.log('\n[Test Suite 9/9] Batch 2 Security Hardening & Data Portability');
+
+    // 1. Password min 8 characters enforcement
+    const shortPassRes = await fetch(`${BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: `short_${Date.now()}`,
+        password: 'short12', // 7 chars
+        name: 'Short Password Tester',
+      }),
+    });
+    assert(shortPassRes.status === 400, 'Password under 8 characters is rejected (400)');
+
+    // 2. Avatar URL validation (reject javascript:, accept safe values)
+    const badAvatarRes = await fetch(`${BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: `avatar_${Date.now()}`,
+        password: 'validpassword123',
+        name: 'Avatar Tester',
+        avatar_url: 'javascript:alert(1)',
+      }),
+    });
+    assert(badAvatarRes.status === 400, 'Malicious javascript: avatar_url is rejected (400)');
+
+    // 3. Event image URL validation
+    const badEventImgRes = await fetch(`${BASE}/events`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: `Test Invalid Image Event ${Date.now()}`,
+        category: 'culture',
+        venue: 'Cubbon Park Bandstand',
+        image_url: 'javascript:alert(1)',
+      }),
+    });
+    assert(badEventImgRes.status === 400, 'Malicious javascript: event image_url is rejected (400)');
+
+    // 4. Locket Reaction UNIQUE(moment_id, user_id) idempotence
+    const react1Res = await fetch(`${BASE}/locket/${createdLocketId}/react`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'First reaction text' }),
+    });
+    assert(react1Res.status === 201 || react1Res.status === 200, 'Initial reaction returns 201/200');
+
+    const react2Res = await fetch(`${BASE}/locket/${createdLocketId}/react`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Updated reaction text' }),
+    });
+    assert(react2Res.status === 201 || react2Res.status === 200, 'Second reaction from same user updates without error');
+
+    // 5. Pagination on GET /api/people
+    const paginatedPeopleRes = await fetch(`${BASE}/people?limit=2&offset=0`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(paginatedPeopleRes.status === 200, 'GET /api/people?limit=2 returns 200');
+    const paginatedPeople = await paginatedPeopleRes.json();
+    assert(paginatedPeople.length <= 2, 'GET /api/people with limit=2 returns at most 2 items');
+
+    // 6. User Data Export (GET /api/auth/export)
+    const exportRes = await fetch(`${BASE}/auth/export`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(exportRes.status === 200, 'GET /api/auth/export returns 200');
+    const exportData = await exportRes.json();
+    assert(exportData.user && exportData.user.id === testUserId, 'Export contains user profile');
+    assert(Array.isArray(exportData.connections), 'Export contains connections array');
+    assert(Array.isArray(exportData.interests), 'Export contains interests array');
+    assert(Array.isArray(exportData.communityMemberships), 'Export contains community memberships array');
+
+    // 7. User Account Deletion (DELETE /api/auth/me)
+    // Wrong password returns 401
+    const badDeleteRes = await fetch(`${BASE}/auth/me`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: 'wrongpassword' }),
+    });
+    assert(badDeleteRes.status === 401, 'DELETE /api/auth/me with incorrect password returns 401');
+
+    // Correct password succeeds and cleans up account
+    const goodDeleteRes = await fetch(`${BASE}/auth/me`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${regData.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: 'password123' }),
+    });
+    assert(goodDeleteRes.status === 200, 'DELETE /api/auth/me with valid password returns 200');
+
+    // Verify user is gone
+    const deletedMeRes = await fetch(`${BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${regData.token}` },
+    });
+    assert(deletedMeRes.status === 404, 'Deleted user cannot access GET /api/auth/me (returns 404)');
 
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);

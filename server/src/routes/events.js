@@ -255,8 +255,8 @@ router.post('/',
       return res.status(400).json({ error: 'Invalid category' });
     if (source_url && !isValidUrl(source_url))
       return res.status(400).json({ error: 'source_url must be http or https' });
-    if (image_url && !isValidUrl(image_url))
-      return res.status(400).json({ error: 'image_url must be http or https' });
+    if (image_url && !isValidUrl(image_url, 'image'))
+      return res.status(400).json({ error: 'image_url must be valid image URL or allowed data image' });
     if (description.length > 2000)
       return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
 

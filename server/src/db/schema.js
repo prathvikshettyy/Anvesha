@@ -120,7 +120,8 @@ export function applySchema(db) {
       moment_id TEXT NOT NULL REFERENCES locket_moments(id) ON DELETE CASCADE,
       user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       text      TEXT NOT NULL,
-      reacted_at TEXT DEFAULT (datetime('now'))
+      reacted_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(moment_id, user_id)
     );
 
     -- ─── Messages ────────────────────────────────────────────────────────────────
@@ -283,6 +284,27 @@ function migrateLegacyColumns(db) {
       DROP TABLE events;
       ALTER TABLE events_migrated RENAME TO events;
       CREATE INDEX IF NOT EXISTS idx_events_category ON events(category, verification_status);
+      PRAGMA foreign_keys = ON;
+    `);
+  }
+
+  // Ensure UNIQUE(moment_id, user_id) on locket_reactions
+  const locketReactionsSql = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='locket_reactions'`).get()?.sql || '';
+  if (locketReactionsSql && !locketReactionsSql.includes('UNIQUE')) {
+    db.exec(`
+      PRAGMA foreign_keys = OFF;
+      CREATE TABLE IF NOT EXISTS locket_reactions_migrated (
+        id         TEXT PRIMARY KEY,
+        moment_id  TEXT NOT NULL REFERENCES locket_moments(id) ON DELETE CASCADE,
+        user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        text       TEXT NOT NULL,
+        reacted_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(moment_id, user_id)
+      );
+      INSERT OR IGNORE INTO locket_reactions_migrated SELECT * FROM locket_reactions;
+      DROP TABLE locket_reactions;
+      ALTER TABLE locket_reactions_migrated RENAME TO locket_reactions;
+      CREATE INDEX IF NOT EXISTS idx_reactions_moment ON locket_reactions(moment_id);
       PRAGMA foreign_keys = ON;
     `);
   }

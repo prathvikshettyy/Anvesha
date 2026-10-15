@@ -23,6 +23,7 @@ const __dirname = path.dirname(__filename);
 const CLIENT_DIST = path.resolve(__dirname, '..', '..', 'client', 'dist');
 
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,28 @@ if (process.env.NODE_ENV === 'production') {
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
+}));
+
+// ── Security Headers via Helmet ───────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+      mediaSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:", "https:", "http:"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
 }));
 
 // Rate limiters for abuse prevention
@@ -68,15 +91,6 @@ app.use('/api/auth/register', authLimiter);
 
 app.use(express.json({ limit: '2mb' })); // 2MB cap — covers base64 audio clips
 app.use(express.urlencoded({ extended: false }));
-
-// ── Security Headers ──────────────────────────────────────────────────────────
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  next();
-});
 
 // ── Static file serving — real uploaded Culture Locket recordings & avatars ────
 app.use('/uploads', express.static(UPLOADS_DIR, {
@@ -233,6 +247,34 @@ if (isMain) {
     console.log(`[Server] Realtime: Socket.IO attached`);
   });
 }
+
+// ── Process Safety & Graceful Shutdown ────────────────────────────────────────
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception:', err);
+});
+
+function gracefulShutdown(signal) {
+  console.log(`[Server] Received ${signal}. Shutting down gracefully...`);
+  if (server) {
+    server.close(() => {
+      console.log('[Server] HTTP and Socket server closed.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error('[Server] Forcefully terminating after timeout.');
+      process.exit(1);
+    }, 5000).unref();
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app, server };
 export default app;
