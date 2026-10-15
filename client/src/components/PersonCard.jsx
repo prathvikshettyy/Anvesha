@@ -6,10 +6,10 @@ export default function PersonCard({ person, onConnect, onStartChat, onSendLocke
   const [status, setStatus] = useState(person.connectionStatus || 'NONE');
 
   const handleConnectClick = () => {
-    setStatus('CONNECTED');
+    setStatus('PENDING');
     confetti({
-      particleCount: 30,
-      spread: 60,
+      particleCount: 20,
+      spread: 50,
       origin: { y: 0.7 },
       colors: ['#C56E50', '#D9A441', '#E9CDB8']
     });
@@ -126,6 +126,14 @@ export default function PersonCard({ person, onConnect, onStartChat, onSendLocke
           >
             <MessageCircle className="w-3.5 h-3.5" />
             <span>Chat</span>
+          </button>
+        ) : status === 'PENDING' ? (
+          <button
+            disabled
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-blush-surface text-cocoa-text/70 text-xs font-bold cursor-default"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Requested</span>
           </button>
         ) : (
           <button

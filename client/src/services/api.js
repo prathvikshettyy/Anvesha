@@ -153,6 +153,15 @@ export const people = {
   /** Connect with a user. Returns { status, connectionId }. */
   connect: (id) => post(`/people/${id}/connect`),
 
+  /** Accept an incoming connection request. */
+  accept: (id) => post(`/people/${id}/accept`),
+
+  /** Decline an incoming connection request. */
+  decline: (id) => post(`/people/${id}/decline`),
+
+  /** Get incoming pending connection requests. */
+  incomingRequests: () => get('/people/requests/incoming'),
+
   /** List all confirmed connections of the current user. */
   connections: () => get('/people/connections'),
 };
