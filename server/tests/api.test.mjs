@@ -917,6 +917,23 @@ async function runTests() {
     });
     assert(seedOutput.includes('Demo seeding disabled in production'), 'Seed script refuses to run in production without ALLOW_DEMO_SEED=true');
 
+    // 9. Rate limiting: 25 successful logins in a row are not blocked (skipSuccessfulRequests: true)
+    let successfulLoginsCount = 0;
+    for (let i = 0; i < 25; i++) {
+      const res = await fetch(`${BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'rohan',
+          password: 'demo1234',
+        }),
+      });
+      if (res.status === 200) {
+        successfulLoginsCount++;
+      }
+    }
+    assert(successfulLoginsCount === 25, '25 successful logins in a row are not blocked by auth rate limiter (skipSuccessfulRequests: true)');
+
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
     console.log('='.repeat(55) + '\n');

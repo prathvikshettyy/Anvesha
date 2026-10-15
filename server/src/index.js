@@ -82,7 +82,8 @@ app.use(helmet({
 // Rate limiters for abuse prevention
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Strict limit: 20 attempts per 15 mins
+  max: 20, // Strict limit: 20 failed attempts per 15 mins
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests from this IP, please try again later.' },
