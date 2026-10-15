@@ -5,6 +5,7 @@ import indiaBoundariesData from '../data/indiaStateBoundaries.json';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { STATE_CENTROIDS, resolveEventCoords, matchesEventState } from '../data/indiaGeoData';
 import { PIN_CATEGORIES } from './IllustratedPin';
+import { getEventImage, getCategorySvgPlaceholder } from '../utils/eventPlaceholder';
 import { ZoomIn, ZoomOut, RotateCcw, Map, Compass } from 'lucide-react';
 
 export default function InteractiveIndiaMap({
@@ -264,9 +265,13 @@ export default function InteractiveIndiaMap({
         });
 
         // Build popup content
+        const mapImg = getEventImage(evt);
+        const mapFallback = getCategorySvgPlaceholder(evt?.category);
         const popupHtml = `
           <div style="min-width: 220px; max-width: 270px; font-family: system-ui, sans-serif;">
-            ${evt.image ? `<div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;"><img src="${evt.image}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" /></div>` : ''}
+            <div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;">
+              <img src="${mapImg}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${mapFallback}';" />
+            </div>
             <div style="padding: 0.85rem;">
               <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}18; color: ${cat.color}; font-size: 10px; font-weight: bold;">
                 <span>${cat.symbol}</span>

@@ -105,16 +105,36 @@ function inferStateAndCity(row) {
   };
 }
 
+export const CATEGORY_PLACEHOLDERS = {
+  culture:    'https://images.unsplash.com/photo-1609137144822-0d1279a099f6?w=800&auto=format&fit=crop&q=80',
+  festivals:  'https://images.unsplash.com/photo-1600100397608-f70cff5a2e09?w=800&auto=format&fit=crop&q=80',
+  technology: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80',
+  music:      'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop&q=80',
+  art:        'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop&q=80',
+  film:       'https://images.unsplash.com/photo-1517602302552-471fe67acf66?w=800&auto=format&fit=crop&q=80',
+  literature: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&auto=format&fit=crop&q=80',
+  food:       'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&auto=format&fit=crop&q=80',
+  community:  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&auto=format&fit=crop&q=80',
+  workshops:  'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&auto=format&fit=crop&q=80',
+  science:    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
+};
+
+export function getCategoryPlaceholder(category) {
+  const cat = String(category || 'culture').toLowerCase().trim();
+  return CATEGORY_PLACEHOLDERS[cat] || CATEGORY_PLACEHOLDERS.culture;
+}
+
 function formatEvent(row) {
   if (!row) return null;
   const geo = inferStateAndCity(row);
+  const resolvedImg = row.image_url || row.image || getCategoryPlaceholder(row.category);
   return {
     ...row,
     state: row.state || geo.state,
     stateId: row.state_id || row.stateId || geo.stateId,
     city: row.city || geo.city,
-    image: row.image_url || row.image || '',
-    imageUrl: row.image_url || row.image || '',
+    image: resolvedImg,
+    imageUrl: resolvedImg,
     date: row.date_label || row.date || 'Upcoming Weekend',
     datetime: row.datetime_iso || row.datetime || new Date().toISOString(),
     categoryLabel: row.category_label || row.categoryLabel || row.category,
@@ -205,7 +225,7 @@ router.post('/',
     const date_label = req.body.date_label || req.body.date || 'Upcoming Weekend';
     const datetime_iso = req.body.datetime_iso || req.body.datetime || new Date().toISOString();
     const source_url = req.body.source_url || req.body.sourceUrl || '';
-    const image_url = req.body.image_url || req.body.image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80';
+    const image_url = req.body.image_url || req.body.image || getCategoryPlaceholder(category);
 
     // Validate
     if (title.length > 200)

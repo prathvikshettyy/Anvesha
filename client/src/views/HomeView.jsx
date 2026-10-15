@@ -4,6 +4,7 @@ import CultureLocketCard from '../components/CultureLocketCard';
 import EventCard from '../components/EventCard';
 import PersonCard from '../components/PersonCard';
 import { INITIAL_INTERESTS } from '../data/initialData';
+import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
 /**
  * Deduplicate events by id and normalized title so duplicate/identical
@@ -355,8 +356,9 @@ export default function HomeView({
                 className="p-4 rounded-2xl bg-surface-container-lowest border border-blush-surface hover:border-terra-primary/40 shadow-xs hover:shadow-warm transition-all cursor-pointer flex items-center gap-3.5"
               >
                 <img
-                  src={evt.image}
+                  src={getEventImage(evt)}
                   alt={evt.title}
+                  onError={(e) => handleEventImageError(e, evt?.category)}
                   className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">

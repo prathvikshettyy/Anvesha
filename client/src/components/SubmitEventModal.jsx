@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, MapPin, Link2, Sparkles, PlusCircle, Loader2, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as api from '../services/api';
+import { getCategoryPlaceholder } from '../utils/eventPlaceholder';
 
 export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthenticated }) {
   const [title, setTitle] = useState('');
@@ -39,7 +40,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
           ...newEvt,
           date:         newEvt.date_label   ?? newEvt.date   ?? 'Upcoming Weekend',
           datetime:     newEvt.datetime_iso ?? newEvt.datetime ?? new Date().toISOString(),
-          image:        newEvt.image_url    ?? newEvt.image   ?? 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+          image:        newEvt.image_url    ?? newEvt.image   ?? getCategoryPlaceholder(category),
           categoryLabel: newEvt.category_label ?? newEvt.categoryLabel ?? category,
           isSaved:      false,
         };
@@ -65,7 +66,7 @@ export default function SubmitEventModal({ isOpen, onClose, onAddEvent, isAuthen
           lng: 75.7139 + (Math.random() - 0.5) * 1.5,
           isOnline: false,
           organizer: organizer || 'Community Organizer',
-          image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+          image: getCategoryPlaceholder(category),
           description,
           sourceUrl: sourceUrl || '',
           sourceLabel: 'Community Submitted',

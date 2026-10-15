@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Bookmark, CheckCircle, Share2, ExternalLink, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
 export default function EventCard({ event, isSaved, onToggleSave, onSelect }) {
   const handleSaveClick = (e) => {
@@ -24,8 +25,9 @@ export default function EventCard({ event, isSaved, onToggleSave, onSelect }) {
       {/* Event Image Banner */}
       <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-blush-surface/30">
         <img
-          src={event.image}
+          src={getEventImage(event)}
           alt={event.title}
+          onError={(e) => handleEventImageError(e, event?.category)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-cocoa-text/60 via-transparent to-transparent opacity-60" />
