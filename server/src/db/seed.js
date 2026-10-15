@@ -293,7 +293,7 @@ const events = [
     date_label: 'Sunday, 10:00 AM', datetime_iso: new Date(Date.now() + 5 * 86400000).toISOString(),
     venue: 'Mysuru Palace Grounds', neighborhood: 'Mysuru', lat: 12.3052, lng: 76.6552, is_online: 0,
     organizer: 'Mysuru Dasara Committee',
-    image_url: 'https://images.unsplash.com/photo-1600100397608-f70cff5a2e09?w=800&auto=format&fit=crop&q=80',
+    image_url: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
     description: 'Volunteers and performers rehearse float decorations and folk-dance formations ahead of the famous Mysuru Dasara procession.',
     source_url: '', source_label: 'Community Submitted', verification_status: 'VERIFIED', attendee_count: 41, submitted_by: 'usr_ananya',
   },
@@ -471,4 +471,249 @@ const insertMsg = db.prepare(`
 for (const m of messages) insertMsg.run(m);
 console.log(`[Seed] Inserted ${messages.length} messages`);
 
+// ─── Seed Communities ────────────────────────────────────────────────────────
+const communities = [
+  {
+    id: 'comm_classical_music',
+    name: 'Indian Music & Festivals',
+    slug: 'indian-music-festivals',
+    description: 'A community for Hindustani and Carnatic classical music lovers, folk ballad seekers, and festival enthusiasts across India.',
+    category: 'music',
+    category_label: 'Music',
+    type: 'INTEREST',
+    event_id: null,
+    location: 'Pan-India & Karnataka',
+    image_url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop&q=80',
+    icon: 'music_note',
+    member_count: 28,
+    created_by: 'usr_vikram',
+  },
+  {
+    id: 'comm_folk_art',
+    name: 'Art & Folk Traditions',
+    slug: 'art-folk-traditions',
+    description: 'Exploring indigenous art forms: Warli murals, Madhubani lines, Kodava embroidery, and temple iconography.',
+    category: 'art',
+    category_label: 'Art',
+    type: 'INTEREST',
+    event_id: null,
+    location: 'Karnataka & Beyond',
+    image_url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=800&auto=format&fit=crop&q=80',
+    icon: 'palette',
+    member_count: 16,
+    created_by: 'usr_kavya',
+  },
+  {
+    id: 'comm_loc_manipal',
+    name: 'Events Around Manipal',
+    slug: 'events-around-manipal',
+    description: 'Local student and resident circle for discovering gatherings, beach heritage walks, temple festivals, and campus culture.',
+    category: 'regional',
+    category_label: 'Local',
+    type: 'LOCATION',
+    event_id: null,
+    location: 'Manipal & Udupi',
+    image_url: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'location_on',
+    member_count: 34,
+    created_by: 'usr_arjun',
+  },
+  {
+    id: 'comm_evt_manipal_fest',
+    name: 'Manipal Cultural Fest 2026',
+    slug: 'manipal-cultural-fest-2026',
+    description: 'Official gathering community for attendees, performers, and volunteers participating in the Manipal Cultural Fest 2026.',
+    category: 'festivals',
+    category_label: 'Festivals',
+    type: 'EVENT',
+    event_id: 'evt_1',
+    location: 'Manipal University Campus',
+    image_url: 'https://images.unsplash.com/photo-1601925268312-2e6d1a3e1f5f?w=800&auto=format&fit=crop&q=80',
+    icon: 'celebration',
+    member_count: 38,
+    created_by: 'usr_arjun',
+  },
+  {
+    id: 'comm_evt_dasara',
+    name: 'Mysuru Dasara Cultural Circle',
+    slug: 'mysuru-dasara-circle',
+    description: 'Procession prep, folk float coordination, and heritage walks for the historic Mysuru Dasara festival.',
+    category: 'festivals',
+    category_label: 'Festivals',
+    type: 'EVENT',
+    event_id: 'evt_2',
+    location: 'Mysuru Palace Grounds',
+    image_url: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'celebration',
+    member_count: 42,
+    created_by: 'usr_ananya',
+  },
+  {
+    id: 'comm_evt_hackathon',
+    name: 'Bengaluru Culture Tech Hackers',
+    slug: 'bengaluru-culture-tech-hackers',
+    description: 'Builders, linguists, and designers teaming up for the Bengaluru Tech & Culture Hackathon to preserve regional languages.',
+    category: 'technology',
+    category_label: 'Technology',
+    type: 'EVENT',
+    event_id: 'evt_3',
+    location: 'Koramangala, Bengaluru',
+    image_url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80',
+    icon: 'code',
+    member_count: 54,
+    created_by: 'usr_vikram',
+  },
+  {
+    id: 'comm_dialects_lit',
+    name: 'Tulu & Konkani Dialect Circle',
+    slug: 'tulu-konkani-dialect-circle',
+    description: 'Preserving coastal idioms, folklore stories, and proverbs through weekly voice exchanges and literature readings.',
+    category: 'literature',
+    category_label: 'Literature',
+    type: 'INTEREST',
+    event_id: 'evt_6',
+    location: 'Mangaluru & Udupi',
+    image_url: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=800&auto=format&fit=crop&q=80',
+    icon: 'menu_book',
+    member_count: 22,
+    created_by: 'usr_priya',
+  },
+  {
+    id: 'comm_loc_bengaluru',
+    name: 'Bengaluru Heritage & Art Walkers',
+    slug: 'bengaluru-heritage-walkers',
+    description: 'Weekend walking trails through Malleswaram old streets, pete markets, temple tanks, and filter coffee spots.',
+    category: 'regional',
+    category_label: 'Regional Culture',
+    type: 'LOCATION',
+    event_id: null,
+    location: 'Bengaluru, Karnataka',
+    image_url: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'explore',
+    member_count: 45,
+    created_by: 'usr_rohan',
+  },
+];
+
+const insertComm = db.prepare(`
+  INSERT OR IGNORE INTO communities
+    (id, name, slug, description, category, category_label, type, event_id, location, image_url, icon, member_count, created_by)
+  VALUES
+    (@id, @name, @slug, @description, @category, @category_label, @type, @event_id, @location, @image_url, @icon, @member_count, @created_by)
+`);
+for (const c of communities) insertComm.run(c);
+console.log(`[Seed] Inserted ${communities.length} communities`);
+
+// ─── Seed Community Memberships ─────────────────────────────────────────────
+const communityMembers = [
+  { community_id: 'comm_classical_music', user_id: 'usr_rohan',  role: 'MEMBER' },
+  { community_id: 'comm_classical_music', user_id: 'usr_vikram', role: 'ADMIN' },
+  { community_id: 'comm_classical_music', user_id: 'usr_meera',  role: 'MEMBER' },
+  { community_id: 'comm_folk_art',        user_id: 'usr_kavya',  role: 'ADMIN' },
+  { community_id: 'comm_folk_art',        user_id: 'usr_ananya', role: 'MEMBER' },
+  { community_id: 'comm_loc_manipal',     user_id: 'usr_rohan',  role: 'MEMBER' },
+  { community_id: 'comm_loc_manipal',     user_id: 'usr_arjun',  role: 'ADMIN' },
+  { community_id: 'comm_loc_manipal',     user_id: 'usr_priya',  role: 'MEMBER' },
+  { community_id: 'comm_evt_manipal_fest',user_id: 'usr_rohan',  role: 'MEMBER' },
+  { community_id: 'comm_evt_manipal_fest',user_id: 'usr_arjun',  role: 'ADMIN' },
+  { community_id: 'comm_evt_manipal_fest',user_id: 'usr_priya',  role: 'MEMBER' },
+  { community_id: 'comm_evt_dasara',      user_id: 'usr_ananya', role: 'ADMIN' },
+  { community_id: 'comm_evt_dasara',      user_id: 'usr_aditya', role: 'MEMBER' },
+  { community_id: 'comm_evt_hackathon',   user_id: 'usr_vikram', role: 'ADMIN' },
+  { community_id: 'comm_evt_hackathon',   user_id: 'usr_aditya', role: 'MEMBER' },
+  { community_id: 'comm_dialects_lit',    user_id: 'usr_priya',  role: 'ADMIN' },
+  { community_id: 'comm_dialects_lit',    user_id: 'usr_rohan',  role: 'MEMBER' },
+  { community_id: 'comm_loc_bengaluru',   user_id: 'usr_rohan',  role: 'ADMIN' },
+  { community_id: 'comm_loc_bengaluru',   user_id: 'usr_vikram', role: 'MEMBER' },
+];
+
+const insertCommMember = db.prepare(`
+  INSERT OR IGNORE INTO community_members (community_id, user_id, role)
+  VALUES (@community_id, @user_id, @role)
+`);
+for (const cm of communityMembers) insertCommMember.run(cm);
+console.log(`[Seed] Inserted ${communityMembers.length} community memberships`);
+
+// ─── Seed Community Discussion Messages ─────────────────────────────────────
+const commMessages = [
+  {
+    id: uuid(),
+    community_id: 'comm_classical_music',
+    sender_id: 'usr_vikram',
+    text: 'Welcome everyone! In this circle we discuss regional classical traditions. Anyone here exploring the differences between Kirana and Gwalior gharanas?',
+    sent_at: msg_time_days(2, 10),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_classical_music',
+    sender_id: 'usr_meera',
+    text: 'I grew up listening to Marathi Natyasangeet and Bhimsen Joshi ji. Would love to share rare recording links!',
+    sent_at: msg_time_days(1, 45),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_classical_music',
+    sender_id: 'usr_rohan',
+    text: 'Looking forward to the upcoming Hindustani session in Hubballi! Is anyone traveling from Bengaluru?',
+    sent_at: msg_time(40),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_loc_manipal',
+    sender_id: 'usr_arjun',
+    text: 'Namaskara Manipal folks! Next weekend there is an early morning heritage walk towards End Point, followed by traditional breakfast at Mitra Samaj Udupi.',
+    sent_at: msg_time_days(1, 120),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_loc_manipal',
+    sender_id: 'usr_priya',
+    text: 'Count me in! Also, the Kadri temple fair preparations in Mangaluru are starting this week.',
+    sent_at: msg_time(55),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_evt_manipal_fest',
+    sender_id: 'usr_arjun',
+    text: 'Official notice: Stage sound check for the Yakshagana all-night performance starts at 5:00 PM on Saturday. Performers please gather by the green room.',
+    sent_at: msg_time_days(1, 30),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_evt_manipal_fest',
+    sender_id: 'usr_rohan',
+    text: 'Can non-performers observe the traditional makeup (Bannada Vesha) process before the show starts?',
+    sent_at: msg_time(30),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_evt_manipal_fest',
+    sender_id: 'usr_arjun',
+    text: 'Yes absolutely! Makeup takes nearly 3 hours, anyone interested in the natural pigments is welcome to watch quietly.',
+    sent_at: msg_time(15),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_dialects_lit',
+    sender_id: 'usr_priya',
+    text: 'Uploaded a new Culture Locket entry with conversational Tulu greetings! Who wants to practice dialogue next Sunday?',
+    sent_at: msg_time_days(2, 60),
+  },
+  {
+    id: uuid(),
+    community_id: 'comm_evt_hackathon',
+    sender_id: 'usr_vikram',
+    text: 'We are looking for one more teammate with React or audio processing experience to build a dialect phonetics tool for the hackathon!',
+    sent_at: msg_time_days(1, 10),
+  },
+];
+
+const insertCommMsg = db.prepare(`
+  INSERT OR IGNORE INTO community_messages (id, community_id, sender_id, text, sent_at)
+  VALUES (@id, @community_id, @sender_id, @text, @sent_at)
+`);
+for (const cm of commMessages) insertCommMsg.run(cm);
+console.log(`[Seed] Inserted ${commMessages.length} community messages`);
+
 console.log('[Seed] Done! Demo accounts (password: demo1234): rohan, priya, arjun, ananya, kavya, vikram, aditya, meera');
+

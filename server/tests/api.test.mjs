@@ -320,6 +320,90 @@ async function runTests() {
     });
     assert(readRes.status === 200, 'PATCH /api/messages/:partnerId/read returns 200');
 
+    // ─── [Test Suite 7/7] Cultural Communities & Discussions ───────────────────
+    console.log('\n[Test Suite 7/7] Cultural Communities & Group Discussions');
+
+    // List communities
+    const commListRes = await fetch(`${BASE}/communities`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(commListRes.status === 200, 'GET /api/communities returns 200');
+    const comms = await commListRes.json();
+    assert(Array.isArray(comms) && comms.length >= 5, 'Returns list of seeded cultural communities');
+    assert(comms[0].name && comms[0].type && comms[0].category, 'Communities contain name, type, and category');
+
+    // Filter by category
+    const musicCommRes = await fetch(`${BASE}/communities?category=music`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(musicCommRes.status === 200, 'GET /api/communities?category=music returns 200');
+    const musicComms = await musicCommRes.json();
+    assert(musicComms.every(c => c.category === 'music'), 'Category filter returns only music communities');
+
+    // Search by query
+    const searchCommRes = await fetch(`${BASE}/communities?q=Manipal`);
+    assert(searchCommRes.status === 200, 'GET /api/communities?q=Manipal returns 200');
+    const manipalComms = await searchCommRes.json();
+    assert(manipalComms.some(c => c.name.includes('Manipal')), 'Search query finds Manipal communities');
+
+    // Get specific community
+    const targetCommId = 'comm_folk_art';
+    const commDetailRes = await fetch(`${BASE}/communities/${targetCommId}`, {
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(commDetailRes.status === 200, 'GET /api/communities/:id returns 200');
+    const commDetail = await commDetailRes.json();
+    assert(commDetail.id === targetCommId, 'Community details return correct ID');
+    assert(Array.isArray(commDetail.members), 'Community details contain members list');
+
+    // Join community
+    const joinRes = await fetch(`${BASE}/communities/${targetCommId}/join`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(joinRes.status === 200, 'POST /api/communities/:id/join returns 200');
+    const joinData = await joinRes.json();
+    assert(joinData.isMember === true, 'Community membership confirmed');
+
+    // Post discussion message in joined community
+    const postMsgRes = await fetch(`${BASE}/communities/${targetCommId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Hello folk artists! Excited to learn about traditional mural techniques.' }),
+    });
+    assert(postMsgRes.status === 201, 'POST /api/communities/:id/messages returns 201 Created');
+    const postedMsg = await postMsgRes.json();
+    assert(postedMsg.id && postedMsg.text.includes('mural techniques'), 'Discussion message persisted in SQLite');
+
+    // Read discussion messages
+    const getMsgsRes = await fetch(`${BASE}/communities/${targetCommId}/messages`);
+    assert(getMsgsRes.status === 200, 'GET /api/communities/:id/messages returns 200');
+    const allMsgs = await getMsgsRes.json();
+    assert(allMsgs.some(m => m.id === postedMsg.id), 'Sent message appears in community discussion thread');
+
+    // Report community affordance
+    const reportRes = await fetch(`${BASE}/communities/${targetCommId}/report`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${rohanToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reason: 'Test moderation check' }),
+    });
+    assert(reportRes.status === 200, 'POST /api/communities/:id/report returns 200');
+
+    // Leave community
+    const leaveRes = await fetch(`${BASE}/communities/${targetCommId}/leave`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rohanToken}` },
+    });
+    assert(leaveRes.status === 200, 'POST /api/communities/:id/leave returns 200');
+    const leaveData = await leaveRes.json();
+    assert(leaveData.isMember === false, 'Community leave confirmed');
+
     console.log('\n' + '='.repeat(55));
     console.log(`🎉 ALL TESTS PASSED: ${passed} passed, ${failed} failed`);
     console.log('='.repeat(55) + '\n');

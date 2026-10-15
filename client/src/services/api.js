@@ -194,5 +194,36 @@ export const messages = {
   markRead: (partnerId) => patch(`/messages/${partnerId}/read`),
 };
 
+// ── Communities ───────────────────────────────────────────────────────────────
+export const communities = {
+  /**
+   * List or search communities with category, type, and filter parameters.
+   * @param {{ q?, category?, type?, filter? }} params
+   */
+  list: ({ q = '', category = 'ALL', type = 'ALL', filter = 'ALL' } = {}) => {
+    const qs = new URLSearchParams({ q, category, type, filter }).toString();
+    return get(`/communities?${qs}`);
+  },
+
+  /** Get full community details, members, and linked event. */
+  get: (id) => get(`/communities/${id}`),
+
+  /** Join a community. */
+  join: (id) => post(`/communities/${id}/join`),
+
+  /** Leave a community. */
+  leave: (id) => post(`/communities/${id}/leave`),
+
+  /** Get group discussion messages. */
+  messages: (id) => get(`/communities/${id}/messages`),
+
+  /** Post a discussion message in a community. */
+  sendMessage: (id, text) => post(`/communities/${id}/messages`, { text }),
+
+  /** Submit a moderation report for a community or message. */
+  report: (id, { reason, messageId = null }) => post(`/communities/${id}/report`, { reason, messageId }),
+};
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const health = () => get('/health');
+

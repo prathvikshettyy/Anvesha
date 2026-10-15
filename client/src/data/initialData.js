@@ -762,3 +762,224 @@ export const INITIAL_CONVERSATIONS = [
     ]
   }
 ];
+
+export const INITIAL_COMMUNITIES = [
+  {
+    id: 'comm_classical_music',
+    name: 'Indian Music & Festivals',
+    slug: 'indian-music-festivals',
+    description: 'A community for Hindustani and Carnatic classical music lovers, folk ballad seekers, and festival enthusiasts across India.',
+    category: 'music',
+    categoryLabel: 'Music',
+    type: 'INTEREST',
+    location: 'Pan-India & Karnataka',
+    image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop&q=80',
+    icon: 'music_note',
+    memberCount: 28,
+    isMember: true,
+    eventId: null,
+    event: null,
+    members: [
+      { id: 'usr_rohan', name: 'Rohan Shenoy', handle: '@rohan_coastal', avatar: '/avatars/rohan.jpg', role: 'MEMBER' },
+      { id: 'usr_vikram', name: 'Vikram Joshi', handle: '@vikram_dev', avatar: '/avatars/vikram.jpg', role: 'ADMIN' },
+      { id: 'usr_meera', name: 'Meera Deshmukh', handle: '@meera_sangeet', avatar: '/avatars/meera.jpg', role: 'MEMBER' },
+    ],
+    messages: [
+      { id: 'cm_1', senderId: 'usr_vikram', senderName: 'Vikram Joshi', senderHandle: '@vikram_dev', senderAvatar: '/avatars/vikram.jpg', text: 'Welcome everyone! In this circle we discuss regional classical traditions. Anyone here exploring the differences between Kirana and Gwalior gharanas?', sentAt: '2 days ago' },
+      { id: 'cm_2', senderId: 'usr_meera', senderName: 'Meera Deshmukh', senderHandle: '@meera_sangeet', senderAvatar: '/avatars/meera.jpg', text: 'I grew up listening to Marathi Natyasangeet and Bhimsen Joshi ji. Would love to share rare recording links!', sentAt: 'Yesterday' },
+      { id: 'cm_3', senderId: 'usr_rohan', senderName: 'Rohan Shenoy', senderHandle: '@rohan_coastal', senderAvatar: '/avatars/rohan.jpg', text: 'Looking forward to the upcoming Hindustani session in Hubballi! Is anyone traveling from Bengaluru?', sentAt: '2 hours ago' },
+    ]
+  },
+  {
+    id: 'comm_folk_art',
+    name: 'Art & Folk Traditions',
+    slug: 'art-folk-traditions',
+    description: 'Exploring indigenous art forms: Warli murals, Madhubani lines, Kodava embroidery, and temple iconography.',
+    category: 'art',
+    categoryLabel: 'Art',
+    type: 'INTEREST',
+    location: 'Karnataka & Beyond',
+    image: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=800&auto=format&fit=crop&q=80',
+    icon: 'palette',
+    memberCount: 16,
+    isMember: false,
+    eventId: null,
+    event: null,
+    members: [
+      { id: 'usr_kavya', name: 'Kavya Bopanna', handle: '@kavya_kodava', avatar: '/avatars/kavya.jpg', role: 'ADMIN' },
+      { id: 'usr_ananya', name: 'Ananya Rao', handle: '@ananya_mysuru', avatar: '/avatars/ananya.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_4', senderId: 'usr_kavya', senderName: 'Kavya Bopanna', senderHandle: '@kavya_kodava', senderAvatar: '/avatars/kavya.jpg', text: 'Next week we will host a live Kodava embroidery session with red and blue thread patterns. Beginners are welcome!', sentAt: '3 days ago' },
+      { id: 'cm_5', senderId: 'usr_ananya', senderName: 'Ananya Rao', senderHandle: '@ananya_mysuru', senderAvatar: '/avatars/ananya.jpg', text: 'Can we try natural dyes instead of synthetic ones? I have some madder root extract from Mysuru.', sentAt: 'Yesterday' }
+    ]
+  },
+  {
+    id: 'comm_loc_manipal',
+    name: 'Events Around Manipal',
+    slug: 'events-around-manipal',
+    description: 'Local student and resident circle for discovering gatherings, beach heritage walks, temple festivals, and campus culture.',
+    category: 'regional',
+    categoryLabel: 'Local',
+    type: 'LOCATION',
+    location: 'Manipal & Udupi',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'location_on',
+    memberCount: 34,
+    isMember: true,
+    eventId: null,
+    event: null,
+    members: [
+      { id: 'usr_arjun', name: 'Arjun Nayak', handle: '@arjun_yaksha', avatar: '/avatars/arjun.jpg', role: 'ADMIN' },
+      { id: 'usr_rohan', name: 'Rohan Shenoy', handle: '@rohan_coastal', avatar: '/avatars/rohan.jpg', role: 'MEMBER' },
+      { id: 'usr_priya', name: 'Priya Sharma', handle: '@priya_tuluva', avatar: '/avatars/priya.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_6', senderId: 'usr_arjun', senderName: 'Arjun Nayak', senderHandle: '@arjun_yaksha', senderAvatar: '/avatars/arjun.jpg', text: 'Namaskara Manipal folks! Next weekend there is an early morning heritage walk towards End Point, followed by traditional breakfast at Mitra Samaj Udupi.', sentAt: 'Yesterday' },
+      { id: 'cm_7', senderId: 'usr_priya', senderName: 'Priya Sharma', senderHandle: '@priya_tuluva', senderAvatar: '/avatars/priya.jpg', text: 'Count me in! Also, the Kadri temple fair preparations in Mangaluru are starting this week.', sentAt: '5 hours ago' }
+    ]
+  },
+  {
+    id: 'comm_evt_manipal_fest',
+    name: 'Manipal Cultural Fest 2026',
+    slug: 'manipal-cultural-fest-2026',
+    description: 'Official gathering community for attendees, performers, and volunteers participating in the Manipal Cultural Fest 2026.',
+    category: 'festivals',
+    categoryLabel: 'Festivals',
+    type: 'EVENT',
+    location: 'Manipal University Campus',
+    image: 'https://images.unsplash.com/photo-1601925268312-2e6d1a3e1f5f?w=800&auto=format&fit=crop&q=80',
+    icon: 'celebration',
+    memberCount: 38,
+    isMember: true,
+    eventId: 'evt_1',
+    event: {
+      id: 'evt_1',
+      title: 'Udupi Yakshagana Night',
+      date: 'Saturday, 7:00 PM',
+      venue: 'Kadiyali Temple Grounds, Udupi',
+      image: 'https://images.unsplash.com/photo-1601925268312-2e6d1a3e1f5f?w=800&auto=format&fit=crop&q=80'
+    },
+    members: [
+      { id: 'usr_arjun', name: 'Arjun Nayak', handle: '@arjun_yaksha', avatar: '/avatars/arjun.jpg', role: 'ADMIN' },
+      { id: 'usr_rohan', name: 'Rohan Shenoy', handle: '@rohan_coastal', avatar: '/avatars/rohan.jpg', role: 'MEMBER' },
+      { id: 'usr_priya', name: 'Priya Sharma', handle: '@priya_tuluva', avatar: '/avatars/priya.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_8', senderId: 'usr_arjun', senderName: 'Arjun Nayak', senderHandle: '@arjun_yaksha', senderAvatar: '/avatars/arjun.jpg', text: 'Official notice: Stage sound check for the Yakshagana all-night performance starts at 5:00 PM on Saturday. Performers please gather by the green room.', sentAt: 'Yesterday' },
+      { id: 'cm_9', senderId: 'usr_rohan', senderName: 'Rohan Shenoy', senderHandle: '@rohan_coastal', senderAvatar: '/avatars/rohan.jpg', text: 'Can non-performers observe the traditional makeup (Bannada Vesha) process before the show starts?', sentAt: '3 hours ago' },
+      { id: 'cm_10', senderId: 'usr_arjun', senderName: 'Arjun Nayak', senderHandle: '@arjun_yaksha', senderAvatar: '/avatars/arjun.jpg', text: 'Yes absolutely! Makeup takes nearly 3 hours, anyone interested in the natural pigments is welcome to watch quietly.', sentAt: '1 hour ago' }
+    ]
+  },
+  {
+    id: 'comm_evt_dasara',
+    name: 'Mysuru Dasara Cultural Circle',
+    slug: 'mysuru-dasara-circle',
+    description: 'Procession prep, folk float coordination, and heritage walks for the historic Mysuru Dasara festival.',
+    category: 'festivals',
+    categoryLabel: 'Festivals',
+    type: 'EVENT',
+    location: 'Mysuru Palace Grounds',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'celebration',
+    memberCount: 42,
+    isMember: false,
+    eventId: 'evt_2',
+    event: {
+      id: 'evt_2',
+      title: 'Mysuru Dasara Cultural Procession Prep Circle',
+      date: 'Sunday, 10:00 AM',
+      venue: 'Mysuru Palace Grounds',
+      image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80'
+    },
+    members: [
+      { id: 'usr_ananya', name: 'Ananya Rao', handle: '@ananya_mysuru', avatar: '/avatars/ananya.jpg', role: 'ADMIN' },
+      { id: 'usr_aditya', name: 'Aditya Hegde', handle: '@aditya_kannada', avatar: '/avatars/aditya.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_11', senderId: 'usr_ananya', senderName: 'Ananya Rao', senderHandle: '@ananya_mysuru', senderAvatar: '/avatars/ananya.jpg', text: 'Rehearsals for Veeragase and Dollu Kunitha dance groups are scheduled for 10 AM near North Gate.', sentAt: '2 days ago' }
+    ]
+  },
+  {
+    id: 'comm_evt_hackathon',
+    name: 'Bengaluru Culture Tech Hackers',
+    slug: 'bengaluru-culture-tech-hackers',
+    description: 'Builders, linguists, and designers teaming up for the Bengaluru Tech & Culture Hackathon to preserve regional languages.',
+    category: 'technology',
+    categoryLabel: 'Technology',
+    type: 'EVENT',
+    location: 'Koramangala, Bengaluru',
+    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80',
+    icon: 'code',
+    memberCount: 54,
+    isMember: false,
+    eventId: 'evt_3',
+    event: {
+      id: 'evt_3',
+      title: 'Bengaluru Tech & Culture Hackathon',
+      date: 'Next Weekend',
+      venue: 'Koramangala Innovation Hub, Bengaluru',
+      image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop&q=80'
+    },
+    members: [
+      { id: 'usr_vikram', name: 'Vikram Joshi', handle: '@vikram_dev', avatar: '/avatars/vikram.jpg', role: 'ADMIN' },
+      { id: 'usr_aditya', name: 'Aditya Hegde', handle: '@aditya_kannada', avatar: '/avatars/aditya.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_12', senderId: 'usr_vikram', senderName: 'Vikram Joshi', senderHandle: '@vikram_dev', senderAvatar: '/avatars/vikram.jpg', text: 'We are looking for one more teammate with React or audio processing experience to build a dialect phonetics tool for the hackathon!', sentAt: 'Yesterday' }
+    ]
+  },
+  {
+    id: 'comm_dialects_lit',
+    name: 'Tulu & Konkani Dialect Circle',
+    slug: 'tulu-konkani-dialect-circle',
+    description: 'Preserving coastal idioms, folklore stories, and proverbs through weekly voice exchanges and literature readings.',
+    category: 'literature',
+    categoryLabel: 'Literature',
+    type: 'INTEREST',
+    location: 'Mangaluru & Udupi',
+    image: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=800&auto=format&fit=crop&q=80',
+    icon: 'menu_book',
+    memberCount: 22,
+    isMember: true,
+    eventId: 'evt_6',
+    event: {
+      id: 'evt_6',
+      title: 'Mangaluru Konkani & Tulu Literature Meet',
+      date: 'Sunday, 4:00 PM',
+      venue: 'Kadri Reading Circle, Mangaluru',
+      image: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=800&auto=format&fit=crop&q=80'
+    },
+    members: [
+      { id: 'usr_priya', name: 'Priya Sharma', handle: '@priya_tuluva', avatar: '/avatars/priya.jpg', role: 'ADMIN' },
+      { id: 'usr_rohan', name: 'Rohan Shenoy', handle: '@rohan_coastal', avatar: '/avatars/rohan.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_13', senderId: 'usr_priya', senderName: 'Priya Sharma', senderHandle: '@priya_tuluva', senderAvatar: '/avatars/priya.jpg', text: 'Uploaded a new Culture Locket entry with conversational Tulu greetings! Who wants to practice dialogue next Sunday?', sentAt: '3 days ago' }
+    ]
+  },
+  {
+    id: 'comm_loc_bengaluru',
+    name: 'Bengaluru Heritage & Art Walkers',
+    slug: 'bengaluru-heritage-walkers',
+    description: 'Weekend walking trails through Malleswaram old streets, pete markets, temple tanks, and filter coffee spots.',
+    category: 'regional',
+    categoryLabel: 'Regional Culture',
+    type: 'LOCATION',
+    location: 'Bengaluru, Karnataka',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop&q=80',
+    icon: 'explore',
+    memberCount: 45,
+    isMember: false,
+    eventId: null,
+    event: null,
+    members: [
+      { id: 'usr_rohan', name: 'Rohan Shenoy', handle: '@rohan_coastal', avatar: '/avatars/rohan.jpg', role: 'ADMIN' },
+      { id: 'usr_vikram', name: 'Vikram Joshi', handle: '@vikram_dev', avatar: '/avatars/vikram.jpg', role: 'MEMBER' }
+    ],
+    messages: [
+      { id: 'cm_14', senderId: 'usr_rohan', senderName: 'Rohan Shenoy', senderHandle: '@rohan_coastal', senderAvatar: '/avatars/rohan.jpg', text: 'Starting from Malleswaram 8th Cross this Saturday 7 AM. We will document old stone inscriptions (Shilashasana) in the neighborhood.', sentAt: '2 days ago' }
+    ]
+  }
+];
+

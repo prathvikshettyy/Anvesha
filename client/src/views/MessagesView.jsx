@@ -8,11 +8,27 @@
  * - Gracefully degrades when socket is unavailable (polling-only fallback).
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Mic, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
-import { INITIAL_CONVERSATIONS } from '../data/initialData';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  Send,
+  Mic,
+  AlertCircle,
+  Loader2,
+  Wifi,
+  WifiOff,
+  Users,
+  MessageSquare,
+  ChevronRight,
+  Sparkles,
+  Music,
+  Palette,
+  MapPin,
+  Compass
+} from 'lucide-react';
+import { INITIAL_CONVERSATIONS, INITIAL_COMMUNITIES } from '../data/initialData';
 import * as api from '../services/api';
 import { getSocket } from '../services/socket';
+import CommunitiesView from './CommunitiesView';
 
 // How long to show the "… is typing" indicator before clearing it automatically
 const TYPING_TIMEOUT_MS = 3000;
@@ -24,7 +40,21 @@ export default function MessagesView({
   onUnreadCountChange,
   authToken,   // passed from App so we know when the socket is ready
   initialPartner,
+  initialTab = 'messages',
+  initialCommunityId = null,
+  onSelectEvent
 }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'messages');
+  const [targetCommunityId, setTargetCommunityId] = useState(initialCommunityId || null);
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+    if (initialCommunityId) {
+      setTargetCommunityId(initialCommunityId);
+      setActiveTab('communities');
+    }
+  }, [initialTab, initialCommunityId]);
+
   const [conversations, setConversations] = useState([]);
   const [activePartnerId, setActivePartnerId]   = useState(initialPartner ? (initialPartner.id || initialPartner.partnerId) : null);
   const [messages, setMessages]                 = useState([]);
@@ -182,6 +212,7 @@ export default function MessagesView({
       socket.on('disconnect', () => !cancelled && setSocketConnected(false));
 
       // ── Incoming message ────────────────────────────────────────────────
+      socket.off('message:new');
       socket.on('message:new', (msg) => {
         if (cancelled) return;
         const normalised = normaliseMsg(msg);
@@ -189,11 +220,26 @@ export default function MessagesView({
         // Only append to the active thread — other threads get their
         // unread counter bumped and conversation list updated.
         setMessages(prev => {
-          // Deduplicate: the sender already optimistically appended their own msg
+          // 1. Deduplicate: if already in list by exact ID, do not duplicate
           if (prev.some(m => m.id === normalised.id)) return prev;
-          if (msg.sender_id !== activePartnerIdRef.current && msg.receiver_id !== activePartnerIdRef.current) {
+
+          // 2. Only update if relevant to current partner thread
+          const currentPartner = activePartnerIdRef.current;
+          if (msg.sender_id !== currentPartner && msg.receiver_id !== currentPartner) {
             return prev;
           }
+
+          // 3. If current user sent this, reconcile with in-flight optimistic message
+          const myId = currentUser?.id ?? 'usr_rohan';
+          if (msg.sender_id === myId) {
+            const optIdx = prev.findIndex(m => String(m.id).startsWith('opt_') && m.text === normalised.text);
+            if (optIdx !== -1) {
+              const next = [...prev];
+              next[optIdx] = normalised;
+              return next;
+            }
+          }
+
           return [...prev, normalised];
         });
 
@@ -301,10 +347,16 @@ export default function MessagesView({
       setSending(true);
       try {
         const saved = await api.messages.send(activePartnerId, text);
-        // Replace the optimistic message with the persisted one (has a real id)
-        setMessages(prev =>
-          prev.map(m => m.id === optimistic.id ? normaliseMsg(saved) : m)
-        );
+        const normSaved = normaliseMsg(saved);
+
+        // Reconcile optimistic message with persisted message
+        setMessages(prev => {
+          // If the socket already replaced or added this saved message, drop optimistic message
+          if (prev.some(m => m.id === normSaved.id)) {
+            return prev.filter(m => m.id !== optimistic.id);
+          }
+          return prev.map(m => m.id === optimistic.id ? normSaved : m);
+        });
       } catch {
         setError('Message failed to send.');
         setMessages(prev => prev.filter(m => m.id !== optimistic.id));
@@ -342,8 +394,32 @@ export default function MessagesView({
 
   const isPartnerOnline = (partnerId) => onlinePartners[partnerId] ?? false;
 
+  const unreadTotal = useMemo(() => {
+    return conversations.reduce((sum, c) => sum + (c.unread || c.unreadCount || 0), 0);
+  }, [conversations]);
+
+  // Clean deduplication for rendered messages
+  const displayedMessages = useMemo(() => {
+    const seenIds = new Set();
+    const result = [];
+    for (const m of messages) {
+      if (!m || !m.id) continue;
+      if (seenIds.has(m.id)) continue;
+
+      // Drop in-flight optimistic copy if a persisted message with identical text already exists
+      const isDuplicatePending = String(m.id).startsWith('opt_') && result.some(
+        existing => existing.sender === m.sender && existing.text === m.text
+      );
+      if (isDuplicatePending) continue;
+
+      seenIds.add(m.id);
+      result.push(m);
+    }
+    return result;
+  }, [messages]);
+
   // ── Loading state ─────────────────────────────────────────────────────────
-  if (loading) {
+  if (loading && conversations.length === 0) {
     return (
       <div className="max-w-7xl mx-auto py-20 flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-terra-primary animate-spin" />
@@ -351,93 +427,152 @@ export default function MessagesView({
     );
   }
 
-  if (conversations.length === 0) {
-    return (
-      <div className="max-w-7xl mx-auto py-12 sm:py-16 px-4 sm:px-6 text-center space-y-3">
-        <p className="font-serif text-xl font-bold text-cocoa-text">No conversations yet</p>
-        <p className="text-sm text-cocoa-text/70">
-          Connect with someone from the People tab to start a private conversation.
-        </p>
-      </div>
-    );
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      {/* Real-time status pill */}
-      {isAuthenticated && (
-        <div className="flex justify-end mb-2">
-          <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
-            socketConnected
-              ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-              : 'text-amber-700 bg-amber-50 border-amber-200'
-          }`}>
-            {socketConnected
-              ? <><Wifi className="w-3 h-3" /> Live</>
-              : <><WifiOff className="w-3 h-3" /> Polling</>}
-          </span>
-        </div>
-      )}
-
-      <div className="bg-surface-container-lowest rounded-3xl border-2 border-blush-surface shadow-warm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[600px] h-[calc(100vh-14rem)]">
-
-        {/* ── Left: Conversations List ───────────────────────────────────── */}
-        <div className="md:col-span-4 border-r border-blush-surface flex flex-col bg-surface-container/30">
-          <div className="p-4 border-b border-blush-surface">
-            <h2 className="font-serif text-xl font-bold text-cocoa-text">Connected Circles</h2>
-            <p className="text-xs text-cocoa-text/60 mt-0.5">Private conversations with accepted connections</p>
+    <div className="max-w-7xl mx-auto py-5 sm:py-7 px-4 sm:px-6 lg:px-8 space-y-5">
+      {/* ── 1. Connect Top Navigation & Tab Switcher ─────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blush-surface/80 pb-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-cocoa-text">Connect</h1>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-terra-primary/10 text-terra-primary border border-terra-primary/20">
+              Community & Chat
+            </span>
           </div>
+          <p className="text-xs sm:text-sm text-cocoa-text/70 mt-0.5">
+            Meet people through shared interests, cultural experiences, and communities.
+          </p>
+        </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-blush-surface/50">
-            {conversations.map(conv => {
-              const isActive = conv.partnerId === activePartnerId;
-              const online   = isPartnerOnline(conv.partnerId);
-              return (
-                <div
-                  key={conv.id ?? conv.partnerId}
-                  onClick={() => setActivePartnerId(conv.partnerId)}
-                  className={`p-4 flex items-center gap-3 cursor-pointer transition-all ${
-                    isActive
-                      ? 'bg-cream-canvas border-l-4 border-terra-primary shadow-xs'
-                      : 'hover:bg-blush-surface/30'
-                  }`}
-                >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={conv.partnerAvatar}
-                      alt={conv.partnerName}
-                      className="w-12 h-12 rounded-full object-cover border border-terra-primary/30"
-                    />
-                    <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-cream-canvas transition-colors ${
-                      online ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`} />
-                  </div>
+        <div className="flex items-center gap-3">
+          {/* Real-time status pill */}
+          {isAuthenticated && (
+            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+              socketConnected
+                ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                : 'text-amber-700 bg-amber-50 border-amber-200'
+            }`}>
+              {socketConnected
+                ? <><Wifi className="w-3 h-3" /> Live</>
+                : <><WifiOff className="w-3 h-3" /> Polling</>}
+            </span>
+          )}
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-serif text-sm font-bold text-cocoa-text truncate">
-                        {conv.partnerName}
-                      </h4>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {conv.unread > 0 && (
-                          <span className="w-4 h-4 rounded-full bg-terra-primary text-cream-canvas text-[9px] font-bold flex items-center justify-center">
-                            {conv.unread}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-cocoa-text/50">{conv.lastTime}</span>
+          {/* Clear Tabs: Messages vs Communities */}
+          <div className="flex items-center bg-surface-container p-1 rounded-2xl border border-blush-surface shadow-xs">
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'messages'
+                  ? 'bg-cocoa-text text-cream-canvas shadow-warm'
+                  : 'text-cocoa-text/70 hover:text-cocoa-text hover:bg-blush-surface/40'
+              }`}
+            >
+              <MessageSquare className={`w-4 h-4 ${activeTab === 'messages' ? 'text-ochre-accent' : 'text-terra-primary'}`} />
+              <span>Messages</span>
+              {unreadTotal > 0 && (
+                <span className="w-4 h-4 rounded-full bg-terra-primary text-cream-canvas text-[9px] font-bold flex items-center justify-center">
+                  {unreadTotal}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('communities')}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'communities'
+                  ? 'bg-cocoa-text text-cream-canvas shadow-warm'
+                  : 'text-cocoa-text/70 hover:text-cocoa-text hover:bg-blush-surface/40'
+              }`}
+            >
+              <Users className={`w-4 h-4 ${activeTab === 'communities' ? 'text-ochre-accent' : 'text-terra-primary'}`} />
+              <span>Communities</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Tab Content: Communities View ────────────────────────────── */}
+      {activeTab === 'communities' ? (
+        <CommunitiesView
+          currentUser={currentUser}
+          isAuthenticated={isAuthenticated}
+          onSelectEvent={onSelectEvent}
+          initialActiveCommunityId={targetCommunityId}
+        />
+      ) : (
+        /* ── 3. Tab Content: Messages View (1-on-1 private messaging) ───── */
+        <div className="bg-surface-container-lowest rounded-3xl border-2 border-blush-surface shadow-warm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[640px] h-[calc(100vh-14rem)]">
+
+          {/* ── Left: Connections & Suggested Communities ────────────────── */}
+          <div className="md:col-span-4 border-r border-blush-surface flex flex-col bg-surface-container/30 justify-between">
+            {/* Header: YOUR CONNECTIONS */}
+            <div className="p-3.5 sm:p-4 border-b border-blush-surface">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-cocoa-text/60">
+                Your Connections
+              </span>
+              <p className="text-xs text-cocoa-text/80 font-medium mt-0.5">
+                Private conversations and shared words
+              </p>
+            </div>
+
+            {/* Conversation Threads */}
+            <div className="flex-1 overflow-y-auto divide-y divide-blush-surface/50">
+              {conversations.length === 0 ? (
+                <div className="p-6 text-center text-xs text-cocoa-text/60 space-y-2">
+                  <p className="font-bold">No active private conversations yet.</p>
+                  <p>Discover people from the Find People tab or connect in community circles.</p>
+                </div>
+              ) : (
+                conversations.map(conv => {
+                  const isActive = conv.partnerId === activePartnerId;
+                  const online   = isPartnerOnline(conv.partnerId);
+                  return (
+                    <div
+                      key={conv.id ?? conv.partnerId}
+                      onClick={() => setActivePartnerId(conv.partnerId)}
+                      className={`p-3.5 sm:p-4 flex items-center gap-3 cursor-pointer transition-all ${
+                        isActive
+                          ? 'bg-cream-canvas border-l-4 border-terra-primary shadow-xs'
+                          : 'hover:bg-blush-surface/30'
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={conv.partnerAvatar}
+                          alt={conv.partnerName}
+                          className="w-11 h-11 rounded-full object-cover border border-terra-primary/30"
+                        />
+                        <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-cream-canvas transition-colors ${
+                          online ? 'bg-emerald-500' : 'bg-slate-300'
+                        }`} />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-serif text-sm font-bold text-cocoa-text truncate">
+                            {conv.partnerName}
+                          </h4>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {conv.unread > 0 && (
+                              <span className="w-4 h-4 rounded-full bg-terra-primary text-cream-canvas text-[9px] font-bold flex items-center justify-center">
+                                {conv.unread}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-cocoa-text/50">{conv.lastTime}</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-cocoa-text/70 truncate mt-0.5">{conv.lastMessage || 'Say namaskara...'}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-cocoa-text/70 truncate mt-0.5">{conv.lastMessage}</p>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* ── Right: Chat Window ─────────────────────────────────────────── */}
-        <div className="md:col-span-8 flex flex-col bg-cream-canvas">
+          {/* ── Right: Chat Window ───────────────────────────────────────── */}
+          <div className="md:col-span-8 flex flex-col bg-cream-canvas">
 
           {/* Active Conversation Header */}
           {activeConv && (
@@ -483,7 +618,7 @@ export default function MessagesView({
               </span>
             </div>
 
-            {messages.map(msg => {
+            {displayedMessages.map(msg => {
               const isMe = msg.sender === (currentUser?.id ?? 'usr_rohan');
               return (
                 <div
@@ -562,6 +697,7 @@ export default function MessagesView({
           </form>
         </div>
       </div>
+      )}
     </div>
   );
 }

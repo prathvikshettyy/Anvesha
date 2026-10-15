@@ -10,6 +10,7 @@ import eventsRoutes  from './routes/events.js';
 import peopleRoutes  from './routes/people.js';
 import locketRoutes  from './routes/locket.js';
 import messagesRoutes from './routes/messages.js';
+import communitiesRoutes from './routes/communities.js';
 import { setupSwagger } from './docs/swagger.js';
 import { initRealtime } from './realtime/socket.js';
 import { UPLOADS_DIR } from './lib/uploads.js';
@@ -78,7 +79,8 @@ app.use('/api/auth',     authRoutes);
 app.use('/api/events',   eventsRoutes);
 app.use('/api/people',   peopleRoutes);
 app.use('/api/locket',   locketRoutes);
-app.use('/api/messages', messagesRoutes);
+app.use('/api/messages',    messagesRoutes);
+app.use('/api/communities', communitiesRoutes);
 
 // ── Client SPA Production Serving ───────────────────────────────────────────
 if (fs.existsSync(CLIENT_DIST)) {
