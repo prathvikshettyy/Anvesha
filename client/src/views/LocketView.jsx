@@ -92,6 +92,12 @@ export default function LocketView({
           if (prev.some(m => m.id === latest.id)) return prev;
           return [latest, ...prev];
         });
+        setActiveTab('MINE');
+        if (api.token.get()) {
+          api.locket.mine().then(res => {
+            if (Array.isArray(res)) setMyMoments(res);
+          }).catch(() => {});
+        }
       }
     }
   }, [locketMoments, currentUser?.id]);

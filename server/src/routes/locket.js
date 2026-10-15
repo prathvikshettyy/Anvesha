@@ -278,13 +278,11 @@ router.post('/audio', (req, res) => {
 });
 
 // ── POST /api/locket — create a new locket moment ────────────────────────────
-// Accessible by authenticated users AND guest community contributors.
+// Accessible by authenticated users only.
 router.post('/',
-  optionalAuth,
+  requireAuth,
   (req, res) => {
-    const senderId = req.user?.id || req.body.sender_id || req.body.senderId || 'usr_rohan';
-    const senderExists = db.prepare('SELECT id FROM users WHERE id = ?').get(senderId);
-    const resolvedSenderId = senderExists ? senderId : 'usr_rohan';
+    const senderId = req.user.id;
 
     const vernacular_text = req.body.vernacular_text || req.body.vernacularText || '';
     const meaning = req.body.meaning || '';
@@ -292,7 +290,7 @@ router.post('/',
     const recipient_id = req.body.recipient_id || req.body.recipientId || null;
     const phonetic_text = req.body.phonetic_text || req.body.phoneticText || '';
     const provenance = req.body.provenance || '';
-    const audio_url = req.body.audio_url || req.body.audioUrl || '';
+    let audio_url = req.body.audio_url || req.body.audioUrl || '';
     const image_url = req.body.image_url || req.body.imageUrl || req.body.image || '';
     const audio_duration = req.body.audio_duration || req.body.audioDuration || '';
     const title = req.body.title;
@@ -309,10 +307,23 @@ router.post('/',
       return res.status(400).json({ error: 'vernacular_text too long (max 500)' });
     if (meaning.length > 2000)
       return res.status(400).json({ error: 'meaning too long (max 2000)' });
-    if (audio_url && !isValidUrl(audio_url))
-      return res.status(400).json({ error: 'audio_url must be http or https' });
-    if (image_url && !isValidUrl(image_url))
-      return res.status(400).json({ error: 'image_url must be http or https' });
+
+    // Check audio size limit (cap at ~2MB base64; return 413 if exceeded)
+    if (audio_url && audio_url.length > 2 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Recording too long. Keep it under 30 seconds.' });
+    }
+
+    // Format raw base64 as data URI if needed
+    if (audio_url && !audio_url.startsWith('http://') && !audio_url.startsWith('https://') && !audio_url.startsWith('/') && !audio_url.startsWith('data:')) {
+      if (/^[A-Za-z0-9+/=\s]+$/.test(audio_url.slice(0, 100))) {
+        audio_url = `data:audio/webm;base64,${audio_url.trim()}`;
+      }
+    }
+
+    if (audio_url && !isValidUrl(audio_url, 'audio'))
+      return res.status(400).json({ error: 'audio_url must be http, https, server path, or allowed audio data URI (webm, ogg, mp4, mpeg)' });
+    if (image_url && !isValidUrl(image_url, 'image'))
+      return res.status(400).json({ error: 'image_url must be http, https, server path, or allowed image data URI (png, jpeg, webp)' });
 
     // Validate recipient if provided
     let validRecipientId = null;
@@ -331,7 +342,7 @@ router.post('/',
          meaning, provenance, audio_url, image_url, audio_duration, timestamp_iso)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
-      id, resolvedSenderId, validRecipientId, moment_type, resolvedTitle,
+      id, senderId, validRecipientId, moment_type, resolvedTitle,
       vernacular_text.slice(0, 500), phonetic_text.slice(0, 200),
       meaning.slice(0, 2000), provenance.slice(0, 500),
       audio_url, image_url, audio_duration.slice(0, 20),
@@ -343,10 +354,10 @@ router.post('/',
 
     // Push realtime event ONLY to targeted recipient or confirmed connections (not global broadcast!)
     if (validRecipientId) {
-      emitToUser(resolvedSenderId, 'locket:new', formatted);
+      emitToUser(senderId, 'locket:new', formatted);
       emitToUser(validRecipientId, 'locket:new', formatted);
     } else {
-      emitToConnections(resolvedSenderId, 'locket:new', formatted);
+      emitToConnections(senderId, 'locket:new', formatted);
     }
 
     res.status(201).json(formatted);

@@ -6,9 +6,45 @@
  * path (e.g. "/uploads/locket/abc.webm") produced by our own upload
  * endpoints. Returns false for javascript:, data:, ftp:, etc.
  */
-export function isValidUrl(str) {
+export const ALLOWED_DATA_AUDIO_TYPES = new Set([
+  'audio/webm',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/mpeg',
+]);
+
+export const ALLOWED_DATA_IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+
+/**
+ * Validates that a string URL is http or https only, OR a server-relative
+ * path (e.g. "/uploads/locket/abc.webm") produced by our own upload
+ * endpoints, OR an allowed data: URI.
+ * Rejects image/svg+xml and any data: type not on the allowlist.
+ */
+export function isValidUrl(str, expectedType = null) {
   if (!str || typeof str !== 'string') return true; // optional fields are OK if absent
   if (str.startsWith('/') && !str.startsWith('//')) return true; // same-origin relative path
+
+  if (str.startsWith('data:')) {
+    const mimeMatch = str.slice(5).match(/^([a-zA-Z0-9+\/.-]+)/);
+    const mime = mimeMatch ? mimeMatch[1].toLowerCase().split(';')[0].trim() : '';
+
+    if (mime === 'image/svg+xml') return false;
+
+    if (expectedType === 'audio') {
+      return ALLOWED_DATA_AUDIO_TYPES.has(mime);
+    }
+    if (expectedType === 'image') {
+      return ALLOWED_DATA_IMAGE_TYPES.has(mime);
+    }
+
+    return ALLOWED_DATA_AUDIO_TYPES.has(mime) || ALLOWED_DATA_IMAGE_TYPES.has(mime);
+  }
+
   try {
     const u = new URL(str);
     return u.protocol === 'http:' || u.protocol === 'https:';
