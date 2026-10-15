@@ -100,10 +100,10 @@ export default function WelcomeView({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[100dvh] overflow-hidden bg-cocoa-text text-cream-canvas flex flex-col justify-between select-none">
+    <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] overflow-hidden overscroll-none bg-cocoa-text text-cream-canvas flex flex-col justify-between select-none z-20">
       
       {/* 1. Cinematic Background Artwork */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <img
           src="/images/cinematic_india_hero.jpg"
           alt="Cinematic panorama of India at sunset with wanderer and monument reflections"
@@ -115,24 +115,22 @@ export default function WelcomeView({
       </div>
 
       {/* 2. Minimalist Top Navigation Overlay */}
-      <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-5 flex items-center justify-between">
+      <header className="relative z-20 w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-5 flex items-center justify-between gap-2">
         {/* Brand Wordmark */}
         <div
           onClick={onExploreDemo}
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group flex-shrink-0 min-w-0"
         >
-          <div className="w-9 h-9 rounded-full bg-terra-primary flex items-center justify-center text-cream-canvas shadow-warm group-hover:scale-105 transition-transform">
-            <span className="material-symbols-outlined text-xl">all_inclusive</span>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-terra-primary flex items-center justify-center text-cream-canvas shadow-warm group-hover:scale-105 transition-transform flex-shrink-0">
+            <span className="material-symbols-outlined text-lg sm:text-xl">all_inclusive</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-serif text-2xl font-bold tracking-tight text-cream-canvas drop-shadow-sm">
-                <span className="text-ochre-accent font-bold">अ</span>nvesha
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cream-canvas/15 text-cream-canvas border border-cream-canvas/30 backdrop-blur-xs">
-                Culture
-              </span>
-            </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-cream-canvas drop-shadow-sm whitespace-nowrap">
+              <span className="text-ochre-accent font-bold">अ</span>nvesha
+            </span>
+            <span className="hidden min-[400px]:inline-flex text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-cream-canvas/15 text-cream-canvas border border-cream-canvas/30 backdrop-blur-xs flex-shrink-0">
+              Culture
+            </span>
           </div>
         </div>
 
@@ -142,34 +140,34 @@ export default function WelcomeView({
         </div>
 
         {/* Actions: Start Exploring */}
-        <div className="flex items-center">
+        <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => { setAuthMode('login'); setAuthError(''); setIsSignInOpen(true); }}
-            className="px-5 py-2.5 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-xs font-bold shadow-warm transition-all flex items-center gap-2 cursor-pointer hover:scale-105"
+            className="px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas text-[11px] sm:text-xs font-bold shadow-warm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:scale-105 whitespace-nowrap flex-shrink-0"
           >
             <span>Start exploring</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
           </button>
         </div>
       </header>
 
       {/* 3. Hero Main Editorial Content (Left-aligned) */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 flex-1 flex flex-col justify-center">
-        <div className="max-w-2xl lg:max-w-3xl space-y-3 sm:space-y-4 lg:space-y-5">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 flex-1 flex flex-col justify-center min-h-0">
+        <div className="max-w-2xl lg:max-w-3xl space-y-2.5 sm:space-y-4 lg:space-y-5">
           
           {/* Tagline Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cream-canvas/15 border border-cream-canvas/25 text-cream-canvas text-xs font-semibold backdrop-blur-md animate-hero-title">
-            <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cream-canvas/15 border border-cream-canvas/25 text-cream-canvas text-[11px] sm:text-xs font-semibold backdrop-blur-md animate-hero-title">
+            <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-ochre-accent" />
             <span>Living Cultural Landscape of India</span>
           </div>
 
           {/* Editorial Display Headline */}
           <h1 className="tracking-tight text-cream-canvas leading-[1.08] drop-shadow-md animate-hero-title">
-            <span className="block font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight">
+            <span className="block font-sans text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight">
               Find your people.
             </span>
             <span
-              className="block font-serif italic font-normal text-ochre-accent text-3xl sm:text-4xl md:text-5xl lg:text-6xl mt-0.5 sm:mt-1"
+              className="block font-serif italic font-normal text-ochre-accent text-2xl sm:text-4xl md:text-5xl lg:text-6xl mt-0.5 sm:mt-1"
               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
             >
               Discover something new.
@@ -177,15 +175,15 @@ export default function WelcomeView({
           </h1>
 
           {/* Supporting Copy */}
-          <p className="text-xs sm:text-sm md:text-base text-cream-canvas/90 leading-relaxed max-w-lg font-normal drop-shadow-xs animate-hero-sub">
+          <p className="text-xs sm:text-sm md:text-base text-cream-canvas/90 leading-relaxed max-w-lg font-normal drop-shadow-xs animate-hero-sub line-clamp-3 sm:line-clamp-none">
             From hidden art gatherings to music festivals and cultural traditions, discover the events bringing India's communities to life.
           </p>
 
           {/* Call to Actions */}
-          <div className="pt-1 flex flex-row items-center gap-3 sm:gap-4 animate-hero-cta">
+          <div className="pt-1 flex flex-wrap items-center gap-2.5 sm:gap-4 animate-hero-cta">
             <button
               onClick={() => { setAuthMode('register'); setAuthError(''); setIsSignInOpen(true); }}
-              className="px-6 py-3 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas font-bold text-xs sm:text-sm shadow-warm transition-all flex items-center justify-center gap-2 hover:scale-105 cursor-pointer"
+              className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-terra-primary hover:bg-primary-container text-cream-canvas font-bold text-xs sm:text-sm shadow-warm transition-all flex items-center justify-center gap-2 hover:scale-105 cursor-pointer"
             >
               <span>Start exploring</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -193,7 +191,7 @@ export default function WelcomeView({
 
             <button
               onClick={onGetStarted}
-              className="px-5 py-3 rounded-full border-2 border-cream-canvas/60 hover:border-cream-canvas text-cream-canvas hover:bg-cream-canvas/10 font-bold text-xs sm:text-sm backdrop-blur-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-full border-2 border-cream-canvas/60 hover:border-cream-canvas text-cream-canvas hover:bg-cream-canvas/10 font-bold text-xs sm:text-sm backdrop-blur-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />
               <span>Quick Demo Session</span>
