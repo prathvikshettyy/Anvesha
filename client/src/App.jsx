@@ -291,6 +291,16 @@ export default function App() {
     return u;
   };
 
+  const handleQuickDemo = async () => {
+    try {
+      await handleLogin('rohan', 'demo1234');
+      setCurrentView('home');
+    } catch (err) {
+      console.warn('Quick demo auto-login fallback:', err);
+      setCurrentView('home');
+    }
+  };
+
   const handleRegister = async (data) => {
     const { user: backendUser } = await api.auth.register(data);
     const u = normaliseUser(backendUser);
@@ -465,6 +475,7 @@ export default function App() {
           <WelcomeView
             onGetStarted={() => setCurrentView('onboarding')}
             onExploreDemo={() => setCurrentView('home')}
+            onQuickDemo={handleQuickDemo}
             onExploreIndia={() => setCurrentView('events')}
             onDiscoverEvents={() => setCurrentView('events')}
             onNavigate={setCurrentView}

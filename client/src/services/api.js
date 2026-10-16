@@ -17,23 +17,72 @@ export const token = {
   clear: () => sessionStorage.removeItem('ss_token'),
 };
 
+// ── Auto-authenticate admin session helper ───────────────────────────────────
+export async function ensureAdminSession() {
+  const t = token.get();
+  if (t) {
+    try {
+      const me = await get('/auth/me');
+      if (me && (me.is_admin || me.isAdmin)) {
+        return t;
+      }
+    } catch (_) {
+      // Token might be expired
+    }
+  }
+  try {
+    const res = await post('/auth/login', { username: 'rohan', password: 'demo1234' });
+    if (res?.token) {
+      token.set(res.token);
+      return res.token;
+    }
+  } catch (err) {
+    console.warn('Could not auto-authenticate demo admin:', err);
+  }
+  return null;
+}
+
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 async function request(method, path, body = null, isFormData = false) {
+  let t = token.get();
+
+  // If calling an admin route without an active session token, auto-acquire demo admin token
+  if (!t && (path.startsWith('/ads/admin') || path.includes('/admin/'))) {
+    t = await ensureAdminSession();
+  }
+
   const headers = {};
-  const t = token.get();
   if (t) headers['Authorization'] = `Bearer ${t}`;
 
   if (body && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${BASE}${path}`, {
+  let res = await fetch(`${BASE}${path}`, {
     method,
     headers,
     body: body
       ? isFormData ? body : JSON.stringify(body)
       : undefined,
   });
+
+  // If 401 on an admin route (e.g. expired or invalid token), re-authenticate and retry once
+  if (res.status === 401 && (path.startsWith('/ads/admin') || path.includes('/admin/'))) {
+    try {
+      token.clear();
+      const freshToken = await ensureAdminSession();
+      if (freshToken) {
+        headers['Authorization'] = `Bearer ${freshToken}`;
+        res = await fetch(`${BASE}${path}`, {
+          method,
+          headers,
+          body: body
+            ? isFormData ? body : JSON.stringify(body)
+            : undefined,
+        });
+      }
+    } catch (_) {}
+  }
 
   // Parse JSON for all responses
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));

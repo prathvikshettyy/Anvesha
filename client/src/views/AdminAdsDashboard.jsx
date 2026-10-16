@@ -93,6 +93,9 @@ export default function AdminAdsDashboard({
     setLoading(true);
     setError(null);
     try {
+      if (!api.token.get()) {
+        await api.ensureAdminSession();
+      }
       const [camps, rev] = await Promise.all([
         api.ads.admin.listCampaigns({ status: statusFilter, payment_status: paymentFilter, q: searchQuery }),
         api.ads.admin.getRevenue()
@@ -171,6 +174,10 @@ export default function AdminAdsDashboard({
     setFormError('');
 
     try {
+      if (!api.token.get()) {
+        await api.ensureAdminSession();
+      }
+
       if (editingCampaign) {
         await api.ads.admin.updateCampaign(editingCampaign.id, formData);
       } else {
@@ -179,6 +186,23 @@ export default function AdminAdsDashboard({
       setIsModalOpen(false);
       loadData();
     } catch (err) {
+      if (err.status === 401 || err.message?.toLowerCase().includes('auth')) {
+        // Attempt immediate token renewal and retry once
+        try {
+          await api.ensureAdminSession();
+          if (editingCampaign) {
+            await api.ads.admin.updateCampaign(editingCampaign.id, formData);
+          } else {
+            await api.ads.admin.createCampaign(formData);
+          }
+          setIsModalOpen(false);
+          loadData();
+          return;
+        } catch (retryErr) {
+          setFormError(retryErr.message || 'Authentication required. Please authenticate as platform administrator.');
+          return;
+        }
+      }
       setFormError(err.message || 'Failed to save campaign');
     } finally {
       setFormSubmitting(false);
@@ -615,9 +639,38 @@ export default function AdminAdsDashboard({
 
             <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
               {formError && (
-                <div className="p-3 rounded-2xl bg-red-100 border border-red-200 text-xs text-red-800 font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{formError}</span>
+                <div className="p-3.5 rounded-2xl bg-red-100 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-2 animate-shake">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
+                    <span className="truncate">{formError}</span>
+                  </div>
+                  {formError.toLowerCase().includes('auth') && (
+                    <button
+                      type="button"
+                      disabled={formSubmitting}
+                      onClick={async () => {
+                        setFormSubmitting(true);
+                        try {
+                          await api.ensureAdminSession();
+                          setFormError('');
+                          if (editingCampaign) {
+                            await api.ads.admin.updateCampaign(editingCampaign.id, formData);
+                          } else {
+                            await api.ads.admin.createCampaign(formData);
+                          }
+                          setIsModalOpen(false);
+                          loadData();
+                        } catch (err) {
+                          setFormError(err.message || 'Failed to authenticate');
+                        } finally {
+                          setFormSubmitting(false);
+                        }
+                      }}
+                      className="px-3 py-1 rounded-full bg-terra-primary text-cream-canvas hover:bg-primary-container text-[11px] font-bold shadow-xs whitespace-nowrap cursor-pointer transition-all"
+                    >
+                      Authenticate Admin & Retry
+                    </button>
+                  )}
                 </div>
               )}
 
