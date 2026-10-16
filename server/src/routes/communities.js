@@ -192,7 +192,7 @@ router.get('/:id', optionalAuth, (req, res) => {
       image: comm.event_image,
       categoryLabel: comm.event_category
     } : null,
-    members: members.map(m => ({
+    members: currentUserId ? members.map(m => ({
       id: m.id,
       name: m.name,
       handle: m.handle,
@@ -200,7 +200,7 @@ router.get('/:id', optionalAuth, (req, res) => {
       city: m.city,
       role: m.role,
       joinedAt: m.joined_at
-    }))
+    })) : []
   });
 });
 

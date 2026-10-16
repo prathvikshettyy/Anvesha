@@ -60,6 +60,8 @@ export function validateAudioSignature(filePath) {
     // MP3: ID3 tag or MPEG sync word (0xFFEx)
     if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) return true;
     if (buffer[0] === 0xFF && (buffer[1] & 0xE0) === 0xE0) return true;
+    // WAV: 'RIFF'
+    if (bytesRead >= 4 && buffer.toString('utf8', 0, 4) === 'RIFF') return true;
 
     return false;
   } catch {

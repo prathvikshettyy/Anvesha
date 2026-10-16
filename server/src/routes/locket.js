@@ -272,9 +272,9 @@ function checkUserAudioCap(userId) {
 }
 
 // ── POST /api/locket/audio — upload a real voice recording ───────────────────
-// multipart/form-data, field name "audio". Requires auth.
-router.post('/audio', requireAuth, (req, res) => {
-  if (!checkUserAudioCap(req.user.id)) {
+// multipart/form-data, field name "audio".
+router.post('/audio', optionalAuth, (req, res) => {
+  if (req.user && !checkUserAudioCap(req.user.id)) {
     return res.status(429).json({ error: 'Hourly audio upload limit exceeded' });
   }
 
