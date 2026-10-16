@@ -14,7 +14,8 @@ import {
   Shuffle,
   X,
   Check,
-  Image as ImageIcon
+  Image as ImageIcon,
+  TrendingUp
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { INITIAL_INTERESTS } from '../data/initialData';
@@ -30,7 +31,8 @@ export default function ProfileView({
   onSelectEvent,
   onUpdateUser,
   onResetDemo,
-  onSaveProfile
+  onSaveProfile,
+  onNavigate
 }) {
   const [activeTab, setActiveTab] = useState('SAVED'); // 'SAVED', 'INTERESTS', 'PRIVACY'
   const [isDiscoverable, setIsDiscoverable] = useState(user.isDiscoverable);
@@ -186,6 +188,15 @@ export default function ProfileView({
                 <Camera className="w-3.5 h-3.5" />
                 <span>Change Photo</span>
               </button>
+              {Boolean(user?.isAdmin || user?.is_admin) && (
+                <button
+                  onClick={() => onNavigate?.('admin_ads')}
+                  className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-terra-primary text-cream-canvas hover:bg-primary-container shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Ad Revenue Ops</span>
+                </button>
+              )}
               <button
                 onClick={onResetDemo}
                 className="text-xs font-semibold px-4 py-1.5 rounded-full border border-blush-surface text-cocoa-text hover:bg-blush-surface/50 transition-all"
@@ -209,12 +220,20 @@ export default function ProfileView({
               <CheckCircle className="w-3.5 h-3.5" />
               <span>Active Culture Circle Member</span>
             </span>
+            {Boolean(user?.isAdmin || user?.is_admin) && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1 font-bold text-terra-primary px-2 py-0.5 rounded-full bg-terra-primary/10">
+                  <span>Authorized Administrator</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-blush-surface flex items-center gap-6">
+      <div className="border-b border-blush-surface flex flex-wrap items-center gap-6">
         <button
           onClick={() => setActiveTab('SAVED')}
           className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
@@ -250,6 +269,16 @@ export default function ProfileView({
           <Shield className="w-4 h-4" />
           <span>Privacy & Discovery</span>
         </button>
+
+        {Boolean(user?.isAdmin || user?.is_admin) && (
+          <button
+            onClick={() => onNavigate?.('admin_ads')}
+            className="pb-3 text-sm font-bold border-b-2 border-transparent text-terra-primary hover:text-primary-container transition-all flex items-center gap-1.5 cursor-pointer sm:ml-auto"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Ad Revenue Control Center →</span>
+          </button>
+        )}
       </div>
 
       {/* Tab Contents */}

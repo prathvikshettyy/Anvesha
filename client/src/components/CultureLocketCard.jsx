@@ -331,9 +331,27 @@ export default function CultureLocketCard({ moment, onOpenCreate, onReact }) {
                 {moment.vernacularText}
               </p>
             )}
-            <p className="text-sm font-serif text-[#311D13] leading-relaxed">
-              {moment.meaning}
-            </p>
+
+            {/* Question based on Recipe / Technique */}
+            {(moment.recipeQuestion || moment.recipe_question) && (
+              <div className="p-3.5 rounded-xl bg-[#F6EDE1] border-2 border-[#D9A441]/40 shadow-xs space-y-1 my-2">
+                <div className="flex items-center gap-1.5 text-[#B84A28] font-bold text-xs uppercase tracking-wide">
+                  <span>❓ Question based on Recipe</span>
+                </div>
+                <p className="font-serif text-sm font-semibold text-[#2F1C12] italic leading-snug">
+                  "{moment.recipeQuestion || moment.recipe_question}"
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {(moment.recipeQuestion || moment.recipe_question) && (
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A4B29]">Technique / Secret Step:</span>
+              )}
+              <p className="text-sm font-serif text-[#311D13] leading-relaxed">
+                {moment.meaning}
+              </p>
+            </div>
             {moment.provenance && (
               <p className="text-xs text-[#7A4B29] italic">
                 Heritage Studio: {moment.provenance}
@@ -355,24 +373,49 @@ export default function CultureLocketCard({ moment, onOpenCreate, onReact }) {
         <div className="relative z-10 mt-5 pt-3 border-t border-[#E2D2BC] flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-bold text-[#7A4B29] mr-1">React back:</span>
-            <button
-              onClick={() => handleReaction('Teach me this!')}
-              className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
-            >
-              💬 Teach me this
-            </button>
-            <button
-              onClick={() => handleReaction('Pronounce again!')}
-              className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
-            >
-              🗣️ Say again
-            </button>
-            <button
-              onClick={() => handleReaction('Loved this tradition!')}
-              className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
-            >
-              ❤️ Loved this
-            </button>
+            {!isWordOfDay ? (
+              <>
+                <button
+                  onClick={() => handleReaction('💡 I know the answer!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  💡 I know the answer!
+                </button>
+                <button
+                  onClick={() => handleReaction('🤤 Secret family tip!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  🤤 Family secret
+                </button>
+                <button
+                  onClick={() => handleReaction('❤️ Saving this recipe!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  ❤️ Save recipe
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleReaction('Teach me this!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  💬 Teach me this
+                </button>
+                <button
+                  onClick={() => handleReaction('Pronounce again!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  🗣️ Say again
+                </button>
+                <button
+                  onClick={() => handleReaction('Loved this tradition!')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#F4E8D6] hover:bg-[#B84A28] hover:text-[#FAF4E8] text-[#55311B] border border-[#DAC6AC] transition-all cursor-pointer shadow-xs"
+                >
+                  ❤️ Loved this
+                </button>
+              </>
+            )}
           </div>
 
           {/* Reaction toast */}

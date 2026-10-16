@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MapPin, Bookmark, CheckCircle, Share2, ExternalLink, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Bookmark, CheckCircle, Share2, ExternalLink, ArrowRight, Star } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 
@@ -84,13 +84,22 @@ export default function EventCard({ event, isSaved, onToggleSave, onSelect }) {
         </div>
 
         {/* Card Footer: Attendees & View Details CTA */}
-        <div className="mt-5 pt-4 border-t border-blush-surface/70 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-cocoa-text/60">
-            <span className="material-symbols-outlined text-sm text-ochre-accent">group</span>
-            <span>{event.attendeeCount} interested</span>
+        <div className="mt-5 pt-4 border-t border-blush-surface/70 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap text-xs text-cocoa-text/60">
+            <div className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-ochre-accent">group</span>
+              <span>{event.attendeeCount} interested</span>
+            </div>
+            {event.reviewCount > 0 && (
+              <div className="flex items-center gap-1 font-semibold text-cocoa-text/85 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full text-[11px]">
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <span>{event.averageRating}</span>
+                <span className="text-cocoa-text/50 text-[10px]">({event.reviewCount})</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs font-bold text-terra-primary group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center gap-1 text-xs font-bold text-terra-primary group-hover:translate-x-1 transition-transform flex-shrink-0">
             <span>View Details</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>

@@ -23,7 +23,8 @@ import {
   Music,
   Palette,
   MapPin,
-  Compass
+  Compass,
+  Calendar
 } from 'lucide-react';
 import { INITIAL_CONVERSATIONS, INITIAL_COMMUNITIES } from '../data/initialData';
 import * as api from '../services/api';
@@ -43,7 +44,9 @@ export default function MessagesView({
   initialTab = 'communities',
   initialCommunityId = null,
   onSelectEvent,
-  onTabChange
+  onTabChange,
+  onContactOrganiser,
+  people = []
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'communities');
   const [targetCommunityId, setTargetCommunityId] = useState(initialCommunityId || null);
@@ -61,6 +64,48 @@ export default function MessagesView({
     if (onTabChange) onTabChange(tab);
   };
 
+  const handleContactCommunityOrganiser = (organizerUser, community) => {
+    if (!organizerUser) return;
+    const pid = organizerUser.id || organizerUser.partnerId;
+    if (!pid) return;
+
+    setActiveTab('messages');
+    if (onTabChange) onTabChange('messages');
+    setActivePartnerId(pid);
+
+    const circleContext = {
+      id: community.id,
+      title: community.name,
+      location: community.location,
+      type: 'circle',
+    };
+
+    setEventContextByPartner(prev => ({
+      ...prev,
+      [pid]: circleContext,
+    }));
+
+    setInputText(`Hi ${organizerUser.name}, I am reaching out regarding the "${community.name}" circle.`);
+
+    setConversations(prev => {
+      if (prev.some(c => c.partnerId === pid)) return prev;
+      const newEntry = {
+        id: `conv_${pid}`,
+        partnerId: pid,
+        partnerName: organizerUser.name || 'Circle Organiser',
+        partnerAvatar: organizerUser.avatar || organizerUser.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+        lastMessage: '',
+        lastTime: 'Now',
+        unread: 0,
+      };
+      return [newEntry, ...prev];
+    });
+
+    if (onContactOrganiser) {
+      onContactOrganiser(organizerUser, circleContext);
+    }
+  };
+
   const [conversations, setConversations] = useState([]);
   const [activePartnerId, setActivePartnerId]   = useState(initialPartner ? (initialPartner.id || initialPartner.partnerId) : null);
   const [messages, setMessages]                 = useState([]);
@@ -76,12 +121,24 @@ export default function MessagesView({
   const typingTimerRef   = useRef(null);
   const typingEmitTimer  = useRef(null);  // throttle our own typing events
 
+  const [eventContextByPartner, setEventContextByPartner] = useState({});
+  const activeEventContext = activePartnerId ? eventContextByPartner[activePartnerId] : null;
+
   // Pre-select thread and add conversation entry if initialPartner changed
   useEffect(() => {
     if (initialPartner) {
       const pid = initialPartner.id || initialPartner.partnerId;
       if (pid) {
         setActivePartnerId(pid);
+        if (initialPartner.eventContext) {
+          setEventContextByPartner(prev => ({
+            ...prev,
+            [pid]: initialPartner.eventContext,
+          }));
+        }
+        if (initialPartner.initialMessage) {
+          setInputText(prev => prev ? prev : initialPartner.initialMessage);
+        }
         setConversations(prev => {
           if (prev.some(c => c.partnerId === pid)) return prev;
           const newEntry = {
@@ -505,6 +562,8 @@ export default function MessagesView({
           isAuthenticated={isAuthenticated}
           onSelectEvent={onSelectEvent}
           initialActiveCommunityId={targetCommunityId}
+          onContactOrganiser={handleContactCommunityOrganiser}
+          people={people}
         />
       ) : (
         /* ── 3. Tab Content: Messages View (1-on-1 private messaging) ───── */
@@ -613,6 +672,49 @@ export default function MessagesView({
                 <Mic className="w-3.5 h-3.5" />
                 <span>Send Locket Pulse</span>
               </button>
+            </div>
+          )}
+
+          {/* Active Event / Circle Inquiry Context Banner */}
+          {activeEventContext && (
+            <div className="mx-4 mt-3 p-3 rounded-2xl bg-surface-container/70 border border-terra-primary/25 flex items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-terra-primary/10 flex items-center justify-center text-terra-primary flex-shrink-0">
+                  {activeEventContext.type === 'circle' ? <Users className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-terra-primary font-mono block">
+                    {activeEventContext.type === 'circle' ? 'Community Circle Lead Inquiry' : 'Event Organiser Inquiry'}
+                  </span>
+                  <h4 className="font-serif font-bold text-cocoa-text text-xs sm:text-sm truncate">
+                    {activeEventContext.title}
+                  </h4>
+                  <p className="text-[11px] text-cocoa-text/70 truncate">
+                    {activeEventContext.date ? `${activeEventContext.date} • ` : ''}{activeEventContext.location || activeEventContext.venue || ''}
+                  </p>
+                </div>
+              </div>
+
+              {activeEventContext.type === 'circle' ? (
+                <button
+                  onClick={() => {
+                    setActiveTab('communities');
+                    setTargetCommunityId(activeEventContext.id);
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-terra-primary/10 hover:bg-terra-primary text-terra-primary hover:text-cream-canvas font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  View Circle
+                </button>
+              ) : (
+                onSelectEvent && (
+                  <button
+                    onClick={() => onSelectEvent(activeEventContext)}
+                    className="px-3 py-1.5 rounded-full bg-terra-primary/10 hover:bg-terra-primary text-terra-primary hover:text-cream-canvas font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                  >
+                    View Event
+                  </button>
+                )
+              )}
             </div>
           )}
 

@@ -3,11 +3,22 @@
 
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sharespot-dev-secret-change-in-production';
+const DEFAULT_SECRET = 'sharespot-dev-secret-change-in-production';
+
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_SECRET) {
+    console.error('[FATAL] JWT_SECRET must be configured to a secure random string in production');
+    process.exit(1);
+  }
+}
+
+import { db } from '../db/index.js';
+
+export const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
 
 /**
  * Verifies the Authorization: Bearer <token> header.
- * On success: attaches req.user = { id, username, name } and calls next().
+ * On success: attaches req.user = { id, username, name, is_admin } and calls next().
  * On failure: returns 401.
  */
 export function requireAuth(req, res, next) {
@@ -18,12 +29,29 @@ export function requireAuth(req, res, next) {
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.user = payload;
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
+}
+
+/**
+ * Ensures the authenticated user has administrative privileges.
+ */
+export function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    try {
+      const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(req.user.id);
+      if (!user || !user.is_admin) {
+        return res.status(403).json({ error: 'Administrative privileges required' });
+      }
+      next();
+    } catch (err) {
+      return res.status(500).json({ error: 'Failed to verify administrative authorization' });
+    }
+  });
 }
 
 /**
@@ -39,7 +67,7 @@ export function optionalAuth(req, res, next) {
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.user = payload;
   } catch (_) {
     // Guest fallback
@@ -48,12 +76,17 @@ export function optionalAuth(req, res, next) {
 }
 
 /**
- * Sign a JWT for a user. Expires in 7 days.
+ * Sign a JWT for a user. Expires in 7 days with pinned HS256.
  */
 export function signToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, name: user.name },
+    {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      is_admin: Boolean(user.is_admin || user.isAdmin)
+    },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { algorithm: 'HS256', expiresIn: '7d' }
   );
 }

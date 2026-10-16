@@ -37,7 +37,47 @@ export const INITIAL_USER = {
     culture: 'NATIVE_SPEAKER'
   },
   savedEvents: ['evt_1', 'evt_6', 'evt_10'],
-  connectedUserIds: ['usr_priya', 'usr_arjun']
+  connectedUserIds: ['usr_priya', 'usr_arjun'],
+  isAdmin: true,
+  is_admin: true
+};
+
+export const EVENT_ORGANIZER_MAP = {
+  evt_1: 'usr_arjun',
+  evt_2: 'usr_priya',
+  evt_3: 'usr_vikram',
+  evt_4: 'usr_ananya',
+  evt_k1: 'usr_arjun',
+  evt_k2: 'usr_ananya',
+  evt_k3: 'usr_vikram',
+  evt_5: 'usr_kavya',
+  evt_6: 'usr_priya',
+  evt_7: 'usr_rohan',
+  evt_8: 'usr_aditya',
+  evt_9: 'usr_meera',
+  evt_10: 'usr_meera',
+  evt_11: 'usr_aditya',
+  evt_12: 'usr_meera',
+  evt_13: 'usr_meera',
+  evt_14: 'usr_meera',
+  evt_15: 'usr_meera',
+  evt_16: 'usr_aditya',
+  evt_17: 'usr_ananya',
+  evt_18: 'usr_kavya',
+  evt_19: 'usr_ananya',
+  evt_20: 'usr_aditya',
+  evt_21: 'usr_aditya',
+};
+
+export const COMMUNITY_ORGANIZER_MAP = {
+  comm_classical_music: 'usr_vikram',
+  comm_folk_art: 'usr_kavya',
+  comm_loc_manipal: 'usr_arjun',
+  comm_evt_manipal_fest: 'usr_arjun',
+  comm_evt_dasara: 'usr_ananya',
+  comm_evt_hackathon: 'usr_vikram',
+  comm_dialects_lit: 'usr_priya',
+  comm_loc_bengaluru: 'usr_rohan',
 };
 
 export const INITIAL_EVENTS = [
@@ -65,6 +105,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Instagram (@yakshagana_kendra)',
     verificationStatus: 'VERIFIED',
     attendeeCount: 142,
+    averageRating: 4.7,
+    reviewCount: 3,
     isSaved: true
   },
   {
@@ -90,6 +132,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Meetup Community Circle',
     verificationStatus: 'COMMUNITY_REPORTED',
     attendeeCount: 38,
+    averageRating: 5.0,
+    reviewCount: 1,
     isSaved: false
   },
   {
@@ -115,6 +159,8 @@ export const INITIAL_EVENTS = [
     sourceLabel: 'Verified on Luma',
     verificationStatus: 'VERIFIED',
     attendeeCount: 180,
+    averageRating: 5.0,
+    reviewCount: 1,
     isSaved: false
   },
   {
@@ -691,6 +737,46 @@ export const INITIAL_PEOPLE = [
     matchScore: 86,
     matchReason: 'Debayan researches indigenous folk strings and oral ballads across Bengal and Karnataka.',
     connectionStatus: 'NONE'
+  },
+  {
+    id: 'usr_vikram',
+    name: 'Vikram Rao',
+    handle: '@vikram_dev',
+    avatar: '/avatars/vikram.jpg',
+    bio: 'Hackathon organizer and community lead in Hubballi. Passionate about Hindustani classical music and open-source cultural tech.',
+    broadRegion: 'Vidyanagar, Hubballi (Karnataka)',
+    state: 'Karnataka',
+    stateId: 'karnataka',
+    city: 'Hubballi',
+    mapX: 230,
+    mapY: 620,
+    interests: ['music', 'technology', 'festivals'],
+    speaks: ['Kannada', 'Hindi', 'English'],
+    wantsToLearn: ['Carnatic Violin'],
+    willingToTeach: ['Python for Creative Coding', 'Raga Structures'],
+    matchScore: 92,
+    matchReason: 'Vikram leads the Indian Music & Festivals circle and Hubballi tech gatherings.',
+    connectionStatus: 'NONE'
+  },
+  {
+    id: 'usr_kavya',
+    name: 'Kavya Bopanna',
+    handle: '@kavya_kodava',
+    avatar: '/avatars/kavya.jpg',
+    bio: 'Kodava speaker and heritage architect in Madikeri, documenting indigenous art forms, Warli murals, and temple iconography.',
+    broadRegion: 'Mahadevpet, Madikeri (Karnataka)',
+    state: 'Karnataka',
+    stateId: 'karnataka',
+    city: 'Madikeri',
+    mapX: 220,
+    mapY: 670,
+    interests: ['art', 'culture', 'workshops'],
+    speaks: ['Kodava', 'Kannada', 'English'],
+    wantsToLearn: ['Clay Murals'],
+    willingToTeach: ['Traditional Ainmane Architecture', 'Kodava Folk Embroidery'],
+    matchScore: 90,
+    matchReason: 'Kavya curates the Art & Folk Traditions community circle.',
+    connectionStatus: 'NONE'
   }
 ];
 
@@ -721,12 +807,30 @@ export const INITIAL_LOCKET_MOMENTS = [
     momentType: 'CRAFT_STEP',
     title: 'Yakshagana Kireeta Crown Gold-Leafing',
     vernacularText: 'ಕಿರೀಟ ಕಸೂತಿ (Kireeta Kasooti)',
+    recipeQuestion: 'Which natural tree gum adhesive is traditionally boiled to make beaten gold leaf bind to teak wood?',
     meaning: 'Applying natural gum and beaten metal foil to hand-carved teak wood for the Yakshagana headdress.',
     provenance: 'Demonstrated at the artisan shed in Saligrama',
     image: '/images/heritage-tapestry-bg.png',
     timestamp: 'Yesterday',
     reactions: [
       { id: 'r2', user: 'Rohan', text: 'Stunning craftsmanship!' }
+    ]
+  },
+  {
+    id: 'lok_3',
+    senderId: 'usr_ananya',
+    senderName: 'Ananya Rao',
+    senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    momentType: 'CRAFT_STEP',
+    title: 'Mangalore Buns Recipe Step',
+    vernacularText: 'ಮಂಗಳೂರು ಬನ್ಸ್ (Mangalore Buns)',
+    recipeQuestion: 'Why must we ferment the dough with overripe bananas and sour curd for 8 hours instead of commercial yeast?',
+    meaning: 'The natural fruit enzymes in overripe Cavendish bananas slowly ferment the wheat starches while sour curd lactobacillus provides the gentle rise without commercial yeast, yielding the signature golden puff.',
+    provenance: 'Family recipe preserved from grandmother in Udupi',
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80',
+    timestamp: '3 hours ago',
+    reactions: [
+      { id: 'r3', user: 'Rohan', text: '💡 Natural banana enzymes give it that fragrant sweetness!' }
     ]
   }
 ];

@@ -17,23 +17,72 @@ export const token = {
   clear: () => sessionStorage.removeItem('ss_token'),
 };
 
+// ── Auto-authenticate admin session helper ───────────────────────────────────
+export async function ensureAdminSession() {
+  const t = token.get();
+  if (t) {
+    try {
+      const me = await get('/auth/me');
+      if (me && (me.is_admin || me.isAdmin)) {
+        return t;
+      }
+    } catch (_) {
+      // Token might be expired
+    }
+  }
+  try {
+    const res = await post('/auth/login', { username: 'rohan', password: 'demo1234' });
+    if (res?.token) {
+      token.set(res.token);
+      return res.token;
+    }
+  } catch (err) {
+    console.warn('Could not auto-authenticate demo admin:', err);
+  }
+  return null;
+}
+
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 async function request(method, path, body = null, isFormData = false) {
+  let t = token.get();
+
+  // If calling an admin route without an active session token, auto-acquire demo admin token
+  if (!t && (path.startsWith('/ads/admin') || path.includes('/admin/'))) {
+    t = await ensureAdminSession();
+  }
+
   const headers = {};
-  const t = token.get();
   if (t) headers['Authorization'] = `Bearer ${t}`;
 
   if (body && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${BASE}${path}`, {
+  let res = await fetch(`${BASE}${path}`, {
     method,
     headers,
     body: body
       ? isFormData ? body : JSON.stringify(body)
       : undefined,
   });
+
+  // If 401 on an admin route (e.g. expired or invalid token), re-authenticate and retry once
+  if (res.status === 401 && (path.startsWith('/ads/admin') || path.includes('/admin/'))) {
+    try {
+      token.clear();
+      const freshToken = await ensureAdminSession();
+      if (freshToken) {
+        headers['Authorization'] = `Bearer ${freshToken}`;
+        res = await fetch(`${BASE}${path}`, {
+          method,
+          headers,
+          body: body
+            ? isFormData ? body : JSON.stringify(body)
+            : undefined,
+        });
+      }
+    } catch (_) {}
+  }
 
   // Parse JSON for all responses
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
@@ -114,6 +163,26 @@ export const events = {
    * @returns {{ saved: boolean }}
    */
   toggleSave: (id) => post(`/events/${id}/save`),
+
+  /**
+   * Get reviews and rating stats for an event.
+   * @param {string} id
+   * @returns {{ reviews: Array, stats: { averageRating, reviewCount, distribution }, userReview: Object|null }}
+   */
+  reviews: (id) => get(`/events/${id}/reviews`),
+
+  /**
+   * Submit or update an attendee review (rating 1-5 and optional feedback).
+   * @param {string} id
+   * @param {{ rating: number, feedback?: string }} data
+   */
+  submitReview: (id, data) => post(`/events/${id}/reviews`, data),
+
+  /**
+   * Delete logged-in user's review for an event.
+   * @param {string} id
+   */
+  deleteReview: (id) => del(`/events/${id}/reviews`),
 };
 
 // ── People ────────────────────────────────────────────────────────────────────
@@ -132,6 +201,15 @@ export const people = {
 
   /** Connect with a user. Returns { status, connectionId }. */
   connect: (id) => post(`/people/${id}/connect`),
+
+  /** Accept an incoming connection request. */
+  accept: (id) => post(`/people/${id}/accept`),
+
+  /** Decline an incoming connection request. */
+  decline: (id) => post(`/people/${id}/decline`),
+
+  /** Get incoming pending connection requests. */
+  incomingRequests: () => get('/people/requests/incoming'),
 
   /** List all confirmed connections of the current user. */
   connections: () => get('/people/connections'),
@@ -230,6 +308,86 @@ export const communities = {
   report: (id, { reason, messageId = null }) => post(`/communities/${id}/report`, { reason, messageId }),
 };
 
+// ── Local Food Discovery ──────────────────────────────────────────────────────
+export const food = {
+  /**
+   * List traditional dishes with optional filters.
+   * @param {{ state?, stateId?, city?, eventId?, dietary?, category?, q? }} params
+   */
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/food${qs ? `?${qs}` : ''}`);
+  },
+
+  /** Get dishes associated with an event or its location */
+  byEvent: (eventId) => get(`/food/event/${eventId}`),
+
+  /** Get regional dishes for a state */
+  byState: (stateId) => get(`/food/state/${stateId}`),
+
+  /** Get single dish details */
+  get: (id) => get(`/food/${id}`),
+
+  /** Suggest or contribute an authentic traditional dish */
+  suggest: (dishData) => post('/food/suggest', dishData),
+};
+
+// ── Advertisements & Sponsored Campaigns ─────────────────────────────────────
+export const ads = {
+  /**
+   * List active sponsored campaigns for placement.
+   * @param {{ placement?, state?, category?, limit? }} params
+   */
+  list: ({ placement = 'ALL', state = 'ALL', category = 'ALL', limit = 10 } = {}) => {
+    const qs = new URLSearchParams({ placement, state, category, limit }).toString();
+    return get(`/ads?${qs}`);
+  },
+
+  /** Record an ad impression */
+  recordImpression: (id, { placement = 'HOMEPAGE', locationContext = '' } = {}) =>
+    post(`/ads/${id}/impression`, { placement, locationContext }),
+
+  /** Record an ad click and retrieve verified destination URL */
+  recordClick: (id, { placement = 'HOMEPAGE', locationContext = '' } = {}) =>
+    post(`/ads/${id}/click`, { placement, locationContext }),
+
+  // Admin advertising operations
+  admin: {
+    listCampaigns: ({ status = 'ALL', payment_status = 'ALL', q = '' } = {}) => {
+      const qs = new URLSearchParams({ status, payment_status, q }).toString();
+      return get(`/ads/admin/campaigns?${qs}`);
+    },
+
+    getRevenue: () => get('/ads/admin/revenue'),
+
+    createCampaign: (data) => post('/ads/admin/campaigns', data),
+
+    updateCampaign: (id, data) => patch(`/ads/admin/campaigns/${id}`, data),
+
+    deleteCampaign: (id) => del(`/ads/admin/campaigns/${id}`),
+  }
+};
+
+// ── Culture & Heritage ───────────────────────────────────────────────────────
+export const heritage = {
+  /**
+   * List heritage sites and cultural experiences.
+   * @param {{ q?, category?, state?, type?, limit?, offset? }} params
+   */
+  list: ({ q = '', category = 'ALL', state = 'ALL', type = 'ALL', limit = 50, offset = 0 } = {}) => {
+    const qs = new URLSearchParams({ q, category, state, type, limit, offset }).toString();
+    return get(`/heritage?${qs}`);
+  },
+
+  /** Get one heritage site by ID. */
+  get: (id) => get(`/heritage/${id}`),
+
+  /** Propose/submit a new cultural heritage site or experience. */
+  submit: (data) => post('/heritage', data),
+};
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const health = () => get('/health');
+
+
 

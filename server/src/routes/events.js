@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { isValidUrl, isValidCategory, isValidCoords, requireFields } from '../middleware/validate.js';
 
 const router = Router();
@@ -149,6 +149,29 @@ function formatEvent(row) {
   const geo = inferStateAndCity(row);
   const rawImg = row.image_url || row.image || '';
   const resolvedImg = (!isBrokenUrl(rawImg)) ? rawImg : getCategoryPlaceholder(row.category);
+
+  let organizerUser = null;
+  const organizerId = row.submitted_by || row.submittedBy;
+  if (organizerId) {
+    try {
+      const u = db.prepare('SELECT id, name, username, handle, avatar_url, bio, city, state FROM users WHERE id = ?').get(organizerId);
+      if (u) {
+        organizerUser = {
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          handle: u.handle,
+          avatar: u.avatar_url,
+          avatarUrl: u.avatar_url,
+          bio: u.bio,
+          city: u.city,
+          state: u.state,
+          role: 'Event Host & Coordinator',
+        };
+      }
+    } catch (_) {}
+  }
+
   return {
     ...row,
     state: row.state || geo.state,
@@ -164,6 +187,10 @@ function formatEvent(row) {
     verificationStatus: row.verification_status || row.verificationStatus || 'VERIFIED',
     attendeeCount: row.attendee_count ?? row.attendeeCount ?? 0,
     isOnline: Boolean(row.is_online),
+    averageRating: row.average_rating != null ? Math.round(Number(row.average_rating) * 10) / 10 : null,
+    reviewCount: row.review_count != null ? Number(row.review_count) : 0,
+    organizerUser,
+    submittedBy: row.submitted_by || null,
   };
 }
 
@@ -173,7 +200,9 @@ router.get('/', (req, res) => {
 
   let sql = `
     SELECT e.*,
-      (SELECT COUNT(*) FROM saved_events WHERE event_id = e.id) as save_count
+      (SELECT COUNT(*) FROM saved_events WHERE event_id = e.id) as save_count,
+      (SELECT AVG(rating) FROM event_reviews WHERE event_id = e.id) as average_rating,
+      (SELECT COUNT(*) FROM event_reviews WHERE event_id = e.id) as review_count
     FROM events e
     WHERE 1=1
   `;
@@ -216,7 +245,10 @@ router.get('/', (req, res) => {
 // ── GET /api/events/saved — MUST be before /:id ───────────────────────────────
 router.get('/saved', requireAuth, (req, res) => {
   const rows = db.prepare(`
-    SELECT e.* FROM events e
+    SELECT e.*,
+      (SELECT AVG(rating) FROM event_reviews WHERE event_id = e.id) as average_rating,
+      (SELECT COUNT(*) FROM event_reviews WHERE event_id = e.id) as review_count
+    FROM events e
     JOIN saved_events se ON se.event_id = e.id
     WHERE se.user_id = ?
     ORDER BY se.saved_at DESC
@@ -226,7 +258,14 @@ router.get('/saved', requireAuth, (req, res) => {
 
 // ── GET /api/events/:id ───────────────────────────────────────────────────────
 router.get('/:id', (req, res) => {
-  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
+  const event = db.prepare(`
+    SELECT e.*,
+      (SELECT COUNT(*) FROM saved_events WHERE event_id = e.id) as save_count,
+      (SELECT AVG(rating) FROM event_reviews WHERE event_id = e.id) as average_rating,
+      (SELECT COUNT(*) FROM event_reviews WHERE event_id = e.id) as review_count
+    FROM events e
+    WHERE e.id = ?
+  `).get(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
   res.json(formatEvent(event));
 });
@@ -255,8 +294,8 @@ router.post('/',
       return res.status(400).json({ error: 'Invalid category' });
     if (source_url && !isValidUrl(source_url))
       return res.status(400).json({ error: 'source_url must be http or https' });
-    if (image_url && !isValidUrl(image_url))
-      return res.status(400).json({ error: 'image_url must be http or https' });
+    if (image_url && !isValidUrl(image_url, 'image'))
+      return res.status(400).json({ error: 'image_url must be valid image URL or allowed data image' });
     if (description.length > 2000)
       return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
 
@@ -272,45 +311,106 @@ router.post('/',
 
     // Check for existing identical event to prevent duplicate submissions
     const existing = db.prepare(
-      'SELECT * FROM events WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND LOWER(TRIM(venue)) = LOWER(TRIM(?))'
+      'SELECT id FROM events WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND LOWER(TRIM(venue)) = LOWER(TRIM(?))'
     ).get(title, venue);
 
-    const id = existing ? existing.id : `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
     if (existing) {
-      db.prepare(`
-        UPDATE events SET
-          category = ?, category_label = ?, date_label = ?, datetime_iso = ?,
-          neighborhood = ?, lat = ?, lng = ?, organizer = ?, image_url = ?,
-          description = ?, source_url = ?, submitted_by = ?
-        WHERE id = ?
-      `).run(
-        category, categoryLabels[category] || 'Culture & Heritage',
-        date_label.slice(0, 100), datetime_iso,
-        neighborhood.slice(0, 200), coords.lat, coords.lng,
-        organizer.slice(0, 200), image_url, description.slice(0, 2000),
-        source_url, req.user.id, id
-      );
-    } else {
-      db.prepare(`
-        INSERT INTO events
-          (id, title, category, category_label, date_label, datetime_iso, venue,
-           neighborhood, lat, lng, organizer, image_url, description, source_url,
-           source_label, verification_status, submitted_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
-      `).run(
-        id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
-        date_label.slice(0, 100), datetime_iso,
-        venue.slice(0, 300), neighborhood.slice(0, 200),
-        coords.lat, coords.lng,
-        organizer.slice(0, 200), image_url, description.slice(0, 2000),
-        source_url, req.user.id
-      );
+      return res.status(409).json({ error: 'An event with this title and venue already exists' });
     }
+
+    const id = `evt_${uuid().replace(/-/g, '').slice(0, 12)}`;
+    db.prepare(`
+      INSERT INTO events
+        (id, title, category, category_label, date_label, datetime_iso, venue,
+         neighborhood, lat, lng, organizer, image_url, description, source_url,
+         source_label, verification_status, submitted_by)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Community Submitted','COMMUNITY_REPORTED',?)
+    `).run(
+      id, title.slice(0, 200), category, categoryLabels[category] || 'Culture & Heritage',
+      date_label.slice(0, 100), datetime_iso,
+      venue.slice(0, 300), neighborhood.slice(0, 200),
+      coords.lat, coords.lng,
+      organizer.slice(0, 200), image_url, description.slice(0, 2000),
+      source_url, req.user.id
+    );
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
     res.status(201).json(formatEvent(event));
   }
 );
+
+// ── PATCH /api/events/:id — edit event (owner only) ───────────────────────────
+router.patch('/:id',
+  requireAuth,
+  (req, res) => {
+    const { id } = req.params;
+    const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Event not found' });
+
+    if (existing.submitted_by !== req.user.id) {
+      return res.status(403).json({ error: 'Only the event creator can edit this event' });
+    }
+
+    const allowed = ['title', 'category', 'date_label', 'datetime_iso', 'venue', 'neighborhood', 'organizer', 'image_url', 'description', 'source_url', 'lat', 'lng'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (updates.title && updates.title.length > 200)
+      return res.status(400).json({ error: 'Title too long (max 200 chars)' });
+    if (updates.category && !isValidCategory(updates.category))
+      return res.status(400).json({ error: 'Invalid category' });
+    if (updates.source_url && !isValidUrl(updates.source_url))
+      return res.status(400).json({ error: 'source_url must be http or https' });
+    if (updates.image_url && !isValidUrl(updates.image_url, 'image'))
+      return res.status(400).json({ error: 'image_url must be valid image URL' });
+    if (updates.description && updates.description.length > 2000)
+      return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
+
+    const coords = (updates.lat !== undefined && updates.lng !== undefined)
+      ? resolveCoords(updates.venue || existing.venue, updates.lat, updates.lng)
+      : (updates.venue ? resolveCoords(updates.venue, existing.lat, existing.lng) : null);
+
+    if (coords) {
+      updates.lat = coords.lat;
+      updates.lng = coords.lng;
+    }
+
+    const categoryLabels = {
+      culture: 'Culture & Heritage', festivals: 'Festivals & Celebrations',
+      technology: 'Technology & Hackathons', music: 'Folk & Classical Music',
+      art: 'Art & Traditional Crafts', film: 'Film & Theatre',
+      literature: 'Books & Literature', science: 'Science & Discovery',
+      workshops: 'Hands-on Workshops', community: 'Dialect & Community Circles',
+    };
+    if (updates.category) {
+      updates.category_label = categoryLabels[updates.category] || 'Culture & Heritage';
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+      db.prepare(`UPDATE events SET ${sets} WHERE id = @id`).run({ ...updates, id });
+    }
+
+    const updated = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    res.json(formatEvent(updated));
+  }
+);
+
+// ── DELETE /api/events/:id — delete event (owner only) ────────────────────────
+router.delete('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Event not found' });
+
+  if (existing.submitted_by !== req.user.id) {
+    return res.status(403).json({ error: 'Only the event creator can delete this event' });
+  }
+
+  db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  res.json({ success: true, message: 'Event deleted successfully' });
+});
 
 // ── POST /api/events/:id/save — toggle save ───────────────────────────────────
 router.post('/:id/save', requireAuth, (req, res) => {
@@ -329,6 +429,198 @@ router.post('/:id/save', requireAuth, (req, res) => {
     db.prepare('INSERT INTO saved_events (user_id, event_id) VALUES (?, ?)').run(req.user.id, id);
     res.json({ saved: true });
   }
+});
+
+// ── Helper to calculate event review stats ────────────────────────────────────
+function getEventReviewStats(eventId) {
+  const rows = db.prepare('SELECT rating FROM event_reviews WHERE event_id = ?').all(eventId);
+  const reviewCount = rows.length;
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const r of rows) {
+    if (distribution[r.rating] !== undefined) {
+      distribution[r.rating] += 1;
+    }
+  }
+  const averageRating = reviewCount > 0
+    ? Math.round((rows.reduce((sum, r) => sum + r.rating, 0) / reviewCount) * 10) / 10
+    : null;
+
+  return { averageRating, reviewCount, distribution };
+}
+
+// ── GET /api/events/:id/reviews — list reviews and rating stats ───────────────
+router.get('/:id/reviews', optionalAuth, (req, res) => {
+  const { id } = req.params;
+  const event = db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const rows = db.prepare(`
+    SELECT
+      r.id,
+      r.event_id,
+      r.user_id,
+      r.rating,
+      r.feedback,
+      r.created_at,
+      r.updated_at,
+      u.name as user_name,
+      u.username as user_username,
+      u.avatar_url as user_avatar,
+      u.city as user_city,
+      u.state as user_state
+    FROM event_reviews r
+    JOIN users u ON u.id = r.user_id
+    WHERE r.event_id = ?
+    ORDER BY r.created_at DESC
+  `).all(id);
+
+  const reviews = rows.map(r => ({
+    id: r.id,
+    eventId: r.event_id,
+    userId: r.user_id,
+    rating: r.rating,
+    feedback: r.feedback || '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    user: {
+      id: r.user_id,
+      name: r.user_name,
+      username: r.user_username,
+      avatar: r.user_avatar || '',
+      city: r.user_city || '',
+      state: r.user_state || '',
+    }
+  }));
+
+  const stats = getEventReviewStats(id);
+  const userReview = req.user
+    ? reviews.find(r => r.userId === req.user.id) || null
+    : null;
+
+  res.json({
+    reviews,
+    stats,
+    userReview,
+  });
+});
+
+// ── POST /api/events/:id/reviews — submit or update attendee review ───────────
+router.post('/:id/reviews', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const event = db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const { rating, feedback = '' } = req.body;
+
+  // 1 to 5 star rating validation
+  const numericRating = Number(rating);
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+    return res.status(400).json({ error: 'Rating must be an integer between 1 and 5' });
+  }
+
+  // Written feedback validation (optional, max 2000 chars)
+  const cleanFeedback = typeof feedback === 'string' ? feedback.trim() : '';
+  if (cleanFeedback.length > 2000) {
+    return res.status(400).json({ error: 'Feedback too long (max 2000 characters)' });
+  }
+
+  // Note on attendance tracking:
+  // The platform currently stores attendee_count as an aggregate number on the event,
+  // and does not yet have a persistent event_attendees registration table.
+  // Reviews are validated for authentication, 1-5 star constraints, and single-review-per-user uniqueness.
+
+  // Check if review already exists for this (event_id, user_id) to prevent duplicate submissions
+  // and allow editing the user's existing review.
+  const existing = db.prepare(
+    'SELECT id FROM event_reviews WHERE event_id = ? AND user_id = ?'
+  ).get(id, req.user.id);
+
+  let reviewId;
+  let isUpdate = false;
+
+  if (existing) {
+    isUpdate = true;
+    reviewId = existing.id;
+    db.prepare(`
+      UPDATE event_reviews
+      SET rating = ?, feedback = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(numericRating, cleanFeedback, reviewId);
+  } else {
+    reviewId = `rev_${uuid().replace(/-/g, '').slice(0, 12)}`;
+    db.prepare(`
+      INSERT INTO event_reviews (id, event_id, user_id, rating, feedback, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(reviewId, id, req.user.id, numericRating, cleanFeedback);
+  }
+
+  const savedRow = db.prepare(`
+    SELECT
+      r.id,
+      r.event_id,
+      r.user_id,
+      r.rating,
+      r.feedback,
+      r.created_at,
+      r.updated_at,
+      u.name as user_name,
+      u.username as user_username,
+      u.avatar_url as user_avatar,
+      u.city as user_city,
+      u.state as user_state
+    FROM event_reviews r
+    JOIN users u ON u.id = r.user_id
+    WHERE r.id = ?
+  `).get(reviewId);
+
+  const review = {
+    id: savedRow.id,
+    eventId: savedRow.event_id,
+    userId: savedRow.user_id,
+    rating: savedRow.rating,
+    feedback: savedRow.feedback || '',
+    createdAt: savedRow.created_at,
+    updatedAt: savedRow.updated_at,
+    user: {
+      id: savedRow.user_id,
+      name: savedRow.user_name,
+      username: savedRow.user_username,
+      avatar: savedRow.user_avatar || '',
+      city: savedRow.user_city || '',
+      state: savedRow.user_state || '',
+    }
+  };
+
+  const stats = getEventReviewStats(id);
+
+  res.status(isUpdate ? 200 : 201).json({
+    message: isUpdate ? 'Review updated successfully' : 'Review submitted successfully',
+    review,
+    stats,
+  });
+});
+
+// ── DELETE /api/events/:id/reviews — remove user review ───────────────────────
+router.delete('/:id/reviews', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const event = db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const existing = db.prepare(
+    'SELECT id FROM event_reviews WHERE event_id = ? AND user_id = ?'
+  ).get(id, req.user.id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Review not found' });
+  }
+
+  db.prepare('DELETE FROM event_reviews WHERE id = ?').run(existing.id);
+  const stats = getEventReviewStats(id);
+
+  res.json({
+    message: 'Review deleted successfully',
+    stats,
+  });
 });
 
 export default router;
