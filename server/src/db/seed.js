@@ -1125,7 +1125,7 @@ const advertisements = [
     target_state: 'karnataka',
     target_city: 'Mysuru',
     category: 'culture',
-    event_id: 'evt_mys_1',
+    event_id: null,
     status: 'ACTIVE',
     budget_amount: 18000.00,
     payment_status: 'PAID',
