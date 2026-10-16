@@ -175,11 +175,23 @@ export default function EventsView({
             <span>Saved ({savedEvents.length})</span>
           </button>
 
-          {/* Toggle between Map, Grid, and Local Flavours */}
-          <div className="bg-surface-container p-1 rounded-full border border-blush-surface flex items-center shadow-xs flex-wrap">
+          {/* Standalone Taste Local Flavours Button */}
+          <button
+            onClick={() => setViewMode(prev => prev === 'FOOD' ? 'MAP' : 'FOOD')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-xs cursor-pointer ${viewMode === 'FOOD'
+                ? 'bg-terra-primary text-cream-canvas border-terra-primary shadow-sm'
+                : 'bg-surface-container-lowest border-blush-surface text-cocoa-text hover:bg-blush-surface/40 hover:text-terra-primary'
+              }`}
+          >
+            <Utensils className={`w-3.5 h-3.5 ${viewMode === 'FOOD' ? 'text-cream-canvas' : 'text-ochre-accent'}`} />
+            <span>Taste Local Flavours</span>
+          </button>
+
+          {/* Toggle between Map and Grid View */}
+          <div className="bg-surface-container p-1 rounded-full border border-blush-surface flex items-center shadow-xs">
             <button
               onClick={() => setViewMode('MAP')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'MAP'
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${viewMode === 'MAP'
                   ? 'bg-terra-primary text-cream-canvas shadow-sm'
                   : 'text-cocoa-text hover:bg-blush-surface/50'
                 }`}
@@ -189,23 +201,13 @@ export default function EventsView({
             </button>
             <button
               onClick={() => setViewMode('GRID')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'GRID'
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${viewMode === 'GRID'
                   ? 'bg-terra-primary text-cream-canvas shadow-sm'
                   : 'text-cocoa-text hover:bg-blush-surface/50'
                 }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>List View</span>
-            </button>
-            <button
-              onClick={() => setViewMode('FOOD')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'FOOD'
-                  ? 'bg-terra-primary text-cream-canvas shadow-sm'
-                  : 'text-cocoa-text hover:bg-blush-surface/50'
-                }`}
-            >
-              <Utensils className="w-3.5 h-3.5" />
-              <span>Taste Local Flavours</span>
             </button>
           </div>
 
