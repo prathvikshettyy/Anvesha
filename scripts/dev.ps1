@@ -82,4 +82,8 @@ if ($freed) {
 
 # Start both servers
 Push-Location $Root
-npm run dev
+try {
+    npm run dev
+} finally {
+    Pop-Location
+}

@@ -18,16 +18,41 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+              if (res && !res.headersSent && typeof res.writeHead === 'function') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'API server warming up, please retry shortly' }));
+              }
+            }
+          });
+        },
       },
       '/uploads': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+              if (res && !res.headersSent && typeof res.writeHead === 'function') {
+                res.writeHead(503, { 'Content-Type': 'text/plain' });
+                res.end('Upload server warming up');
+              }
+            }
+          });
+        },
       },
       // Socket.IO — forward both HTTP handshake polling and WebSocket upgrade
       '/socket.io': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         ws: true,
+        configure: (proxy) => {
+          proxy.on('error', () => {
+            // Suppress unhandled socket handshake drop while server boots
+          });
+        },
       },
     },
   },
