@@ -62,8 +62,17 @@ router.post('/login',
   requireFields('username', 'password'),
   (req, res) => {
     const { username, password } = req.body;
+    const trimmed = String(username || '').trim();
+    const clean = trimmed.toLowerCase();
+    const handleVariant = clean.startsWith('@') ? clean : `@${clean}`;
+    const cleanName = clean.startsWith('@') ? clean.slice(1) : clean;
 
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    const user = db.prepare(`
+      SELECT * FROM users
+      WHERE LOWER(username) = ?
+         OR LOWER(handle) = ?
+         OR (is_admin = 1 AND ? = 'admin')
+    `).get(cleanName, handleVariant, cleanName);
     if (!user) return res.status(401).json({ error: 'Invalid username or password' });
 
     const valid = bcrypt.compareSync(password, user.password_hash);

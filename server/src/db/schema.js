@@ -24,6 +24,7 @@ export function applySchema(db) {
                        CHECK(preferred_mode IN ('BOTH','IN_PERSON','ONLINE')),
       is_discoverable INTEGER DEFAULT 0,
       fuzzed_location INTEGER DEFAULT 1,
+      is_admin        INTEGER DEFAULT 0,
       created_at   TEXT DEFAULT (datetime('now')),
       last_active_at TEXT DEFAULT (datetime('now'))
     );
@@ -351,8 +352,10 @@ function migrateLegacyColumns(db) {
   }
   if (!userColumns.includes('is_admin')) {
     db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
-    db.exec(`UPDATE users SET is_admin = 1 WHERE username = 'rohan' OR id = 'usr_rohan'`);
   }
+  // Ensure strictly 1 platform administrator (Rohan Shenoy)
+  db.exec(`UPDATE users SET is_admin = 1 WHERE username = 'rohan' OR id = 'usr_rohan'`);
+  db.exec(`UPDATE users SET is_admin = 0 WHERE username != 'rohan' AND id != 'usr_rohan'`);
   if (!userColumns.includes('last_active_at')) {
     db.exec(`ALTER TABLE users ADD COLUMN last_active_at TEXT`);
     db.exec(`UPDATE users SET last_active_at = datetime('now') WHERE last_active_at IS NULL`);

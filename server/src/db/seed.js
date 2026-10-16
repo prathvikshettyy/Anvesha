@@ -36,6 +36,7 @@ const users = [
     preferred_mode: 'BOTH',
     is_discoverable: 1,
     fuzzed_location: 1,
+    is_admin: 1,
   },
   {
     id: 'usr_priya',
@@ -161,19 +162,24 @@ const users = [
 const insertUser = db.prepare(`
   INSERT INTO users
     (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood,
-     lat, lng, preferred_mode, is_discoverable, fuzzed_location)
+     lat, lng, preferred_mode, is_discoverable, fuzzed_location, is_admin)
   VALUES
     (@id, @username, @handle, @password_hash, @name, @bio, @avatar_url, @state, @city,
-     @neighborhood, @lat, @lng, @preferred_mode, @is_discoverable, @fuzzed_location)
-  ON CONFLICT(id) DO UPDATE SET avatar_url = excluded.avatar_url
+     @neighborhood, @lat, @lng, @preferred_mode, @is_discoverable, @fuzzed_location, @is_admin)
+  ON CONFLICT(id) DO UPDATE SET
+    avatar_url = excluded.avatar_url,
+    is_admin = excluded.is_admin
 `);
 
 for (const u of users) {
   const password_hash = bcrypt.hashSync(u.password, HASH_ROUNDS);
   const { password, ...rest } = u;  // strip plain password — not a DB column
-  insertUser.run({ ...rest, password_hash });
+  insertUser.run({ ...rest, is_admin: u.is_admin || 0, password_hash });
 }
-console.log(`[Seed] Inserted ${users.length} users`);
+// Strictly enforce that exactly 1 user (Rohan Shenoy) is platform administrator
+db.exec(`UPDATE users SET is_admin = 1 WHERE username = 'rohan' OR id = 'usr_rohan'`);
+db.exec(`UPDATE users SET is_admin = 0 WHERE username != 'rohan' AND id != 'usr_rohan'`);
+console.log(`[Seed] Inserted ${users.length} users (1 Admin: rohan)`);
 
 // ─── Seed User Interests (drives Jaccard overlap scoring) ─────────────────────
 const interestData = [
