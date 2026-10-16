@@ -254,37 +254,6 @@ export default function WelcomeView({
               </button>
             </div>
 
-            {authMode === 'login' && (
-              <div className="p-2.5 rounded-2xl bg-surface-container/70 border border-blush-surface/80 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-cocoa-text/70 px-1">
-                  <span>Demo Accounts (Password: demo1234)</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => { setUsername('admin'); setPassword('demo1234'); setAuthError(''); }}
-                    className="p-1.5 rounded-xl border border-terra-primary/40 bg-terra-primary/10 hover:bg-terra-primary/20 text-left transition-all cursor-pointer flex flex-col"
-                  >
-                    <span className="font-bold text-[11px] text-terra-primary flex items-center gap-1">
-                      <span>👑 1 Admin User</span>
-                    </span>
-                    <span className="text-[10px] text-cocoa-text/70">admin (Rohan Shenoy)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => { setUsername('priya'); setPassword('demo1234'); setAuthError(''); }}
-                    className="p-1.5 rounded-xl border border-blush-surface bg-surface-container-lowest hover:bg-blush-surface/50 text-left transition-all cursor-pointer flex flex-col"
-                  >
-                    <span className="font-bold text-[11px] text-cocoa-text flex items-center gap-1">
-                      <span>👤 Regular Member</span>
-                    </span>
-                    <span className="text-[10px] text-cocoa-text/70">priya (Priya Sharma)</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
             <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
               {authMode === 'register' && (
                 <div>
@@ -307,7 +276,7 @@ export default function WelcomeView({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                  placeholder="e.g. admin or rohan"
+                  placeholder="e.g. rohan_coastal"
                   className="w-full px-4 py-2.5 rounded-xl border border-blush-surface bg-surface-container-lowest text-cocoa-text focus:outline-none focus:ring-2 focus:ring-terra-primary/30"
                   required
                   autoComplete="username"
