@@ -16,7 +16,7 @@ Protected endpoints require a JSON Web Token (JWT) passed in the HTTP Authorizat
 \`\`\`http
 Authorization: Bearer <your_jwt_token>
 \`\`\`
-Obtain a token via **POST /api/auth/login** (e.g. \`username: rohan\`, \`password: demo1234\`) or **POST /api/auth/register**.
+Obtain a token via **POST /api/auth/login** or **POST /api/auth/register**.
 Click the **Authorize** button on the top right to authenticate your Swagger UI session.
     `.trim(),
         contact: {
@@ -49,6 +49,7 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
         { name: 'Culture Locket', description: 'Dialect preservation, audio snippets, and cultural vault' },
         { name: 'Messages', description: 'Direct conversations and private peer messaging' },
         { name: 'Health', description: 'Service health and operational status' },
+        { name: 'Food', description: 'Local food discovery, regional culinary heritage, and dietary traditions' },
     ],
     components: {
         securitySchemes: {
@@ -85,6 +86,25 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     service: { type: 'string', example: 'ShareSpot API' },
                     version: { type: 'string', example: '1.0.0' },
                     timestamp: { type: 'string', format: 'date-time', example: '2026-10-14T12:00:00.000Z' },
+                },
+            },
+            LocalDish: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', example: 'dish_neer_dosa' },
+                    name: { type: 'string', example: 'Neer Dosa' },
+                    local_name: { type: 'string', example: 'ನೀರು ದೋಸೆ' },
+                    state_id: { type: 'string', example: 'IN-KA' },
+                    city: { type: 'string', example: 'Mangalore / Udupi' },
+                    region: { type: 'string', example: 'Coastal Karnataka (Tulu Nadu)' },
+                    cultural_tradition: { type: 'string', example: 'Breakfast staple of the Bunt and coastal communities' },
+                    description: { type: 'string', example: 'Delicate, lacy crepes made from unfermented rice batter...' },
+                    dietary_type: { type: 'string', enum: ['VEGETARIAN', 'VEGAN', 'NON_VEGETARIAN', 'UNKNOWN'], example: 'VEGAN' },
+                    allergens: { type: 'array', items: { type: 'string' }, example: ['Coconut (in chutney)'] },
+                    image_url: { type: 'string', format: 'uri' },
+                    category: { type: 'string', example: 'Breakfast / Tiffin' },
+                    event_id: { type: 'string', nullable: true },
+                    is_sample_data: { type: 'integer', enum: [0, 1], example: 1 },
                 },
             },
             UserInterest: {
@@ -267,6 +287,70 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     attendeeCount: { type: 'integer', example: 240 },
                     isOnline: { type: 'boolean', example: false },
                     save_count: { type: 'integer', example: 14 },
+                    averageRating: { type: 'number', nullable: true, example: 4.8 },
+                    reviewCount: { type: 'integer', example: 12 },
+                },
+            },
+            EventReview: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', example: 'rev_manipal_priya' },
+                    eventId: { type: 'string', example: 'evt_1' },
+                    userId: { type: 'string', example: 'usr_priya' },
+                    rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+                    feedback: { type: 'string', example: 'The Yakshagana performance was breathtaking.' },
+                    createdAt: { type: 'string', format: 'date-time', example: '2026-10-12T10:00:00.000Z' },
+                    updatedAt: { type: 'string', format: 'date-time', example: '2026-10-12T10:00:00.000Z' },
+                    user: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', example: 'usr_priya' },
+                            name: { type: 'string', example: 'Priya Rao' },
+                            username: { type: 'string', example: 'priya' },
+                            avatar: { type: 'string', example: '/avatars/priya.jpg' },
+                            city: { type: 'string', example: 'Udupi' },
+                            state: { type: 'string', example: 'Karnataka' },
+                        },
+                    },
+                },
+            },
+            EventReviewStats: {
+                type: 'object',
+                properties: {
+                    averageRating: { type: 'number', nullable: true, example: 4.7 },
+                    reviewCount: { type: 'integer', example: 3 },
+                    distribution: {
+                        type: 'object',
+                        properties: {
+                            1: { type: 'integer', example: 0 },
+                            2: { type: 'integer', example: 0 },
+                            3: { type: 'integer', example: 0 },
+                            4: { type: 'integer', example: 1 },
+                            5: { type: 'integer', example: 2 },
+                        },
+                    },
+                },
+            },
+            EventReviewsResponse: {
+                type: 'object',
+                properties: {
+                    reviews: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/EventReview' },
+                    },
+                    stats: { $ref: '#/components/schemas/EventReviewStats' },
+                    userReview: {
+                        nullable: true,
+                        allOf: [{ $ref: '#/components/schemas/EventReview' }],
+                    },
+                },
+            },
+            CreateEventReviewRequest: {
+                type: 'object',
+                required: ['rating'],
+                properties: {
+                    rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+                    feedback: { type: 'string', maxLength: 2000, example: 'Magnificent performance and authentic costume detailing.' },
                 },
             },
             CreateEventRequest: {
@@ -856,6 +940,166 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                 },
             },
         },
+        '/api/events/{id}/reviews': {
+            get: {
+                tags: ['Events'],
+                summary: 'Get attendee reviews and rating statistics for an event',
+                description: 'Returns all submitted reviews for the event with reviewer profile data, average rating, count, and star distribution. If authenticated, includes current user review.',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Reviews and statistics retrieved',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/EventReviewsResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+            post: {
+                tags: ['Events'],
+                summary: 'Submit or edit an attendee review for an event',
+                description: 'Allows an authenticated attendee to submit a 1 to 5 star rating and optional written feedback. If the user already reviewed this event, updates the existing review.',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/CreateEventReviewRequest' },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Review updated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review updated successfully' },
+                                        review: { $ref: '#/components/schemas/EventReview' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    201: {
+                        description: 'Review submitted successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review submitted successfully' },
+                                        review: { $ref: '#/components/schemas/EventReview' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    400: {
+                        description: 'Validation error (rating not integer 1-5 or feedback too long)',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+            delete: {
+                tags: ['Events'],
+                summary: 'Delete user review for an event',
+                description: 'Deletes the authenticated user review for the specified event.',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Event ID',
+                        schema: { type: 'string', example: 'evt_1' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Review deleted successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Review deleted successfully' },
+                                        stats: { $ref: '#/components/schemas/EventReviewStats' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    401: {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Review or event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         '/api/people': {
             get: {
                 tags: ['People'],
@@ -1388,6 +1632,198 @@ Click the **Authorize** button on the top right to authenticate your Swagger UI 
                     },
                     401: {
                         description: 'Unauthorized - valid JWT required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food': {
+            get: {
+                tags: ['Food'],
+                summary: 'Discover traditional and local foods',
+                description: 'Browse local dishes by location (state, city), event association, dietary preference, or keyword query.',
+                parameters: [
+                    {
+                        name: 'stateId',
+                        in: 'query',
+                        description: 'Filter dishes by state identifier (e.g. IN-KA, IN-KL, IN-MH)',
+                        schema: { type: 'string', example: 'IN-KA' },
+                    },
+                    {
+                        name: 'city',
+                        in: 'query',
+                        description: 'Filter dishes by city name',
+                        schema: { type: 'string', example: 'Mangalore' },
+                    },
+                    {
+                        name: 'eventId',
+                        in: 'query',
+                        description: 'Filter dishes associated with a specific event ID',
+                        schema: { type: 'string', example: 'evt_yakshagana' },
+                    },
+                    {
+                        name: 'dietary',
+                        in: 'query',
+                        description: 'Filter by dietary preference (VEGETARIAN, VEGAN, NON_VEGETARIAN)',
+                        schema: { type: 'string', enum: ['VEGETARIAN', 'VEGAN', 'NON_VEGETARIAN', 'UNKNOWN'] },
+                    },
+                    {
+                        name: 'category',
+                        in: 'query',
+                        description: 'Filter by culinary category',
+                        schema: { type: 'string', example: 'Breakfast / Tiffin' },
+                    },
+                    {
+                        name: 'q',
+                        in: 'query',
+                        description: 'Search keyword across dish name, description, region, or tradition',
+                        schema: { type: 'string', example: 'dosa' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'List of regional dishes matching criteria',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 5 },
+                                        disclaimer: { type: 'string', example: 'Curated cultural food archive for development and cultural exploration.' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/event/{eventId}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get local flavours for an event',
+                description: 'Retrieves dishes directly associated with the cultural event or regional to the event city/state.',
+                parameters: [
+                    {
+                        name: 'eventId',
+                        in: 'path',
+                        required: true,
+                        description: 'Unique event identifier',
+                        schema: { type: 'string', example: 'evt_yakshagana' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Regional dishes associated with or nearby the event',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 4 },
+                                        event: {
+                                            type: 'object',
+                                            properties: {
+                                                id: { type: 'string' },
+                                                title: { type: 'string' },
+                                                city: { type: 'string' },
+                                                state_id: { type: 'string' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Event not found',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/state/{stateId}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get local flavours for a state',
+                description: 'Retrieves traditional dishes and heritage foods associated with an Indian state.',
+                parameters: [
+                    {
+                        name: 'stateId',
+                        in: 'path',
+                        required: true,
+                        description: 'State identifier (e.g. IN-KA, IN-KL, IN-TN, IN-MH)',
+                        schema: { type: 'string', example: 'IN-KA' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Regional dishes for the specified state',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dishes: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/LocalDish' },
+                                        },
+                                        total: { type: 'integer', example: 7 },
+                                        stateId: { type: 'string', example: 'IN-KA' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/food/{id}': {
+            get: {
+                tags: ['Food'],
+                summary: 'Get details for a single dish',
+                description: 'Fetches dish details including cultural background, dietary classification, and known allergens.',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'Unique dish identifier',
+                        schema: { type: 'string', example: 'dish_neer_dosa' },
+                    },
+                ],
+                responses: {
+                    200: {
+                        description: 'Dish details',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        dish: { $ref: '#/components/schemas/LocalDish' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    404: {
+                        description: 'Dish not found',
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' },

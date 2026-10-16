@@ -65,6 +65,38 @@ router.get('/:partnerId', requireAuth, (req, res) => {
   res.json({ partner, messages });
 });
 
+function isConnected(userId1, userId2) {
+  const row = db.prepare(`
+    SELECT 1 FROM connections
+    WHERE status = 'CONNECTED' AND (
+      (requester_id = ? AND receiver_id = ?) OR
+      (requester_id = ? AND receiver_id = ?)
+    )
+  `).get(userId1, userId2, userId2, userId1);
+  return Boolean(row);
+}
+
+function isPermittedToMessage(userId1, userId2) {
+  if (isConnected(userId1, userId2)) return true;
+  // Allow attendees and event organisers to message each other regarding events
+  try {
+    const isEventOrganiser = db.prepare(`
+      SELECT 1 FROM events WHERE submitted_by = ? OR submitted_by = ?
+    `).get(userId1, userId2);
+    if (isEventOrganiser) return true;
+
+    // Allow members and community circle organisers/admins to message each other
+    const isCommunityAdmin = db.prepare(`
+      SELECT 1 FROM communities WHERE created_by = ? OR created_by = ?
+      UNION
+      SELECT 1 FROM community_members WHERE role = 'ADMIN' AND (user_id = ? OR user_id = ?)
+    `).get(userId1, userId2, userId1, userId2);
+    return Boolean(isCommunityAdmin);
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── POST /api/messages/:partnerId — send a message ───────────────────────────
 router.post('/:partnerId',
   requireAuth,
@@ -77,6 +109,10 @@ router.post('/:partnerId',
 
     const partner = db.prepare('SELECT id FROM users WHERE id = ?').get(partnerId);
     if (!partner) return res.status(404).json({ error: 'User not found' });
+
+    if (!isPermittedToMessage(req.user.id, partnerId)) {
+      return res.status(403).json({ error: 'Messaging is only permitted between connected peers or event organisers' });
+    }
 
     const { text } = req.body;
     if (text.length > 2000) return res.status(400).json({ error: 'Message too long (max 2000 chars)' });
@@ -111,6 +147,9 @@ router.post('/:partnerId',
 
 // ── GET /api/messages/:partnerId/online — lightweight presence check ───────
 router.get('/:partnerId/online', requireAuth, (req, res) => {
+  if (!isPermittedToMessage(req.user.id, req.params.partnerId)) {
+    return res.status(403).json({ error: 'Presence check is only permitted between connected peers or event organisers' });
+  }
   res.json({ online: isOnline(req.params.partnerId) });
 });
 

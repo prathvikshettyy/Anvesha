@@ -1,7 +1,8 @@
 import React from 'react';
 import { Users, Calendar, MapPin, Sparkles, ArrowRight, Check, Heart, MessageCircle, Shield } from 'lucide-react';
+import { COMMUNITY_ORGANIZER_MAP, INITIAL_PEOPLE } from '../data/initialData';
 
-export default function CommunityCard({ community, onSelect, onJoinToggle }) {
+export default function CommunityCard({ community, onSelect, onJoinToggle, onContactOrganiser, people = [] }) {
   const getTypeBadge = (type) => {
     switch (type) {
       case 'EVENT':
@@ -33,6 +34,22 @@ export default function CommunityCard({ community, onSelect, onJoinToggle }) {
     e.stopPropagation();
     onJoinToggle?.(community);
   };
+
+  // Resolve circle organiser user from backend data, people directory, or community members
+  const organizerId = community?.createdBy || community?.created_by || (community?.id ? COMMUNITY_ORGANIZER_MAP[community.id] : null);
+  const adminMember = community?.members?.find(m => m.role === 'ADMIN');
+  const resolvedOrganizerId = organizerId || adminMember?.id;
+
+  const organizerUser = community?.organizerUser
+    || (resolvedOrganizerId ? (people.find(p => p.id === resolvedOrganizerId) || INITIAL_PEOPLE.find(p => p.id === resolvedOrganizerId)) : null)
+    || (adminMember ? {
+        id: adminMember.id,
+        name: adminMember.name,
+        handle: adminMember.handle,
+        avatar: adminMember.avatar || adminMember.avatar_url,
+        city: adminMember.city || community.location,
+        role: 'Circle Organiser & Lead Admin',
+      } : null);
 
   return (
     <div
@@ -119,13 +136,31 @@ export default function CommunityCard({ community, onSelect, onJoinToggle }) {
             </button>
           )}
 
-          <button
-            onClick={() => onSelect?.(community)}
-            className="flex items-center gap-1.5 text-xs font-bold text-cocoa-text/80 hover:text-terra-primary transition-colors py-1 px-2"
-          >
-            <span>{community.isMember ? 'Open Discussion' : 'Explore'}</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {organizerUser && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContactOrganiser?.(organizerUser, community);
+                }}
+                className="px-2.5 py-1 rounded-full bg-terra-primary/10 hover:bg-terra-primary text-terra-primary hover:text-cream-canvas text-xs font-bold border border-terra-primary/25 transition-all flex items-center gap-1 cursor-pointer"
+                title={`Contact Organiser (${organizerUser.name})`}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Contact Organiser</span>
+                <span className="sm:hidden">Organiser</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => onSelect?.(community)}
+              className="flex items-center gap-1 text-xs font-bold text-cocoa-text/80 hover:text-terra-primary transition-colors py-1 px-1.5"
+            >
+              <span>{community.isMember ? 'Open Discussion' : 'Explore'}</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

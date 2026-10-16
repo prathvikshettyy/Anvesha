@@ -216,20 +216,34 @@ export default function InteractiveIndiaMap({
         const isSelectedState = selectedStateId ? matchesEventState(evt, selectedStateId) : false;
         const isDimmed = Boolean(selectedStateId && !isSelectedState);
 
-        const pinHtml = `
-          <div class="relative group cursor-pointer ${isSelectedState ? 'pin-drop-bounce' : ''}" style="transform: translate(-50%, -50%); opacity: ${isDimmed ? 0.6 : 1.0}; transition: all 0.25s ease;">
-            <div class="absolute -inset-1.5 rounded-full ${isSelectedState ? 'animate-ping' : ''} opacity-40" style="background-color: ${cat.color};"></div>
-            <div class="relative ${isSelectedState ? 'w-10 h-10 ring-4 ring-terra-primary/40' : (isDimmed ? 'w-7 h-7' : 'w-8 h-8')} rounded-full flex items-center justify-center shadow-xl border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125" style="background-color: ${cat.color};">
-              <span>${cat.symbol}</span>
-            </div>
-            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 ${isSelectedState ? 'opacity-95' : 'opacity-0 group-hover:opacity-100'} transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50">
-              ${evt.title.length > 20 ? `${evt.title.slice(0, 19)}…` : evt.title}
-            </div>
-          </div>
-        `;
+        // Build safe DOM for event pin
+        const pinEl = document.createElement('div');
+        pinEl.className = `relative group cursor-pointer ${isSelectedState ? 'pin-drop-bounce' : ''}`;
+        pinEl.style.transform = 'translate(-50%, -50%)';
+        pinEl.style.opacity = isDimmed ? '0.6' : '1.0';
+        pinEl.style.transition = 'all 0.25s ease';
+
+        const pingEl = document.createElement('div');
+        pingEl.className = `absolute -inset-1.5 rounded-full ${isSelectedState ? 'animate-ping' : ''} opacity-40`;
+        pingEl.style.backgroundColor = cat.color;
+        pinEl.appendChild(pingEl);
+
+        const circleEl = document.createElement('div');
+        circleEl.className = `relative ${isSelectedState ? 'w-10 h-10 ring-4 ring-terra-primary/40' : (isDimmed ? 'w-7 h-7' : 'w-8 h-8')} rounded-full flex items-center justify-center shadow-xl border-2 border-cream-canvas text-cream-canvas text-xs font-bold transition-transform group-hover:scale-125`;
+        circleEl.style.backgroundColor = cat.color;
+        const symSpan = document.createElement('span');
+        symSpan.textContent = cat.symbol || '📍';
+        circleEl.appendChild(symSpan);
+        pinEl.appendChild(circleEl);
+
+        const labelEl = document.createElement('div');
+        labelEl.className = `absolute -bottom-5 left-1/2 -translate-x-1/2 ${isSelectedState ? 'opacity-95' : 'opacity-0 group-hover:opacity-100'} transition-opacity bg-cocoa-text text-cream-canvas text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none z-50`;
+        const rawTitle = String(evt.title || '');
+        labelEl.textContent = rawTitle.length > 20 ? `${rawTitle.slice(0, 19)}…` : rawTitle;
+        pinEl.appendChild(labelEl);
 
         const icon = L.divIcon({
-          html: pinHtml,
+          html: pinEl,
           className: 'leaflet-event-pin',
           iconSize: isSelectedState ? [40, 40] : (isDimmed ? [28, 28] : [32, 32]),
           iconAnchor: isSelectedState ? [20, 20] : (isDimmed ? [14, 14] : [16, 16])
@@ -240,44 +254,100 @@ export default function InteractiveIndiaMap({
           zIndexOffset: isSelectedState ? 1500 : (isDimmed ? 100 : 300)
         });
 
-        // Build popup content
+        // Build safe popup content DOM
         const mapImg = getEventImage(evt);
         const mapFallback = getCategorySvgPlaceholder(evt?.category);
-        const popupHtml = `
-          <div style="min-width: 220px; max-width: 270px; font-family: system-ui, sans-serif;">
-            <div style="height: 105px; width: 100%; overflow: hidden; border-radius: 1rem 1rem 0 0;">
-              <img src="${mapImg}" alt="${evt.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${mapFallback}';" />
-            </div>
-            <div style="padding: 0.85rem;">
-              <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background-color: ${cat.color}18; color: ${cat.color}; font-size: 10px; font-weight: bold;">
-                <span>${cat.symbol}</span>
-                <span>${cat.label}</span>
-              </div>
-              <h4 style="font-family: Georgia, serif; font-size: 13px; font-weight: bold; color: #3b2d26; margin: 0.35rem 0 0.25rem; line-height: 1.3;">
-                ${evt.title}
-              </h4>
-              <p style="font-size: 11px; color: #6e5548; margin: 0 0 0.5rem; line-height: 1.3;">
-                📍 ${evt.venue || evt.city || 'Heritage Center'}
-                ${evt.date ? `<br />🗓️ ${evt.date}` : ''}
-              </p>
-              <button id="leaflet-btn-${evt.id}" style="width: 100%; background-color: #c56e50; color: white; border: none; padding: 0.45rem 0.75rem; border-radius: 9999px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(197, 110, 80, 0.3);">
-                Explore Gathering Details →
-              </button>
-            </div>
-          </div>
-        `;
 
-        marker.bindPopup(popupHtml, { offset: [0, -12], closeButton: true });
+        const popupEl = document.createElement('div');
+        popupEl.style.minWidth = '220px';
+        popupEl.style.maxWidth = '270px';
+        popupEl.style.fontFamily = 'system-ui, sans-serif';
 
-        marker.on('popupopen', () => {
-          const btn = document.getElementById(`leaflet-btn-${evt.id}`);
-          if (btn) {
-            btn.onclick = (e) => {
-              e.stopPropagation();
-              onSelectEvent(evt);
-            };
-          }
-        });
+        const imgWrap = document.createElement('div');
+        imgWrap.style.height = '105px';
+        imgWrap.style.width = '100%';
+        imgWrap.style.overflow = 'hidden';
+        imgWrap.style.borderRadius = '1rem 1rem 0 0';
+
+        const img = document.createElement('img');
+        img.src = mapImg;
+        img.alt = rawTitle;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.onerror = () => {
+          img.onerror = null;
+          img.src = mapFallback;
+        };
+        imgWrap.appendChild(img);
+        popupEl.appendChild(imgWrap);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.style.padding = '0.85rem';
+
+        const badgeDiv = document.createElement('div');
+        badgeDiv.style.display = 'inline-flex';
+        badgeDiv.style.alignItems = 'center';
+        badgeDiv.style.gap = '0.35rem';
+        badgeDiv.style.padding = '0.15rem 0.5rem';
+        badgeDiv.style.borderRadius = '9999px';
+        badgeDiv.style.backgroundColor = `${cat.color}18`;
+        badgeDiv.style.color = cat.color;
+        badgeDiv.style.fontSize = '10px';
+        badgeDiv.style.fontWeight = 'bold';
+
+        const bSym = document.createElement('span');
+        bSym.textContent = cat.symbol || '';
+        const bLbl = document.createElement('span');
+        bLbl.textContent = cat.label || '';
+        badgeDiv.appendChild(bSym);
+        badgeDiv.appendChild(bLbl);
+        contentDiv.appendChild(badgeDiv);
+
+        const h4 = document.createElement('h4');
+        h4.style.fontFamily = 'Georgia, serif';
+        h4.style.fontSize = '13px';
+        h4.style.fontWeight = 'bold';
+        h4.style.color = '#3b2d26';
+        h4.style.margin = '0.35rem 0 0.25rem';
+        h4.style.lineHeight = '1.3';
+        h4.textContent = rawTitle;
+        contentDiv.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.fontSize = '11px';
+        p.style.color = '#6e5548';
+        p.style.margin = '0 0 0.5rem';
+        p.style.lineHeight = '1.3';
+        p.textContent = `📍 ${evt.venue || evt.city || 'Heritage Center'}`;
+        if (evt.date) {
+          const br = document.createElement('br');
+          p.appendChild(br);
+          p.appendChild(document.createTextNode(`🗓️ ${evt.date}`));
+        }
+        contentDiv.appendChild(p);
+
+        const btn = document.createElement('button');
+        btn.id = `leaflet-btn-${evt.id}`;
+        btn.style.width = '100%';
+        btn.style.backgroundColor = '#c56e50';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.padding = '0.45rem 0.75rem';
+        btn.style.borderRadius = '9999px';
+        btn.style.fontSize = '11px';
+        btn.style.fontWeight = 'bold';
+        btn.style.cursor = 'pointer';
+        btn.style.boxShadow = '0 2px 4px rgba(197, 110, 80, 0.3)';
+        btn.textContent = 'Explore Gathering Details →';
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          onSelectEvent(evt);
+        };
+        contentDiv.appendChild(btn);
+
+        popupEl.appendChild(contentDiv);
+        marker.bindPopup(popupEl, { offset: [0, -12], closeButton: true });
 
         markersGroup.addLayer(marker);
 
@@ -311,7 +381,7 @@ export default function InteractiveIndiaMap({
   };
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden border-2 border-blush-surface shadow-warm parchment-canvas select-none">
+    <div className="isolate relative w-full rounded-3xl overflow-hidden border-2 border-blush-surface shadow-warm parchment-canvas select-none z-0">
 
       {/* ── Top Map Header & Controls Bar ───────────────────────────────────── */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">

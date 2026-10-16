@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db/index.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
-import { requireFields, isValidMode } from '../middleware/validate.js';
+import { requireFields, isValidMode, isValidUrl } from '../middleware/validate.js';
 import { generateIdenticon } from '../lib/identicon.js';
 
 const router = Router();
@@ -24,12 +24,14 @@ router.post('/register',
       return res.status(400).json({ error: 'Username must be 3–30 characters' });
     if (!/^[a-z0-9_]+$/.test(username))
       return res.status(400).json({ error: 'Username may only contain lowercase letters, numbers, and underscores' });
-    if (password.length < 6)
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     if (name.length > 80)
       return res.status(400).json({ error: 'Name too long (max 80 chars)' });
     if (bio.length > 500)
       return res.status(400).json({ error: 'Bio too long (max 500 chars)' });
+    if (avatar_url && !isValidUrl(avatar_url, 'image'))
+      return res.status(400).json({ error: 'Invalid avatar_url' });
 
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existing) return res.status(409).json({ error: 'Username already taken' });
@@ -40,11 +42,11 @@ router.post('/register',
     const effectiveAvatar = avatar_url && avatar_url.trim() ? avatar_url.trim() : generateIdenticon(username);
 
     db.prepare(`
-      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, handle, password_hash, name, bio, avatar_url, state, city, neighborhood, is_discoverable)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `).run(id, username, handle, password_hash, name, bio.slice(0, 500), effectiveAvatar, state.slice(0, 80) || 'Karnataka', city.slice(0, 120), city.slice(0, 120));
 
-    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable FROM users WHERE id = ?').get(id);
+    const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable, is_admin FROM users WHERE id = ?').get(id);
     user.interests = [];
     user.languages = [];
     user.skills = [];
@@ -85,7 +87,7 @@ router.post('/login',
 router.get('/me', requireAuth, (req, res) => {
   db.prepare('UPDATE users SET last_active_at = datetime(\'now\') WHERE id = ?').run(req.user.id);
 
-  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, lat, lng, preferred_mode, is_discoverable, fuzzed_location, is_admin, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   user.interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
@@ -114,6 +116,8 @@ router.patch('/me', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'State too long' });
   if (updates.city && updates.city.length > 120)
     return res.status(400).json({ error: 'City too long' });
+  if (updates.avatar_url && !isValidUrl(updates.avatar_url, 'image'))
+    return res.status(400).json({ error: 'Invalid avatar_url' });
 
   if (Object.keys(updates).length > 0) {
     const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
@@ -134,6 +138,64 @@ router.patch('/me', requireAuth, (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+// ── GET /api/auth/export — GDPR/DPDP personal data export ─────────────────────
+router.get('/export', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT id, username, handle, name, bio, avatar_url, state, city, neighborhood, preferred_mode, is_discoverable, created_at, last_active_at FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const interests = db.prepare('SELECT interest_id, intention FROM user_interests WHERE user_id = ?').all(user.id);
+  const languages = db.prepare('SELECT language FROM user_languages WHERE user_id = ?').all(user.id).map(r => r.language);
+  const skills = db.prepare('SELECT skill, skill_type FROM user_skills WHERE user_id = ?').all(user.id);
+  const savedEvents = db.prepare('SELECT e.id, e.title, e.venue, se.saved_at FROM saved_events se JOIN events e ON e.id = se.event_id WHERE se.user_id = ?').all(user.id);
+  const connections = db.prepare('SELECT id, requester_id, receiver_id, status, created_at FROM connections WHERE requester_id = ? OR receiver_id = ?').all(user.id, user.id);
+  const locketMoments = db.prepare('SELECT id, moment_type, vernacular_text, meaning, timestamp_iso FROM locket_moments WHERE sender_id = ?').all(user.id);
+  const communityMemberships = db.prepare('SELECT cm.community_id, c.name as community_name, cm.role, cm.joined_at FROM community_members cm JOIN communities c ON c.id = cm.community_id WHERE cm.user_id = ?').all(user.id);
+
+  res.json({
+    exportedAt: new Date().toISOString(),
+    user,
+    interests,
+    languages,
+    skills,
+    savedEvents,
+    connections,
+    locketMoments,
+    communityMemberships,
+  });
+});
+
+// ── DELETE /api/auth/me — account deletion with password verification & cascades ─
+router.delete('/me', requireAuth, requireFields('password'), (req, res) => {
+  const { password } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const valid = bcrypt.compareSync(password, user.password_hash);
+  if (!valid) return res.status(401).json({ error: 'Incorrect password' });
+
+  // Cascading removal across all relational tables
+  try {
+    db.exec('BEGIN');
+    db.prepare('DELETE FROM user_interests WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM user_languages WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM user_skills WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM saved_events WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM connections WHERE requester_id = ? OR receiver_id = ?').run(user.id, user.id);
+    db.prepare('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?').run(user.id, user.id);
+    db.prepare('DELETE FROM community_members WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM community_messages WHERE sender_id = ?').run(user.id);
+    db.prepare('DELETE FROM locket_reactions WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM locket_moments WHERE sender_id = ? OR recipient_id = ?').run(user.id, user.id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  res.json({ success: true, message: 'Account and associated data deleted successfully.' });
 });
 
 export default router;

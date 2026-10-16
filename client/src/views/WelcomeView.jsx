@@ -16,6 +16,7 @@ import confetti from 'canvas-confetti';
 export default function WelcomeView({
   onGetStarted,
   onExploreDemo,
+  onQuickDemo,
   onExploreIndia,
   onDiscoverEvents,
   onLogin,
@@ -194,7 +195,7 @@ export default function WelcomeView({
             </button>
 
             <button
-              onClick={onGetStarted}
+              onClick={onQuickDemo || onGetStarted}
               className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-full border-2 border-cream-canvas/60 hover:border-cream-canvas text-cream-canvas hover:bg-cream-canvas/10 font-bold text-xs sm:text-sm backdrop-blur-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-ochre-accent" />

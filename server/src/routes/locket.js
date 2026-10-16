@@ -7,10 +7,11 @@
 
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
+import fs from 'fs';
 import { db } from '../db/index.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { requireFields, isValidUrl } from '../middleware/validate.js';
-import { uploadLocketAudio } from '../lib/uploads.js';
+import { uploadLocketAudio, validateAudioSignature } from '../lib/uploads.js';
 import { emitToUser, emitToConnections } from '../realtime/socket.js';
 import { getConnectedFriendIds } from '../lib/matching.js';
 
@@ -82,6 +83,8 @@ function formatMoment(row) {
     phoneticText: row.phonetic_text,
     meaning: row.meaning,
     provenance: row.provenance,
+    recipeQuestion: row.recipe_question || '',
+    recipe_question: row.recipe_question || '',
     audioUrl: row.audio_url,
     imageUrl: row.image_url,
     image: row.image_url,
@@ -208,6 +211,8 @@ router.get('/mine', requireAuth, (req, res) => {
       phonetic_text: row.phonetic_text,
       meaning: row.meaning,
       provenance: row.provenance,
+      recipeQuestion: row.recipe_question || '',
+      recipe_question: row.recipe_question || '',
       audioUrl: row.audio_url,
       audio_url: row.audio_url,
       imageUrl: row.image_url,
@@ -254,16 +259,33 @@ router.get('/', optionalAuth, (req, res) => {
   res.json(rows.map(formatMoment));
 });
 
+const userAudioUploads = new Map();
+function checkUserAudioCap(userId) {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const limit = 20;
+  const timestamps = (userAudioUploads.get(userId) || []).filter(t => now - t < windowMs);
+  if (timestamps.length >= limit) return false;
+  timestamps.push(now);
+  userAudioUploads.set(userId, timestamps);
+  return true;
+}
+
 // ── POST /api/locket/audio — upload a real voice recording ───────────────────
-// multipart/form-data, field name "audio". Returns { url, duration } where
-// `url` is a server-relative path suitable for use as `audio_url` when
-// creating a locket moment, and is playable directly via an <audio> tag.
-// NOTE: No auth required — audio blobs are identified only by UUID filename
-// and cannot be enumerated. Auth is enforced when attaching to a locket moment.
-router.post('/audio', (req, res) => {
+// multipart/form-data, field name "audio". Requires auth.
+router.post('/audio', requireAuth, (req, res) => {
+  if (!checkUserAudioCap(req.user.id)) {
+    return res.status(429).json({ error: 'Hourly audio upload limit exceeded' });
+  }
+
   uploadLocketAudio.single('audio')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Audio upload failed' });
     if (!req.file) return res.status(400).json({ error: 'No audio file received' });
+
+    if (!validateAudioSignature(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(400).json({ error: 'Invalid audio file format or signature' });
+    }
 
     const durationSeconds = Number(req.body?.duration_seconds) || 0;
     const minutes = Math.floor(durationSeconds / 60);
@@ -290,6 +312,7 @@ router.post('/',
     const recipient_id = req.body.recipient_id || req.body.recipientId || null;
     const phonetic_text = req.body.phonetic_text || req.body.phoneticText || '';
     const provenance = req.body.provenance || '';
+    const recipe_question = req.body.recipe_question || req.body.recipeQuestion || '';
     let audio_url = req.body.audio_url || req.body.audioUrl || '';
     const image_url = req.body.image_url || req.body.imageUrl || req.body.image || '';
     const audio_duration = req.body.audio_duration || req.body.audioDuration || '';
@@ -339,13 +362,14 @@ router.post('/',
     db.prepare(`
       INSERT INTO locket_moments
         (id, sender_id, recipient_id, moment_type, title, vernacular_text, phonetic_text,
-         meaning, provenance, audio_url, image_url, audio_duration, timestamp_iso)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+         meaning, provenance, audio_url, image_url, audio_duration, recipe_question, timestamp_iso)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       id, senderId, validRecipientId, moment_type, resolvedTitle,
       vernacular_text.slice(0, 500), phonetic_text.slice(0, 200),
       meaning.slice(0, 2000), provenance.slice(0, 500),
       audio_url, image_url, audio_duration.slice(0, 20),
+      recipe_question.slice(0, 1000),
       timestamp_iso
     );
 
@@ -386,9 +410,11 @@ router.post('/:id/react', requireAuth, requireFields('text'), (req, res) => {
   if (text.length > 200) return res.status(400).json({ error: 'Reaction text too long (max 200)' });
 
   const id = uuid();
-  db.prepare('INSERT INTO locket_reactions (id, moment_id, user_id, text) VALUES (?,?,?,?)').run(
-    id, moment.id, req.user.id, text.slice(0, 200)
-  );
+  db.prepare(`
+    INSERT INTO locket_reactions (id, moment_id, user_id, text)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(moment_id, user_id) DO UPDATE SET text = excluded.text, reacted_at = datetime('now')
+  `).run(id, moment.id, req.user.id, text.slice(0, 200));
 
   // Notify sender of reaction
   emitToUser(moment.sender_id, 'locket:reaction', { momentId: moment.id, reaction: { id, text, userId: req.user.id } });

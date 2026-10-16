@@ -63,7 +63,11 @@ This is not a student-only problem. It is a shared human experience for **anyone
 - Typing indicators (ephemeral — never persisted), online presence tracking, and unread counts.
 - Message thread history capped at **200 messages** per conversation pair per fetch.
 
-### 6. Interactive API Documentation
+### 6. Culture & Heritage National Atlas
+- Dedicated exploration of sacred landmarks, temples, cathedrals, mosques, monasteries, historic monuments, living folk theatre, and hidden craft villages across India.
+- Permanent site vs. scheduled cultural event distinctions, visiting hours, visitor customs & dress/photography guidelines, and verified authority attribution.
+
+### 7. Interactive API Documentation
 - Full OpenAPI 3.0 specification served at `/api/docs` via Swagger UI.
 
 ---
@@ -74,8 +78,8 @@ This is not a student-only problem. It is a shared human experience for **anyone
 TEAMAPPEX/
 ├── client/                     # React 19 + Vite 8 frontend
 │   ├── src/
-│   │   ├── components/         # Reusable UI (PersonCard, EventCard, CultureLocketCard, Map)
-│   │   ├── views/              # Page views (Home, Atlas, People, Locket, Communities, Messages)
+│   │   ├── components/         # Reusable UI (PersonCard, EventCard, CultureLocketCard, Map, HeritageDetailModal)
+│   │   ├── views/              # Page views (Home, Atlas, Heritage, People, Locket, Communities, Messages)
 │   │   ├── services/           # REST API client & Socket.IO real-time client
 │   │   └── utils/              # Identicons, image fallbacks, category presets
 │   └── package.json
@@ -84,7 +88,7 @@ TEAMAPPEX/
 │   │   ├── db/                 # Node 22 native DatabaseSync singleton, schema & seed
 │   │   ├── middleware/         # JWT auth, validation, rate limiting, error handling
 │   │   ├── realtime/           # Socket.IO connection & event handlers
-│   │   └── routes/             # auth · events · people · locket · messages · communities · docs
+│   │   └── routes/             # auth · events · people · locket · messages · communities · heritage · food · ads · docs
 │   └── package.json
 ├── scripts/                    # dev.ps1 automated setup & launcher
 ├── .env.example                # Environment variable template

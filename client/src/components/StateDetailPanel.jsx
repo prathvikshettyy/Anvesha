@@ -2,8 +2,10 @@ import React from 'react';
 import { CULTURAL_ART_REGISTRY } from '../data/culturalArtRegistry';
 import { PIN_CATEGORIES } from './IllustratedPin';
 import { matchesEventState } from '../data/indiaGeoData';
-import { Calendar, MapPin, Bookmark, Users, CheckCircle2, ChevronRight, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Bookmark, Users, CheckCircle2, ChevronRight, ExternalLink, Utensils } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import LocalFoodFlavours from './LocalFoodFlavours';
+import { AdSlot } from './SponsoredCard';
 
 function getPlatformBadge(evt) {
   const p = evt.sourcePlatform || (
@@ -63,6 +65,8 @@ export default function StateDetailPanel({
   onToggleSave,
   onSelectEvent
 }) {
+  const [panelTab, setPanelTab] = React.useState('events'); // 'events' | 'food'
+
   const reg = selectedStateId ? CULTURAL_ART_REGISTRY[selectedStateId] : null;
 
   const stateEvents = events.filter(e => {
@@ -148,11 +152,57 @@ export default function StateDetailPanel({
         </div>
       )}
 
-      {/* Events List in State */}
-      <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 max-h-[620px]">
+      {/* Tab Switcher: Gatherings vs Taste the Local Flavours */}
+      <div className="flex items-center gap-2 border-b border-blush-surface/70 pb-2">
+        <button
+          onClick={() => setPanelTab('events')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            panelTab === 'events'
+              ? 'bg-terra-primary text-cream-canvas shadow-xs'
+              : 'bg-surface-container text-cocoa-text/70 hover:bg-blush-surface/50'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Gatherings ({stateEvents.length})</span>
+        </button>
+
+        <button
+          onClick={() => setPanelTab('food')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            panelTab === 'food'
+              ? 'bg-terra-primary text-cream-canvas shadow-xs'
+              : 'bg-surface-container text-cocoa-text/70 hover:bg-blush-surface/50'
+          }`}
+        >
+          <Utensils className="w-3.5 h-3.5" />
+          <span>Taste Local Flavours</span>
+        </button>
+      </div>
+
+      {panelTab === 'food' ? (
+        <div className="flex-1 overflow-y-auto pr-1 max-h-[620px]">
+          <LocalFoodFlavours
+            stateId={selectedStateId}
+            cityName={selectedStateId ? reg?.stateName : 'India'}
+            contextTitle={reg?.stateName || selectedStateName || 'India'}
+            onSelectEvent={onSelectEvent}
+            events={events}
+          />
+        </div>
+      ) : (
+        /* Events List in State */
+        <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 max-h-[620px]">
         <div className="flex items-center justify-between text-xs font-bold text-cocoa-text/70">
           <span>{selectedStateId ? `Gatherings in ${reg?.stateName || selectedStateName}` : 'Featured Countrywide Gatherings'} ({stateEvents.length})</span>
         </div>
+
+        {/* Location-based sponsored cultural promotion */}
+        <AdSlot
+          placement="MAP"
+          state={selectedStateId || 'all'}
+          format="compact"
+          onSelectEvent={onSelectEvent}
+        />
 
         {stateEvents.length === 0 ? (
           <div className="p-8 text-center rounded-2xl bg-surface-container/50 border border-blush-surface text-xs text-cocoa-text/70">
@@ -241,6 +291,7 @@ export default function StateDetailPanel({
           })
         )}
       </div>
+      )}
     </div>
   );
 }

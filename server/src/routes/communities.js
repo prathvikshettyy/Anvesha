@@ -28,15 +28,23 @@ router.get('/', optionalAuth, (req, res) => {
       c.location,
       c.image_url,
       c.icon,
+      c.created_by,
       (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count,
       c.created_at,
       ${currentUserId ? `(SELECT COUNT(*) FROM community_members cm WHERE cm.community_id = c.id AND cm.user_id = ?) > 0 AS is_member` : '0 AS is_member'},
       e.title AS event_title,
       e.date_label AS event_date,
       e.venue AS event_venue,
-      e.image_url AS event_image
+      e.image_url AS event_image,
+      u.id AS organizer_id,
+      u.name AS organizer_name,
+      u.handle AS organizer_handle,
+      u.avatar_url AS organizer_avatar,
+      u.bio AS organizer_bio,
+      u.city AS organizer_city
     FROM communities c
     LEFT JOIN events e ON e.id = c.event_id
+    LEFT JOIN users u ON u.id = COALESCE(c.created_by, (SELECT user_id FROM community_members WHERE community_id = c.id AND role = 'ADMIN' LIMIT 1))
     WHERE 1=1
   `;
 
@@ -85,6 +93,16 @@ router.get('/', optionalAuth, (req, res) => {
       memberCount: r.member_count,
       isMember: Boolean(r.is_member),
       createdAt: r.created_at,
+      createdBy: r.created_by,
+      organizerUser: r.organizer_id ? {
+        id: r.organizer_id,
+        name: r.organizer_name,
+        handle: r.organizer_handle,
+        avatar: r.organizer_avatar,
+        bio: r.organizer_bio,
+        city: r.organizer_city,
+        role: 'Circle Organiser & Lead Admin'
+      } : null,
       event: r.event_id ? {
         id: r.event_id,
         title: r.event_title,
@@ -115,20 +133,27 @@ router.get('/:id', optionalAuth, (req, res) => {
       e.date_label AS event_date,
       e.venue AS event_venue,
       e.image_url AS event_image,
-      e.category_label AS event_category
+      e.category_label AS event_category,
+      u.id AS organizer_id,
+      u.name AS organizer_name,
+      u.handle AS organizer_handle,
+      u.avatar_url AS organizer_avatar,
+      u.bio AS organizer_bio,
+      u.city AS organizer_city
     FROM communities c
     LEFT JOIN events e ON e.id = c.event_id
+    LEFT JOIN users u ON u.id = COALESCE(c.created_by, (SELECT user_id FROM community_members WHERE community_id = c.id AND role = 'ADMIN' LIMIT 1))
     WHERE c.id = ? OR c.slug = ?
   `).get(...(currentUserId ? [currentUserId, currentUserId, id, id] : [id, id]));
 
   if (!comm) return res.status(404).json({ error: 'Community not found' });
 
-  // Get sample of active members
+  // Get sample of active members who have opted into discoverability
   const members = db.prepare(`
     SELECT u.id, u.name, u.handle, u.avatar_url, u.city, cm.role, cm.joined_at
     FROM community_members cm
     JOIN users u ON u.id = cm.user_id
-    WHERE cm.community_id = ?
+    WHERE cm.community_id = ? AND u.is_discoverable = 1
     ORDER BY cm.role = 'ADMIN' DESC, cm.joined_at DESC
     LIMIT 20
   `).all(comm.id);
@@ -149,6 +174,16 @@ router.get('/:id', optionalAuth, (req, res) => {
     isMember: Boolean(comm.is_member),
     userRole: comm.user_role || null,
     createdAt: comm.created_at,
+    createdBy: comm.created_by,
+    organizerUser: comm.organizer_id ? {
+      id: comm.organizer_id,
+      name: comm.organizer_name,
+      handle: comm.organizer_handle,
+      avatar: comm.organizer_avatar,
+      bio: comm.organizer_bio,
+      city: comm.organizer_city,
+      role: 'Circle Organiser & Lead Admin'
+    } : null,
     event: comm.event_id ? {
       id: comm.event_id,
       title: comm.event_title,
@@ -213,10 +248,19 @@ router.post('/:id/leave', requireAuth, (req, res) => {
 });
 
 // ── GET /api/communities/:id/messages — group discussion messages ────────────
-router.get('/:id/messages', optionalAuth, (req, res) => {
+router.get('/:id/messages', requireAuth, (req, res) => {
   const { id } = req.params;
   const comm = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id);
   if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  // Enforce server-side membership permission
+  const isMember = db.prepare(`
+    SELECT 1 FROM community_members WHERE community_id = ? AND user_id = ?
+  `).get(comm.id, req.user.id);
+
+  if (!isMember) {
+    return res.status(403).json({ error: 'You must join this community to view discussion messages.' });
+  }
 
   const rows = db.prepare(`
     SELECT
@@ -316,6 +360,56 @@ router.post('/:id/report', requireAuth, requireFields('reason'), (req, res) => {
     success: true,
     message: 'Thank you for your report. Our cultural community guardians will review this promptly.'
   });
+});
+
+// ── PATCH /api/communities/:id — edit community (creator or admin only) ───────
+router.patch('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const comm = db.prepare('SELECT * FROM communities WHERE id = ? OR slug = ?').get(id, id);
+  if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(comm.id, req.user.id);
+  const isOwner = comm.created_by === req.user.id || member?.role === 'ADMIN';
+  if (!isOwner) {
+    return res.status(403).json({ error: 'Only the community creator or admin can edit this community' });
+  }
+
+  const allowed = ['name', 'description', 'location', 'image_url', 'icon'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  if (updates.name && updates.name.length > 200) {
+    return res.status(400).json({ error: 'Name too long (max 200 chars)' });
+  }
+  if (updates.description && updates.description.length > 2000) {
+    return res.status(400).json({ error: 'Description too long (max 2000 chars)' });
+  }
+
+  if (Object.keys(updates).length > 0) {
+    const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+    db.prepare(`UPDATE communities SET ${sets} WHERE id = @id`).run({ ...updates, id: comm.id });
+  }
+
+  const updated = db.prepare('SELECT * FROM communities WHERE id = ?').get(comm.id);
+  res.json(updated);
+});
+
+// ── DELETE /api/communities/:id — delete community (creator or admin only) ─────
+router.delete('/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const comm = db.prepare('SELECT * FROM communities WHERE id = ? OR slug = ?').get(id, id);
+  if (!comm) return res.status(404).json({ error: 'Community not found' });
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(comm.id, req.user.id);
+  const isOwner = comm.created_by === req.user.id || member?.role === 'ADMIN';
+  if (!isOwner) {
+    return res.status(403).json({ error: 'Only the community creator or admin can delete this community' });
+  }
+
+  db.prepare('DELETE FROM communities WHERE id = ?').run(comm.id);
+  res.json({ success: true, message: 'Community deleted successfully' });
 });
 
 export default router;

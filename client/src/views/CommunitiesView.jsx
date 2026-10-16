@@ -38,7 +38,9 @@ export default function CommunitiesView({
   currentUser,
   isAuthenticated,
   onSelectEvent,
-  initialActiveCommunityId = null
+  initialActiveCommunityId = null,
+  onContactOrganiser,
+  people = []
 }) {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -252,6 +254,8 @@ export default function CommunitiesView({
                 community={comm}
                 onSelect={setActiveCommunity}
                 onJoinToggle={handleJoinToggle}
+                onContactOrganiser={onContactOrganiser}
+                people={people}
               />
             ))}
           </div>
@@ -281,6 +285,8 @@ export default function CommunitiesView({
                 community={comm}
                 onSelect={setActiveCommunity}
                 onJoinToggle={handleJoinToggle}
+                onContactOrganiser={onContactOrganiser}
+                people={people}
               />
             ))}
           </div>
@@ -297,6 +303,8 @@ export default function CommunitiesView({
           isAuthenticated={isAuthenticated}
           onJoinToggle={handleJoinToggle}
           onSelectEvent={onSelectEvent}
+          onContactOrganiser={onContactOrganiser}
+          people={people}
         />
       )}
     </div>
