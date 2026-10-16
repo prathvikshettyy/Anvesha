@@ -8,7 +8,6 @@ import confetti from 'canvas-confetti';
 import { getEventImage, handleEventImageError } from '../utils/eventPlaceholder';
 import { generateIdenticon } from '../utils/identicon';
 import * as api from '../services/api';
-import LocalFoodFlavours from './LocalFoodFlavours';
 import { EVENT_ORGANIZER_MAP, INITIAL_PEOPLE } from '../data/initialData';
 
 const RATING_LABELS = {
@@ -553,15 +552,6 @@ export default function EventDetailModal({
             </div>
           )}
 
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-          {/* LOCAL FOOD DISCOVERY: TASTE THE LOCAL FLAVOURS                   */}
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-          <LocalFoodFlavours
-            eventId={event.id}
-            stateId={event.stateId || event.state_id}
-            cityName={event.city || event.neighborhood || 'Local Area'}
-            contextTitle={event.title}
-          />
 
           {/* ═══════════════════════════════════════════════════════════════════ */}
           {/* RATINGS & ATTENDEE FEEDBACK SECTION                               */}
