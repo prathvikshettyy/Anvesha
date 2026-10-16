@@ -291,6 +291,14 @@ export default function HomeView({
         </div>
       </div>
 
+      {/* Featured Sponsored Cultural Spotlight Banner */}
+      <AdSlot
+        placement="HOMEPAGE"
+        state={user.state || user.stateId || 'ALL'}
+        format="banner"
+        onSelectEvent={onSelectEvent}
+      />
+
       {/* 3. Top Highlight Row: Culture Locket Widget & Coming Up Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         

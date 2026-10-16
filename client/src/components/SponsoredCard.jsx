@@ -300,29 +300,34 @@ export function AdSlot({
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
 
-    api.ads.list({ placement, state, category, limit: 1 })
-      .then((items) => {
-        if (!isMounted) return;
-        if (Array.isArray(items) && items.length > 0) {
-          setActiveAd(items[0]);
-        } else if (fallbackAds.length > 0) {
-          setActiveAd(fallbackAds[0]);
-        } else {
-          setActiveAd(null);
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        if (fallbackAds.length > 0) setActiveAd(fallbackAds[0]);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+    const fetchAd = () => {
+      api.ads.list({ placement, state, category, limit: 5 })
+        .then((items) => {
+          if (!isMounted) return;
+          if (Array.isArray(items) && items.length > 0) {
+            setActiveAd(items[0]);
+          } else if (fallbackAds.length > 0) {
+            setActiveAd(fallbackAds[0]);
+          } else {
+            setActiveAd(null);
+          }
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          if (fallbackAds.length > 0) setActiveAd(fallbackAds[0]);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    };
+
+    fetchAd();
+    window.addEventListener('focus', fetchAd);
 
     return () => {
       isMounted = false;
+      window.removeEventListener('focus', fetchAd);
     };
   }, [placement, state, category]);
 

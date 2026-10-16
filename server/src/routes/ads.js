@@ -45,28 +45,28 @@ router.get('/', optionalAuth, (req, res) => {
       created_at AS createdAt
     FROM advertisements
     WHERE status = 'ACTIVE'
-      AND date('now') >= date(start_date)
-      AND date('now') <= date(end_date)
+      AND (start_date IS NULL OR start_date = '' OR date('now', 'localtime') >= date(start_date) OR date('now') >= date(start_date))
+      AND (end_date IS NULL OR end_date = '' OR date('now', 'localtime') <= date(end_date) OR date('now') <= date(end_date))
   `;
 
   const params = [];
 
   if (placement && placement !== 'ALL') {
-    sql += ` AND (placement = 'ALL' OR UPPER(placement) = UPPER(?))`;
+    sql += ` AND (UPPER(placement) = 'ALL' OR UPPER(placement) = UPPER(?))`;
     params.push(placement);
   }
 
   if (state && state !== 'ALL') {
-    sql += ` AND (target_state = 'ALL' OR LOWER(target_state) = LOWER(?))`;
+    sql += ` AND (UPPER(target_state) = 'ALL' OR LOWER(target_state) = LOWER(?))`;
     params.push(state);
   }
 
   if (category && category !== 'ALL') {
-    sql += ` AND LOWER(category) = LOWER(?)`;
+    sql += ` AND (LOWER(category) = 'all' OR LOWER(category) = LOWER(?))`;
     params.push(category);
   }
 
-  sql += ` ORDER BY RANDOM() LIMIT ?`;
+  sql += ` ORDER BY created_at DESC LIMIT ?`;
   params.push(Math.min(parseInt(limit, 10) || 10, 20));
 
   try {
