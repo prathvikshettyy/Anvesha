@@ -80,3 +80,10 @@ server/uploads/
 .dockerignore
 Dockerfile
 render.yaml
+
+# Tests & internal test suites
+tests/
+server/tests/
+**/tests/
+*.test.*
+*.spec.*

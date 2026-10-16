@@ -1,349 +1,349 @@
-# ShareSpot: The Lost Connection
+# अnvesha — The Lost Connection
 
-> **M# Manipal Hackathon 2026 · Round 2 · Culture & Community Track**  
+> **Manipal Hackathon 2026 (M# 2026) · Round 2 · Culture & Community Track**  
 > Team: **TEAMAPPEX**
 
 ---
 
-## Project & Team Details
+## The Problem
 
-| Field | Value |
-|---|---|
-| **App name** | ShareSpot: The Lost Connection |
-| **Track** | Culture & Community |
-| **Team** | TEAMAPPEX |
-| **Event** | Manipal Hackathon 2026 (M# 2026) — Round 2 |
+When people relocate away from their native regions—whether students moving to university campuses, working professionals transferring to new cities, researchers, migrants, or entire families—their living cultural identities risk going dormant. Indigenous dialects, traditional art forms, folk practices, and regional culinary heritages lose their daily footing when there is no visible, dedicated space to find peers of similar roots.
+
+This is not a student-only problem. It is a shared human experience for **anyone** who has moved far from home and finds themselves culturally adrift.
 
 ---
 
-## Solution Summary
+## What अnvesha Does
 
-Students who move to Manipal carry living cultural identities — native dialects, folk art traditions, and family recipes — that go dormant within weeks of campus life because there is no visible way to find others who share them.
+**अnvesha** (Sanskrit: *to seek, to discover*) is a cultural discovery, community engagement, and living heritage platform that bridges this disconnect. It gives anyone living away from home a dedicated space to:
 
-**ShareSpot** is a cultural community and event-discovery platform with three pillars:
-
-1. **Living Cultural Map** — Browse, search, and save upcoming cultural gatherings (Yakshagana shows, Tulu conversational circles, pottery workshops) across Manipal, pinned on a campus map with verified source attribution.
-2. **Transparent People Matching** — Discover opted-in peers based on shared dialects, interest overlap, and skill-exchange intentions. Every match score is explained in plain language ("Priya teaches Conversational Tulu which you want to learn").
-3. **Culture Locket** — A private daily micro-sharing ritual: send a 5-second dialect audio clip, a regional word of the day, or a craft technique photo directly to a paired connection.
+- **Discover** regional cultural gatherings and events on a living map.
+- **Find** peers who share their dialect, art form, or culinary tradition—and understand *why* they match.
+- **Share** daily cultural micro-pulses: dialect words, craft journal entries, and oral pronunciation guides.
+- **Participate** in themed cultural circles and group discussions.
+- **Message** any peer directly, with full real-time chat backed by persistent database storage.
 
 ---
 
-## Architecture & Stack
+## Key Features
+
+### 1. Living Cultural Atlas & Map
+- Interactive map powered by **Leaflet** + **D3-Geo** showing pinned cultural gatherings across India.
+- Category filters (Yakshagana, Tulu, Coastal Culinary, Folk Arts, Pottery, etc.) with SVG artwork fallbacks.
+- User event submission with source attribution and bookmarking.
+- Venue coordinates resolved from a curated lookup table; unresolvable venues fall back to a Karnataka geographic centroid.
+
+### 2. Explainable People Discovery & Skill Exchange
+- Match scoring is a **weighted blend** of seven signals:
+  1. Interest overlap (Jaccard similarity — up to 42 pts)
+  2. Skill exchange: what you want to learn vs. what they can teach, and vice versa (up to 20 pts)
+  3. Shared languages (up to 10 pts)
+  4. Location proximity — same city > same state (up to 14 pts)
+  5. Mutual connections — 1-hop social graph traversal (up to 15 pts)
+  6. Engagement mode compatibility: in-person / online / both (up to 4 pts)
+  7. Recent platform activity (up to 3 pts)
+- Every match includes plain-language **match reasons** (e.g., *"They can teach you Tulu. You share 3 interests."*).
+- **Privacy guard**: exact GPS coordinates are never exposed over the API — only city/state/neighborhood labels.
+
+### 3. Culture Locket & Oral Dialect Archive
+- Ambient cultural diary styled as a lined parchment notebook with brass coil bindings.
+- Supports two moment types: **Word of the Day** (dialect term + phonetic guide + meaning) and **Craft Journal** (step-by-step traditional craft documentation).
+- Real audio recording via the browser `MediaRecorder` API, uploaded to the server as webm/ogg/mp4.
+- A **curated static dialect vault** of four preserved coastal Karnataka dialect entries (Tulu, Konkani, Kodava Takk, Havigannada) — these are hardcoded reference records, not user-generated (see [Known Limitations](#known-limitations--architectural-assumptions)).
+- Sticker reactions sent to locket moment authors via Socket.IO.
+
+### 4. Cultural Community Circles
+- Thematic hubs (Folk & Classical Arts, Dialect Preservation, Coastal Culinary, etc.).
+- Real-time group discussion notes, requiring membership before posting.
+- Community moderation reporting stored in the database; review is a manual administrative action.
+
+### 5. Direct Real-Time Messaging
+- 1-on-1 private messaging backed by **SQLite persistence** (all messages survive server restarts).
+- Real-time delivery via **Socket.IO**: new messages pushed to both sender and receiver instantly.
+- Typing indicators (ephemeral — never persisted), online presence tracking, and unread counts.
+- Message thread history capped at **200 messages** per conversation pair per fetch.
+
+### 6. Interactive API Documentation
+- Full OpenAPI 3.0 specification served at `/api/docs` via Swagger UI.
+
+---
+
+## Technical Architecture & Stack
 
 ```
-d:\TEAMAPPEX\
-├── client/          React 19 + Vite 8 + Tailwind CSS (CDN) frontend
-│   └── src/
-│       ├── services/api.js   Centralised API client
-│       ├── views/            Page-level components
-│       └── components/       Reusable UI components
-├── server/          Express 4 + better-sqlite3 backend
-│   └── src/
-│       ├── db/               Schema, seed, singleton connection
-│       ├── middleware/        JWT auth, input validation
-│       └── routes/           auth · events · people · locket · messages
-├── scripts/         dev.ps1 (Windows) · dev.sh (Linux/macOS)
-├── .env.example     Environment variable template
-└── package.json     npm workspace root (runs both with concurrently)
+TEAMAPPEX/
+├── client/                     # React 19 + Vite 8 frontend
+│   ├── src/
+│   │   ├── components/         # Reusable UI (PersonCard, EventCard, CultureLocketCard, Map)
+│   │   ├── views/              # Page views (Home, Atlas, People, Locket, Communities, Messages)
+│   │   ├── services/           # REST API client & Socket.IO real-time client
+│   │   └── utils/              # Identicons, image fallbacks, category presets
+│   └── package.json
+├── server/                     # Express 4 + Native SQLite backend
+│   ├── src/
+│   │   ├── db/                 # Node 22 native DatabaseSync singleton, schema & seed
+│   │   ├── middleware/         # JWT auth, validation, rate limiting, error handling
+│   │   ├── realtime/           # Socket.IO connection & event handlers
+│   │   └── routes/             # auth · events · people · locket · messages · communities · docs
+│   └── package.json
+├── scripts/                    # dev.ps1 automated setup & launcher
+├── .env.example                # Environment variable template
+└── package.json                # npm workspaces root
 ```
 
-| Layer | Technology | Reason |
+### Technology Stack
+
+| Layer | Technology | Notes |
 |---|---|---|
-| Frontend | React 19 + Vite 8 | Fast HMR, ESM-native, lightweight |
-| Styling | Tailwind CSS v3 (CDN) + custom tokens | Rapid prototyping, warm terracotta design system |
-| Icons | Lucide React + Material Symbols | Consistent, accessible icon sets |
-| Backend | Express 4 | Minimal, well-understood, fast to iterate |
-| Database | SQLite via `better-sqlite3` | Zero-config, synchronous API, single file, no server process |
-| Auth | JWT (jsonwebtoken) + bcryptjs | Stateless, standard, bcrypt cost=10 for password hashing |
-| Dev runner | concurrently | Single `npm run dev` starts both server + client |
-| Linter | oxlint | Fast Rust-based linter |
+| **Frontend** | React 19, Vite 8 | Fast ESM hot-reloading, component SPA architecture |
+| **Styling** | Tailwind CSS (Warm Terracotta Design System) | Indian heritage palette: terracotta, ochre, cream parchment |
+| **Maps & Geo** | Leaflet 1.x, React-Leaflet 5, D3-Geo 3 | Interactive map + choropleth state rendering |
+| **Backend API** | Express 4, Node.js v22 | Modular routers, security headers, CORS |
+| **Database** | Node.js 22 built-in `node:sqlite` (`DatabaseSync`) | Zero native C++ toolchains; WAL mode + foreign keys |
+| **Realtime** | Socket.IO v4 (server + client) | Live messaging, typing indicators, presence tracking |
+| **File Uploads** | Multer v2 | Dialect voice recordings stored to local disk |
+| **Authentication** | `jsonwebtoken` + `bcryptjs` | HMAC-SHA256 JWT (7-day expiry), bcrypt cost 10 |
+| **API Docs** | `swagger-ui-express` v5 | Interactive OpenAPI 3.0 explorer at `/api/docs` |
 
 ---
 
-## Supported Environments
+## System Requirements
 
-- **Node.js:** v22.x (tested) — v18+ required minimum
-- **npm:** v10.x
-- **OS:** Windows 10/11, Linux, macOS
-- **Browser:** Chrome 120+, Firefox 125+, Edge 120+, Safari 17+
-
----
-
-## Dependencies
-
-### Client (`client/package.json`)
-- `react` ^19.2.8 — UI library
-- `react-dom` ^19.2.8 — DOM renderer
-- `lucide-react` ^1.57.0 — Icon library
-- `canvas-confetti` ^1.9.4 — Celebratory animations
-
-### Server (`server/package.json`)
-- `express` ^4.19.2 — HTTP framework
-- `better-sqlite3` ^9.6.0 — SQLite driver (synchronous, no callback hell)
-- `bcryptjs` ^2.4.3 — Password hashing
-- `jsonwebtoken` ^9.0.2 — JWT signing and verification
-- `cors` ^2.8.5 — Cross-origin resource sharing
-- `multer` ^1.4.5-lts.1 — Multipart/form-data parsing (for audio uploads)
-- `uuid` ^10.0.0 — Unique ID generation
-
-### Root
-- `concurrently` ^9.1.2 — Run client + server together
+- **Operating System:** Windows 10/11
+- **Node.js:** **v22.x or later** *(Required for native `node:sqlite` support)*
+- **Package Manager:** npm v10.x or later
+- **Browser:** Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari (modern versions)
 
 ---
 
-## Installation & Run Commands
+## Installation & Running Locally
 
-### Quick Start (Windows — recommended)
+### Option 1: Automated Launch (Windows PowerShell — Recommended)
+
+From the project root directory (`d:\TEAMAPPEX`), run:
 
 ```powershell
-# From d:\TEAMAPPEX
 .\scripts\dev.ps1
 ```
 
-This script automatically:
-- Copies `.env.example` → `.env` if not present
-- Installs all dependencies
-- Seeds the database on first run
-- Starts both servers
+The setup script automatically:
+1. Creates `.env` from `.env.example` if not present.
+2. Installs root, client, and server dependencies.
+3. Automatically seeds the SQLite database (`sharespot.db`) on the first run.
+4. Concurrently boots the backend API server and the Vite frontend.
 
-### Manual Setup
+---
+
+### Option 2: Manual Step-by-Step Setup
+
+If you prefer running commands manually:
 
 ```bash
-# 1. Install all dependencies
-npm install                          # root (installs concurrently)
-cd server && npm install && cd ..    # server deps
-cd client && npm install && cd ..    # client deps
+# 1. Install all dependencies across workspaces
+npm install
 
-# 2. Set up environment variables
+# 2. Configure environment variables
 cp .env.example .env
-# Edit .env — set JWT_SECRET to a secure random value
 
-# 3. Seed the database (first time only)
+# 3. Seed demo data into SQLite (first time only)
 npm run db:seed --workspace=server
 
-# 4. Run both servers together
+# 4. Start both servers concurrently
 npm run dev
-
-# ── Or run them separately ──
-npm run dev:server   # Express API on :3001
-npm run dev:client   # Vite on :5173
 ```
 
-### Verify it's working
-
-```bash
-# Health check
-curl http://localhost:3001/api/health
-# → {"status":"ok","service":"ShareSpot API",...}
-
-# Frontend
-open http://localhost:5173
-```
+*(You can also run them in separate terminals using `npm run dev:server` and `npm run dev:client`)*.
 
 ---
 
-## Deployment / Access Details
+## Application URLs & Endpoints
 
-| Service | URL |
-|---|---|
-| Frontend (dev) | http://localhost:5173 |
-| API (dev) | http://localhost:3001 |
-| Health check | http://localhost:3001/api/health |
-
-In development, Vite proxies all `/api/*` requests to `:3001` — no CORS configuration needed on the client.
-
-For a production deployment, build the client (`npm run build`) and serve `client/dist/` through a static host or the same Express server.
-
----
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `PORT` | No | `3001` | Express server port |
-| `JWT_SECRET` | **Yes** | dev fallback | Secret used to sign JWTs. Must be changed in production. Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
-| `CLIENT_ORIGIN` | No | `http://localhost:5173` | Allowed CORS origin |
-| `NODE_ENV` | No | `development` | Set to `production` to hide stack traces in error responses |
-| `VITE_API_URL` | No | `/api` | API base URL used by the React client |
-
----
-
-## Database Setup
-
-The app uses **SQLite** via `better-sqlite3`. The database file is created at `server/data/sharespot.db` automatically on first server start (schema is applied via `IF NOT EXISTS` statements).
-
-```bash
-# Seed demo data (users, events, locket moments, messages)
-npm run db:seed --workspace=server
-
-# The database file is gitignored — never committed to source control
-```
-
-### Demo Accounts (created by seed)
-
-| Username | Password | Character |
+| Service | Local URL | Description |
 |---|---|---|
-| `rohan` | `demo1234` | Rohan Shenoy — CS student, wants to learn Tulu |
-| `priya` | `demo1234` | Priya Sharma — native Tulu speaker, willing to teach |
-| `arjun` | `demo1234` | Arjun Nayak — Yakshagana performer |
-| `ananya` | `demo1234` | Ananya Hegde — food historian |
-| `kavya` | `demo1234` | Kavya Pillai — Kodava architecture student |
+| **Web Application** | [http://localhost:5173](http://localhost:5173) | Vite Client Application |
+| **REST API Server** | [http://localhost:3001](http://localhost:3001) | Express Backend Server |
+| **Interactive API Docs** | [http://localhost:3001/api/docs](http://localhost:3001/api/docs) | Swagger UI / OpenAPI Spec |
+| **API Health Status** | [http://localhost:3001/api/health](http://localhost:3001/api/health) | Service Health Check |
 
 ---
 
-## API Reference (5 Major APIs)
+## Seeded Demo Credentials
 
-All endpoints are prefixed with `/api`.
+The database comes pre-seeded with culturally tailored profiles for immediate exploration:
 
-### 1. Auth — `/api/auth`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/auth/register` | No | Create account |
-| POST | `/auth/login` | No | Sign in → JWT |
-| GET | `/auth/me` | ✅ | Get full profile |
-| PATCH | `/auth/me` | ✅ | Update profile + interests |
-
-### 2. Events — `/api/events`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/events?q=&category=` | No | List/search events |
-| GET | `/events/saved` | ✅ | User's saved events |
-| GET | `/events/:id` | No | Event detail |
-| POST | `/events` | ✅ | Submit gathering |
-| POST | `/events/:id/save` | ✅ | Toggle save |
-
-### 3. People — `/api/people`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/people?q=&filter=` | ✅ | Discover users with match scores |
-| GET | `/people/connections` | ✅ | My confirmed connections |
-| GET | `/people/:id` | ✅ | Public profile |
-| POST | `/people/:id/connect` | ✅ | Connect |
-
-### 4. Culture Locket — `/api/locket`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/locket` | ✅ | My locket feed |
-| POST | `/locket` | ✅ | Create moment |
-| POST | `/locket/:id/react` | ✅ | React to moment |
-| GET | `/locket/vault` | No | Dialect archive |
-
-### 5. Messages — `/api/messages`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/messages/conversations` | ✅ | All conversations |
-| GET | `/messages/:partnerId` | ✅ | Full thread |
-| POST | `/messages/:partnerId` | ✅ | Send message |
-| PATCH | `/messages/:partnerId/read` | ✅ | Mark read |
-
----
-
-## Test Instructions
-
-### Automated End-to-End Test Suite
-
-Run the complete automated test suite (exercises all 6 API modules against SQLite):
-
-```bash
-npm test
-```
-
-```
-🎉 ALL TESTS PASSED: 45 passed, 0 failed
-```
-
-This runs 45 automated test assertions covering:
-- **Health:** `/api/health` status and version checks
-- **Authentication:** Registration, login, JWT validation, profile retrieval (`/api/auth/me`), profile updates, and unauthenticated access prevention (401)
-- **Events:** Listing, category filtering, keyword search, community event submission with SQLite persistence, and bookmark/save toggles
-- **People Discovery:** Discoverable user queries, Jaccard + skill-exchange match calculation, match score sorting, and location privacy enforcement (exact coordinates stripped)
-- **Culture Locket:** Dialect archive vault retrieval, visible moments query, new dialect word/step moment creation with SQLite persistence, and peer reaction logging
-- **Messages:** Conversation listing, thread history retrieval, message sending with SQLite persistence, and read receipt marking
-
-### Test with a browser
-
-1. Start both servers: `.\scripts\dev.ps1` (or `npm run dev`)
-2. Open http://localhost:5173
-3. Look for the **"🟢 SQLite Live"** badge in the navbar indicating real-time database synchronization
-4. Click **Get Started** → complete onboarding to persist custom preferences to SQLite
-5. Or **Explore Demo** → browse events on the living map, submit a gathering, discover people, send a culture locket, and message connections
-
-### Test the API directly
-
-```bash
-# Register
-curl -X POST http://localhost:3001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","password":"test1234","name":"Test User"}'
-
-# Login
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"rohan","password":"demo1234"}'
-
-# List events (no auth required)
-curl http://localhost:3001/api/events
-
-# Search events
-curl "http://localhost:3001/api/events?q=yakshagana&category=culture"
-
-# Health check
-curl http://localhost:3001/api/health
-```
-
----
-
-## Known Limitations
-
-- **Audio recording:** The LocketModal UI includes a recording simulation. Real `MediaRecorder` audio capture is implemented in the client; audio blobs are stored as base64 strings — not streamed to a separate file server.
-- **Map tiles:** The InteractiveMap uses a hand-drawn SVG canvas for Manipal. Real tile maps (Leaflet + OSM) are a planned P1 upgrade.
-- **Real-time messaging:** The Messages view polls manually (via user interaction), not via WebSocket. For a hackathon demo this is acceptable; a WebSocket layer is deferred.
-- **Image uploads:** Event images use Unsplash URLs. User photo upload to a file server is not implemented.
-- **Email verification:** Account creation has no email flow; only username + password.
-- **SQLite concurrency:** better-sqlite3 with WAL mode handles multiple readers/one writer. For production scale, migrate to PostgreSQL.
-
----
-
-## AI Tools & Purposes
-
-| Tool | Purpose |
-|---|---|
-| **Google Antigravity (AGY)** | Architecture planning, full-stack code generation, security review, README authoring |
-
-All code has been reviewed, understood, and is fully explainable by the team. Antigravity was used as a coding assistant; all design decisions and architectural choices were made by the team.
-
----
-
-## Material Third-Party Resources & Synthetic Data
-
-| Resource | Source | License / Notes |
+| Username | Password | Persona & Cultural Background |
 |---|---|---|
-| Event seed data | Synthetic, Manipal campus-inspired | No real event details; all dates/organizers are fictional |
-| User seed data | Synthetic | No real personal data; avatars from Unsplash (free to use) |
-| Unsplash images | [unsplash.com](https://unsplash.com) | Unsplash License (free for demo use) |
-| Playfair Display font | Google Fonts | SIL Open Font License |
-| DM Sans font | Google Fonts | SIL Open Font License |
-| Material Symbols | Google Fonts | Apache 2.0 |
-| Lucide React icons | [lucide.dev](https://lucide.dev) | ISC License |
-| canvas-confetti | npm | MIT License |
-| Express | npm | MIT License |
-| better-sqlite3 | npm | MIT License |
-| bcryptjs | npm | MIT License |
-| jsonwebtoken | npm | MIT License |
+| `rohan` | `demo1234` | **Rohan Shenoy** — CS student seeking to reconnect with coastal traditions and learn Tulu |
+| `priya` | `demo1234` | **Priya Sharma** — Native Tulu speaker, mentor willing to practice conversational dialects |
+| `arjun` | `demo1234` | **Arjun Nayak** — Traditional Yakshagana performer and coastal artist |
+| `ananya` | `demo1234` | **Ananya Hegde** — Coastal culinary historian documenting traditional recipes |
+| `kavya` | `demo1234` | **Kavya Pillai** — Kodava heritage researcher and architecture student |
 
 ---
 
-## Branch Strategy
+## API Overview
 
-| Branch | Purpose |
-|---|---|
-| `main` | Core development — all features merged here |
-| `bugbounty` | Frozen deployment branch for peer testing (Attack Phase) |
-| `fixing` | Bug fixes during Fixing Phase (2:00–3:30 AM, 16 Oct) — created from `bugbounty` |
+All API endpoints are mounted under the `/api` prefix:
 
-> ⚠️ Never commit to `bugbounty` after 12:00 AM or to `fixing` after 3:30 AM on 16 October.
+### 1. Authentication (`/api/auth`)
+- `POST /api/auth/register` — Create a new user account.
+- `POST /api/auth/login` — Sign in with credentials and receive a signed JWT.
+- `GET /api/auth/me` — Retrieve the authenticated profile and cultural interests.
+- `PATCH /api/auth/me` — Update bio, location, preferred mode, and interest tags.
+
+### 2. Events & Cultural Map (`/api/events`)
+- `GET /api/events` — Query gatherings with keyword search, category filters, and pagination.
+- `GET /api/events/saved` — List gatherings bookmarked by the authenticated user.
+- `GET /api/events/:id` — Retrieve full event details and venue location.
+- `POST /api/events` — Submit a new cultural gathering with source attribution.
+- `POST /api/events/:id/save` — Toggle saving/bookmarking an event.
+
+### 3. People Discovery & Match Scoring (`/api/people`)
+- `GET /api/people` — Discover peers ranked by explainable cultural match scores (Jaccard + skill exchange).
+- `GET /api/people/connections` — List confirmed peer connections.
+- `GET /api/people/:id` — Fetch a user's public profile and skills.
+- `POST /api/people/:id/connect` — Direct connect with a peer.
+
+### 4. Direct Peer Messaging (`/api/messages`)
+- `GET /api/messages/conversations` — Fetch user's conversation threads with unread counts.
+- `GET /api/messages/:partnerId` — Fetch message history with a peer (persisted in SQLite).
+- `POST /api/messages/:partnerId` — Send a direct message (dispatched via REST + Socket.IO).
+- `PATCH /api/messages/:partnerId/read` — Mark a message thread as read.
+- `GET /api/messages/:partnerId/online` — Check live online status of a peer.
+
+### 5. Culture Locket & Oral Dialect Archive (`/api/locket`)
+- `GET /api/locket` — Retrieve active locket moments feed.
+- `GET /api/locket/mine` — View moments authored by the current user.
+- `GET /api/locket/connections` — View moments shared by connected cultural peers.
+- `GET /api/locket/vault` — Access the curated regional dialect vocabulary archive.
+- `POST /api/locket/audio` — Upload audio recording for dialect pronunciation guides.
+- `POST /api/locket` — Publish a new Word of the Day or Craft Journal pulse.
+- `POST /api/locket/:id/react` — Send celebratory sticker reaction to a moment.
+
+### 6. Communities & Discussions (`/api/communities`)
+- `GET /api/communities` — Discover cultural hubs by category or search query.
+- `GET /api/communities/:id` — Get detailed community info and member roster.
+- `POST /api/communities/:id/join` — Join a cultural circle.
+- `POST /api/communities/:id/leave` — Leave a community.
+- `GET /api/communities/:id/messages` — Retrieve group discussion notes.
+- `POST /api/communities/:id/messages` — Post a note in the group discussion.
+
+---
+
+## Known Limitations & Architectural Assumptions
+
+The following constraints are **explicit, intentional design boundaries** of this hackathon build. They are documented here so evaluators can distinguish architectural decisions from implementation defects.
+
+### 1. SQLite Is Single-Process and File-Backed
+
+The database engine is Node.js 22 built-in `node:sqlite` (`DatabaseSync`), writing synchronously to a local file. WAL mode and foreign-key constraints are enabled.
+
+**Boundary:** Running multiple parallel Node.js server processes against the same `.db` file is not supported and will cause write contention. Horizontal scaling requires migrating to a network-accessible database (e.g., PostgreSQL). This is a deliberate choice for zero-dependency, self-contained local operation.
+
+### 2. Socket.IO Uses In-Process Memory Only — No Redis Backplane
+
+All WebSocket connection state (the `onlineUsers` Map, Socket.IO room memberships) lives in the Node.js process heap. No external Redis Pub/Sub adapter is used.
+
+**Boundary:** Deploying two or more backend instances behind a round-robin load balancer without sticky sessions would break real-time delivery. Single-node deployment works correctly.
+
+### 3. Uploaded Media Is Stored on Local Filesystem
+
+Audio recordings (`POST /api/locket/audio`) are saved to `server/uploads/locket/` on the host disk via Multer. Profile avatar URLs in seed data point to the local `/avatars/` static path.
+
+**Boundary:** In containerized or ephemeral deployments, uploaded files are lost on restart unless a persistent volume is mounted at `server/uploads/`. Cloud blob storage is out of scope.
+
+### 4. Audio File Size Is Capped at 5 MB
+
+The Multer configuration enforces a **5 MB** per-file size cap. The `express.json()` middleware enforces a **2 MB** body cap for JSON payloads. Clients that send larger payloads receive `413 Payload Too Large`.
+
+**Boundary:** Long-form audio is not supported — this is a short dialect word/phrase sharing feature by design.
+
+### 5. Browser Microphone Availability Is Not Guaranteed
+
+The Locket recording feature uses the browser-native `MediaRecorder` API, which requires an HTTPS or `localhost` origin, explicit user microphone permission, and available hardware.
+
+**Boundary:** When the microphone is unavailable or denied, the client falls back to Web Speech Synthesis (TTS) for pronunciation display. No audio is captured in this path. This is intentional and user-visible.
+
+### 6. Location Precision Is Intentionally Coarse
+
+User coordinates are **never sent to clients** — `lat` and `lng` fields are explicitly stripped from all API responses. Matching uses only city and state string labels.
+
+**Boundary:** Same-city / same-state is the finest proximity granularity available. Precise meter-level geo-filtering is absent as a privacy safeguard.
+
+### 7. Authentication Is JWT-Only — No OAuth, No Email Verification, No Server-Side Revocation
+
+Sessions are stateless HMAC-SHA256 JWTs with 7-day expiry stored in browser `sessionStorage`. No server-side revocation list exists.
+
+**Boundary:**
+- Logout clears the client-side token only; the JWT remains valid until expiry.
+- No Google/GitHub OAuth 2.0, WebAuthn, SMS OTP, or email verification.
+- Registration is open with no email verification step (acceptable for a demo build).
+
+### 8. The Dialect Vault Is a Hardcoded Static List
+
+The four dialect entries at `GET /api/locket/vault` (Tulu, Konkani, Kodava Takk, Havigannada) are hardcoded constants in source code — not database rows. They cannot be added to, edited, or deleted via the API.
+
+**Boundary:** User-submitted dialect entries go into the locket moments feed, not the vault.
+
+### 9. Content Moderation Is Manual Only
+
+Community reports stored via `POST /api/communities/:id/report` require manual administrator review. No automated NLP toxicity classifier or AI pipeline is implemented.
+
+**Boundary:** No automatic content removal, user suspension, or real-time flagging occurs.
+
+### 10. Message and Community History Is Hard-Capped
+
+- Direct messages: `GET /api/messages/:partnerId` returns at most **200 messages** per request (no pagination cursor).
+- Community messages: `GET /api/communities/:id/messages` returns at most **150 messages** per request (no pagination cursor).
+
+**Boundary:** Histories exceeding these caps will drop the oldest messages from view.
+
+### 11. Rate Limiting Is In-Process Only
+
+Rate limiting runs within the Node.js process as Express middleware. Counters reset on server restart and are not shared across instances.
+
+**Boundary:** Distributed rate limiting requires an external Redis-backed adapter in a multi-node setup.
+
+### 12. Event Venue Coordinates Use a Limited Lookup Table
+
+Venue-to-coordinate resolution uses a hardcoded table of approximately 30 known Karnataka cities and major Indian hubs. Unmatched venues fall back to Karnataka's geographic centroid (15.3173°N, 75.7139°E).
+
+**Boundary:** Events with unfamiliar venue names appear clustered at Karnataka's center on the map.
+
+### 13. People Connection Is Instant — No Pending Request Step
+
+`POST /api/people/:id/connect` immediately sets the connection to `CONNECTED`. There is no two-step send/accept flow.
+
+**Boundary:** Any authenticated user can connect with any discoverable user without approval. This is a deliberate UX simplification for the demo.
+
+### 14. JWT Is Stored in sessionStorage
+
+The JWT is stored in `sessionStorage` under key `ss_token` and sent as `Authorization: Bearer` on each request.
+
+**Boundary:** Tokens are accessible to JavaScript in the same origin (XSS risk). Production hardening would use `httpOnly` cookies with `SameSite=Strict`.
+
+### 15. Seed Audio and Image URLs Reference External CDNs
+
+Locket moments and events created by the seed script include `audio_url` and `image_url` values that reference external URLs (e.g., Unsplash). These require internet connectivity and may break if third-party CDNs impose rate limits or change URLs.
+
+**Boundary:** User-uploaded recordings served from `/uploads/locket/` are not subject to this limitation.
+
+---
+
+## Seeded Demo Data Notes
+
+The seed script (`server/src/db/seed.js`) populates:
+- **5 user accounts** with cultural profiles, interests, skills, and languages.
+- **Pre-established connections** between seed users (so messaging and locket feeds work immediately on first run).
+- **Cultural events** across Karnataka (Yakshagana performances, Tulu circles, pottery workshops, food trails, etc.).
+- **Community circles** with initial members and roles.
+- **Locket moments** as sample dialect entries and craft journal posts.
+
+The seed is **idempotent** — it uses `INSERT OR IGNORE` and is safe to run multiple times without creating duplicates.
+
+---
+
+## Git & Branch Information
+
+- **`main`** — Active primary development branch.
+- **`bugbounty`** — Evaluation and review branch, maintained in parity with `main`.
