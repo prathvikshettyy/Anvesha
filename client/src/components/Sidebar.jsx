@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Compass,
   Calendar,
+  Landmark,
   Users,
   MessageSquare,
   Bookmark,
@@ -25,6 +26,7 @@ export default function Sidebar({
   const navItems = [
     { id: 'home', label: 'Home', icon: Compass },
     { id: 'events', label: 'Atlas & Events', icon: Calendar },
+    { id: 'heritage', label: 'Culture & Heritage', icon: Landmark },
     { id: 'people', label: 'Find People', icon: Users },
     { id: 'locket', label: 'Culture Locket', icon: Mic, badge: 'Daily' },
     { id: 'communities', label: 'Communities', icon: Users },

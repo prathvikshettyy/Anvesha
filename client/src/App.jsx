@@ -10,6 +10,7 @@ import LocketView from './views/LocketView';
 import MessagesView from './views/MessagesView';
 import ProfileView from './views/ProfileView';
 import AdminAdsDashboard from './views/AdminAdsDashboard';
+import CultureHeritageView from './views/CultureHeritageView';
 
 import EventDetailModal from './components/EventDetailModal';
 import LocketModal from './components/LocketModal';
@@ -536,6 +537,15 @@ export default function App() {
               setCurrentView('people');
             }}
             onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+            onNavigate={(view) => setCurrentView(view)}
+          />
+        )}
+
+        {currentView === 'heritage' && (
+          <CultureHeritageView
+            currentUser={user}
+            onNavigate={(view) => setCurrentView(view)}
+            onSelectEvent={setActiveDetailEvent}
           />
         )}
 

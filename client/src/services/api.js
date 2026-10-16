@@ -368,7 +368,26 @@ export const ads = {
   }
 };
 
+// ── Culture & Heritage ───────────────────────────────────────────────────────
+export const heritage = {
+  /**
+   * List heritage sites and cultural experiences.
+   * @param {{ q?, category?, state?, type?, limit?, offset? }} params
+   */
+  list: ({ q = '', category = 'ALL', state = 'ALL', type = 'ALL', limit = 50, offset = 0 } = {}) => {
+    const qs = new URLSearchParams({ q, category, state, type, limit, offset }).toString();
+    return get(`/heritage?${qs}`);
+  },
+
+  /** Get one heritage site by ID. */
+  get: (id) => get(`/heritage/${id}`),
+
+  /** Propose/submit a new cultural heritage site or experience. */
+  submit: (data) => post('/heritage', data),
+};
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const health = () => get('/health');
+
 
 

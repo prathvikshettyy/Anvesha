@@ -13,6 +13,7 @@ import messagesRoutes from './routes/messages.js';
 import communitiesRoutes from './routes/communities.js';
 import foodRoutes from './routes/food.js';
 import adsRoutes from './routes/ads.js';
+import heritageRoutes from './routes/heritage.js';
 import { setupSwagger } from './docs/swagger.js';
 import { initRealtime } from './realtime/socket.js';
 import { UPLOADS_DIR } from './lib/uploads.js';
@@ -153,6 +154,7 @@ app.use('/api/messages',    messagesRoutes);
 app.use('/api/communities', communitiesRoutes);
 app.use('/api/food',        foodRoutes);
 app.use('/api/ads',         adsRoutes);
+app.use('/api/heritage',    heritageRoutes);
 
 // ── Client SPA Production Serving ───────────────────────────────────────────
 if (fs.existsSync(CLIENT_DIST)) {

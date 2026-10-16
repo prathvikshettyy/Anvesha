@@ -291,6 +291,50 @@ export function applySchema(db) {
 
     CREATE INDEX IF NOT EXISTS idx_ad_logs_ad ON ad_logs(ad_id, event_type);
     CREATE INDEX IF NOT EXISTS idx_ad_logs_date ON ad_logs(created_at);
+
+    -- ─── Culture & Heritage Sites and Experiences ─────────────────────────────
+    CREATE TABLE IF NOT EXISTS heritage_sites (
+      id                    TEXT PRIMARY KEY,
+      name                  TEXT NOT NULL,
+      category              TEXT NOT NULL CHECK(category IN (
+        'TEMPLES_RELIGIOUS',
+        'CHURCHES_CATHEDRALS',
+        'MOSQUES_ISLAMIC',
+        'MONASTERIES_SPIRITUAL',
+        'MONUMENTS_WALKS',
+        'PERFORMANCES_CRAFTS',
+        'HIDDEN_VILLAGES'
+      )),
+      category_label        TEXT NOT NULL,
+      is_permanent_place    INTEGER DEFAULT 1,
+      state                 TEXT NOT NULL,
+      state_id              TEXT NOT NULL,
+      city                  TEXT DEFAULT '',
+      location_summary      TEXT NOT NULL,
+      lat                   REAL,
+      lng                   REAL,
+      description           TEXT NOT NULL,
+      cultural_significance TEXT DEFAULT '',
+      image_url             TEXT DEFAULT '',
+      visiting_hours        TEXT DEFAULT 'Open daily to public visitors',
+      event_date            TEXT DEFAULT '',
+      event_date_iso        TEXT DEFAULT '',
+      dress_guidelines      TEXT DEFAULT '',
+      photography_rules     TEXT DEFAULT '',
+      customs_etiquette     TEXT DEFAULT '',
+      organizer_name        TEXT DEFAULT '',
+      contact_info          TEXT DEFAULT '',
+      verification_status   TEXT DEFAULT 'VERIFIED'
+                              CHECK(verification_status IN ('VERIFIED','COMMUNITY_SUBMITTED','PENDING')),
+      source_label          TEXT DEFAULT 'Archaeological Survey of India & State Tourism Registry',
+      source_url            TEXT DEFAULT '',
+      submitted_by          TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at            TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_heritage_cat ON heritage_sites(category);
+    CREATE INDEX IF NOT EXISTS idx_heritage_state ON heritage_sites(state_id);
+    CREATE INDEX IF NOT EXISTS idx_heritage_type ON heritage_sites(is_permanent_place);
   `);
 
   migrateLegacyColumns(db);

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles, CalendarX2, Compass, Utensils } from 'lucide-react';
+import { Search, Map, LayoutGrid, PlusCircle, Bookmark, RotateCcw, Sparkles, CalendarX2, Compass, Utensils, Landmark } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import InteractiveIndiaMap from '../components/InteractiveIndiaMap';
 import StateDetailPanel from '../components/StateDetailPanel';
@@ -19,7 +19,8 @@ export default function EventsView({
   onSelectEvent,
   onSelectPerson,
   onOpenSubmitModal,
-  onNavigateFood
+  onNavigateFood,
+  onNavigate
 }) {
   const [viewMode, setViewMode] = useState('MAP'); // 'MAP' or 'GRID'
   const [searchQuery, setSearchQuery] = useState('');
@@ -276,6 +277,32 @@ export default function EventsView({
           >
             <RotateCcw className="w-3 h-3" />
             <span>Show all India</span>
+          </button>
+        </div>
+      )}
+
+      {/* Culture & Heritage Gateway Notice if culture category selected */}
+      {selectedCategory === 'culture' && onNavigate && viewMode !== 'FOOD' && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-terra-primary/10 border border-terra-primary/30 p-3.5 sm:px-4 sm:py-3 rounded-2xl text-xs shadow-xs animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-terra-primary text-cream-canvas flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Landmark className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-serif font-bold text-cocoa-text text-sm">
+                Explore the Dedicated Culture & Heritage National Atlas
+              </p>
+              <p className="text-cocoa-text/80 text-[11px]">
+                Discover sacred temples, cathedrals, Islamic architecture, monasteries, monuments, and hidden craft villages.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('heritage')}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-terra-primary text-cream-canvas font-bold text-xs hover:bg-primary-container shadow-warm transition-all flex-shrink-0 cursor-pointer"
+          >
+            <span>Open Culture & Heritage</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </div>
       )}
