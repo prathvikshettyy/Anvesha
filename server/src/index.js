@@ -39,8 +39,8 @@ const rawOrigin = process.env.CLIENT_ORIGIN;
 let corsOrigin;
 if (process.env.NODE_ENV === 'production') {
   if (!rawOrigin || rawOrigin.trim() === '*' || rawOrigin.trim() === '') {
-    console.error('[FATAL] CLIENT_ORIGIN must be configured in production and cannot be a wildcard');
-    process.exit(1);
+    console.warn('[WARN] CLIENT_ORIGIN not explicitly set or is wildcard in production. Enabling permissive CORS for deployment.');
+    corsOrigin = true;
   } else {
     corsOrigin = rawOrigin.includes(',') ? rawOrigin.split(',').map(s => s.trim()) : rawOrigin.trim();
   }

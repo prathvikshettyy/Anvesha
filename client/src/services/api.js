@@ -8,7 +8,7 @@
  * To log out, call api.auth.logout() or simply clear sessionStorage.
  */
 
-const BASE = '/api'; // proxied by Vite to http://localhost:3001 in dev
+const BASE = import.meta.env.VITE_API_URL || '/api'; // proxied by Vite to http://localhost:3001 in dev or configured remotely
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export const token = {

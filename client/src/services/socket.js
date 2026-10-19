@@ -22,7 +22,11 @@ import { io } from 'socket.io-client';
 // In dev the Vite proxy (/socket.io → http://localhost:3001 with ws:true)
 // transparently upgrades the WebSocket connection to the Express server,
 // so we can always point at the current origin.
-const SERVER_URL = import.meta.env.VITE_SOCKET_URL ?? window.location.origin;
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL ?? (
+  import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+    : window.location.origin
+);
 
 let socket = null;
 
